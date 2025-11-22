@@ -58,22 +58,22 @@ cubes:
         description: Transaction status code
 
       - name: trandate
-        sql: "{CUBE}.trandate"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
       - name: month
-        sql: "DATE_TRUNC('month', {CUBE}.trandate)"
+        sql: "DATE_TRUNC('month', CAST({CUBE}.trandate AS TIMESTAMP))"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "DATE_TRUNC('quarter', {CUBE}.trandate)"
+        sql: "DATE_TRUNC('quarter', CAST({CUBE}.trandate AS TIMESTAMP))"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "DATE_TRUNC('year', {CUBE}.trandate)"
+        sql: "DATE_TRUNC('year', CAST({CUBE}.trandate AS TIMESTAMP))"
         type: time
         description: Transaction year
 

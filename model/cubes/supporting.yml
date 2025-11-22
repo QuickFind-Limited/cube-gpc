@@ -105,7 +105,7 @@ cubes:
         primary_key: true
 
       - name: trandate
-        sql: "{CUBE}.trandate"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
 
       - name: status
