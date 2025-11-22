@@ -164,7 +164,6 @@ cubes:
           - locations.region
           - items.category
           - items.season
-          - items.gender
           - transactions.type
         time_dimension: transactions.trandate
         granularity: day

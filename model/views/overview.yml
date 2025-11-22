@@ -45,7 +45,6 @@ views:
           - itemtype
           - category
           - season
-          - gender
           - color
           - size
 
@@ -85,7 +84,6 @@ views:
           - itemtype
           - category
           - season
-          - gender
 
   # Customer Insights View - B2C customer analysis
   - name: customer_insights
