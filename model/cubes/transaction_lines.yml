@@ -273,21 +273,31 @@ cubes:
       - name: return_lines
         sql: "{CUBE}.quantity > 0"
 
-    # Pre-aggregations temporarily disabled - need to add local dimension references
-    # pre_aggregations:
-    #   - name: main_rollup
-    #     measures:
-    #       - total_revenue
-    #       - net_revenue
-    #       - units_sold
-    #       - units_returned
-    #       - total_tax
-    #       - line_count
-    #     dimensions:
-    #       - channel_type
-    #     time_dimension: transactions.trandate
-    #     granularity: day
-    #     partition_granularity: month
-    #     refresh_key:
-    #       every: 1 hour
+    pre_aggregations:
+      # Simple daily rollup - most likely to match common queries
+      - name: daily_revenue
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - channel_type
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Category analysis rollup
+      - name: category_revenue
+        measures:
+          - total_revenue
+          - units_sold
+        dimensions:
+          - items.category
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
 
