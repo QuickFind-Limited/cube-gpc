@@ -73,6 +73,11 @@ cubes:
         type: string
         description: Product range
 
+      - name: gender
+        sql: "{CUBE}.custitem_gpc_gender"
+        type: string
+        description: Product gender (Men, Women, Unisex)
+
       - name: department
         sql: "{CUBE}.department"
         type: string
