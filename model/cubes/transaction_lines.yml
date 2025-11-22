@@ -84,18 +84,18 @@ cubes:
 
       # Calculated Measures
       - name: average_order_value
-        sql: "{total_revenue} / NULLIF({transaction_count}, 0)"
+        sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
         type: number
         format: currency
         description: Average order value (AOV)
 
       - name: average_items_per_order
-        sql: "{line_count} / NULLIF({transaction_count}, 0)"
+        sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
         type: number
         description: Average number of items per order
 
       - name: average_selling_price
-        sql: "{total_revenue} / NULLIF({units_sold}, 0)"
+        sql: "1.0 * {total_revenue} / NULLIF({units_sold}, 0)"
         type: number
         format: currency
         description: Average selling price per unit
