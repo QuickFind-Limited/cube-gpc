@@ -2,20 +2,15 @@
 
 from cube import config
 import os
-import json
 
 @config('driver_factory')
 def driver_factory(ctx: dict) -> dict:
-    # Get GCS credentials from environment variable
-    creds_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON', '{}')
-    creds = json.loads(creds_json) if creds_json else {}
+    # Get GCS HMAC credentials from environment variables
+    gcs_key_id = os.environ.get('GCS_KEY_ID', '')
+    gcs_secret = os.environ.get('GCS_SECRET', '')
 
     # GCS bucket with Parquet files
     bucket = 'gs://gym-plus-coffee-bucket-dev/parquet'
-
-    # Extract credentials
-    client_email = creds.get("client_email", "")
-    private_key = creds.get("private_key", "").replace("\n", "\\n")
 
     # Init SQL to create tables from Parquet files on GCS
     init_sql = f"""
@@ -23,15 +18,11 @@ def driver_factory(ctx: dict) -> dict:
         INSTALL httpfs;
         LOAD httpfs;
 
-        -- Set GCS credentials
-        SET s3_endpoint='storage.googleapis.com';
-        SET s3_url_style='path';
-
-        -- Create secret for GCS access
+        -- Create secret for GCS access using HMAC keys
         CREATE SECRET gcs_secret (
             TYPE GCS,
-            KEY_ID '{client_email}',
-            SECRET '{private_key}'
+            KEY_ID '{gcs_key_id}',
+            SECRET '{gcs_secret}'
         );
 
         -- Create tables from Parquet files
