@@ -91,7 +91,13 @@ cubes:
         sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
         type: number
         format: currency
-        description: Average order value (AOV)
+        description: Average order value (AOV) - revenue transactions only
+
+      - name: average_salesord_value
+        sql: "1.0 * SUM(CASE WHEN {transactions.type} = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END) / NULLIF(COUNT(DISTINCT CASE WHEN {transactions.type} = 'SalesOrd' THEN {CUBE}.transaction END), 0)"
+        type: number
+        format: currency
+        description: Average order value from SalesOrd (OM003 - order intent)
 
       - name: average_items_per_order
         sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
