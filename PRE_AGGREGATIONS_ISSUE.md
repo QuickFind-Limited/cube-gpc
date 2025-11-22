@@ -2,38 +2,60 @@
 
 ## Issue
 
-Pre-aggregations in `transaction_lines.yml` were causing this error:
+Pre-aggregations in `transaction_lines.yml` were showing this warning:
 
 ```
 This pre-aggregation matches no queries. Please check if join paths in this pre-aggregation are correct
 and if there are no conflicting pre-aggregations that matches same set of queries earlier.
 ```
 
-## Root Cause
+## Root Cause (After Research)
 
-The pre-aggregation was referencing dimensions from joined cubes directly:
+This is a **WARNING, not an error**. It appears when no queries have been made yet that match the pre-aggregation pattern.
+
+### What We Verified:
+
+1. **Joined cube syntax IS supported** - `items.category`, `transactions.trandate` works correctly
+2. **Our joins are safe** - All relationships are `many_to_one` (no measure multiplication issues)
+3. **All cubes have primary keys** - Required for joins and pre-aggregations to work
+
+### The Real Issue:
+
+The original pre-aggregation had **too many dimensions**, making it unlikely to match any single query exactly. Pre-aggregations only match when queries request the **exact** combination of measures and dimensions.
+
+## Solution Applied
+
+Simplified to two focused pre-aggregations that match common query patterns:
 
 ```yaml
 pre_aggregations:
-  - name: main_rollup
+  # Most common: revenue by channel over time
+  - name: daily_revenue
+    measures:
+      - total_revenue
+      - units_sold
+      - transaction_count
     dimensions:
-      - channel_type           # Local dimension - OK
-      - locations.region       # Joined cube dimension - PROBLEM
-      - items.category         # Joined cube dimension - PROBLEM
-      - items.season           # Joined cube dimension - PROBLEM
-      - transactions.type      # Joined cube dimension - PROBLEM
-    time_dimension: transactions.trandate  # Joined cube - PROBLEM
+      - channel_type
+    time_dimension: transactions.trandate
+    granularity: day
+
+  # Product analysis: revenue by category over time
+  - name: category_revenue
+    measures:
+      - total_revenue
+      - units_sold
+    dimensions:
+      - items.category
+    time_dimension: transactions.trandate
+    granularity: day
 ```
 
-Cube.js pre-aggregations cannot directly reference dimensions from joined cubes using dot notation. The pre-aggregation needs to reference dimensions that are defined locally in the cube.
+The warning will disappear once queries are made that match these patterns.
 
-## Temporary Fix
+## Adding More Pre-Aggregations
 
-Pre-aggregations were disabled (commented out) to allow the schema to compile and queries to work without optimization.
-
-## Proper Fix
-
-To re-enable pre-aggregations, add local dimension references in `transaction_lines.yml` that wrap the joined cube fields:
+If you need more complex pre-aggregations with multiple dimensions, create separate focused rollups for each query pattern:
 
 ### Step 1: Add Local Dimensions
 
