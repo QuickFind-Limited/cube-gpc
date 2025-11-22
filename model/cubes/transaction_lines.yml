@@ -281,51 +281,21 @@ cubes:
       - name: return_lines
         sql: "{CUBE}.quantity > 0"
 
-    pre_aggregations:
-      # Main rollup - covers most query patterns with multiple indexes
-      - name: main_rollup
-        measures:
-          - total_revenue
-          - net_revenue
-          - units_sold
-          - units_returned
-          - total_tax
-          - line_count
-        dimensions:
-          - channel_type
-          - locations.region
-          - items.category
-          - items.season
-          - items.size
-          - items.range
-          - transactions.type
-          - transactions.billing_country
-        time_dimension: transactions.trandate
-        granularity: day
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
-        indexes:
-          # Index for channel analysis (most common)
-          - name: channel_idx
-            columns:
-              - channel_type
-              - "{'transactions__trandate_day'}"
-          # Index for product analysis
-          - name: product_idx
-            columns:
-              - items.category
-              - items.season
-              - "{'transactions__trandate_day'}"
-          # Index for region analysis
-          - name: region_idx
-            columns:
-              - locations.region
-              - channel_type
-              - "{'transactions__trandate_day'}"
-          # Index for country analysis
-          - name: country_idx
-            columns:
-              - transactions.billing_country
-              - "{'transactions__trandate_day'}"
+    # Pre-aggregations temporarily disabled - need to add local dimension references
+    # pre_aggregations:
+    #   - name: main_rollup
+    #     measures:
+    #       - total_revenue
+    #       - net_revenue
+    #       - units_sold
+    #       - units_returned
+    #       - total_tax
+    #       - line_count
+    #     dimensions:
+    #       - channel_type
+    #     time_dimension: transactions.trandate
+    #     granularity: day
+    #     partition_granularity: month
+    #     refresh_key:
+    #       every: 1 hour
 
