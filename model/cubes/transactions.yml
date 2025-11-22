@@ -1,0 +1,116 @@
+cubes:
+  - name: transactions
+    sql: SELECT * FROM transactions
+    title: Transactions
+    description: Transaction headers including orders, invoices, and cash sales
+
+    joins:
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency = {currencies.id}"
+
+      - name: subsidiaries
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary = {subsidiaries.id}"
+
+    measures:
+      - name: order_count
+        type: count
+        description: Total number of transactions
+
+      - name: unique_customers
+        sql: "{CUBE}.custbody_customer_email"
+        type: count_distinct
+        description: Number of unique customers by email
+
+      - name: fulfilled_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'G'"
+        description: Number of fulfilled/billed orders
+
+      - name: cancelled_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'C'"
+        description: Number of cancelled orders
+
+      - name: average_transaction_total
+        sql: "{CUBE}.foreigntotal"
+        type: avg
+        format: currency
+        description: Average transaction total
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: type
+        sql: "{CUBE}.type"
+        type: string
+        description: "Transaction type: SalesOrd, CustInvc, CashSale"
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+        description: Transaction status code
+
+      - name: trandate
+        sql: "{CUBE}.trandate"
+        type: time
+        description: Transaction date
+
+      - name: month
+        sql: "DATE_TRUNC('month', {CUBE}.trandate)"
+        type: time
+        description: Transaction month
+
+      - name: quarter
+        sql: "DATE_TRUNC('quarter', {CUBE}.trandate)"
+        type: time
+        description: Transaction quarter
+
+      - name: year
+        sql: "DATE_TRUNC('year', {CUBE}.trandate)"
+        type: time
+        description: Transaction year
+
+      - name: customer_email
+        sql: "{CUBE}.custbody_customer_email"
+        type: string
+        description: Customer email address
+
+      - name: billing_country
+        sql: "{CUBE}.billing_country"
+        type: string
+        description: Billing country
+
+      - name: foreign_total
+        sql: "{CUBE}.foreigntotal"
+        type: number
+        description: Transaction total in foreign currency
+
+      - name: remote_order_source
+        sql: "{CUBE}.custbody_pwks_remote_order_source"
+        type: string
+        description: Remote order source (e.g., John Lewis)
+
+      - name: is_partner_order
+        sql: "CASE WHEN {CUBE}.custbody_pwks_remote_order_source = 'John Lewis' THEN 'Yes' ELSE 'No' END"
+        type: string
+        description: Whether order is from a partner
+
+    segments:
+      - name: revenue_transactions
+        sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
+
+      - name: sales_orders
+        sql: "{CUBE}.type = 'SalesOrd'"
+
+      - name: with_customer_email
+        sql: "{CUBE}.custbody_customer_email IS NOT NULL"
+
+      - name: fulfilled_status
+        sql: "{CUBE}.status = 'G'"

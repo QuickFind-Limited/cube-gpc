@@ -1,30 +1,71 @@
 # Configuration options: https://cube.dev/docs/product/configuration
 
 from cube import config
+import os
+import json
 
 @config('driver_factory')
 def driver_factory(ctx: dict) -> dict:
-    # Init SQL to create tables from CSV files on S3
-    init_sql = """
-        -- Create products table from CSV on S3
-        CREATE TABLE IF NOT EXISTS products AS
-        SELECT *
-        FROM read_csv_auto('s3://cube-tutorial/products.csv');
+    # Get GCS credentials from environment variable
+    creds_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON', '{}')
+    creds = json.loads(creds_json) if creds_json else {}
 
-        -- Create users table from CSV on S3
-        CREATE TABLE IF NOT EXISTS users AS
-        SELECT *
-        FROM read_csv_auto('s3://cube-tutorial/users.csv');
+    # GCS bucket with Parquet files
+    bucket = 'gs://gym-plus-coffee-bucket-dev/parquet'
 
-        -- Create orders table from CSV on S3
-        CREATE TABLE IF NOT EXISTS orders AS
-        SELECT *
-        FROM read_csv_auto('s3://cube-tutorial/orders.csv');
+    # Init SQL to create tables from Parquet files on GCS
+    init_sql = f"""
+        -- Install and load GCS extension
+        INSTALL httpfs;
+        LOAD httpfs;
 
-        -- Create line_items table from CSV on S3
-        CREATE TABLE IF NOT EXISTS line_items AS
-        SELECT *
-        FROM read_csv_auto('s3://cube-tutorial/line_items.csv');
+        -- Set GCS credentials
+        SET s3_endpoint='storage.googleapis.com';
+        SET s3_url_style='path';
+
+        -- Create secret for GCS access
+        CREATE SECRET gcs_secret (
+            TYPE GCS,
+            KEY_ID '{creds.get("client_email", "")}',
+            SECRET '{creds.get("private_key", "").replace(chr(10), "\\n")}'
+        );
+
+        -- Create tables from Parquet files
+        CREATE TABLE IF NOT EXISTS transactions AS
+        SELECT * FROM read_parquet('{bucket}/transactions.parquet');
+
+        CREATE TABLE IF NOT EXISTS transaction_lines AS
+        SELECT * FROM read_parquet('{bucket}/transaction_lines.parquet');
+
+        CREATE TABLE IF NOT EXISTS items AS
+        SELECT * FROM read_parquet('{bucket}/items.parquet');
+
+        CREATE TABLE IF NOT EXISTS locations AS
+        SELECT * FROM read_parquet('{bucket}/locations.parquet');
+
+        CREATE TABLE IF NOT EXISTS inventory_calculated AS
+        SELECT * FROM read_parquet('{bucket}/inventory_calculated.parquet');
+
+        CREATE TABLE IF NOT EXISTS fulfillments AS
+        SELECT * FROM read_parquet('{bucket}/fulfillments.parquet');
+
+        CREATE TABLE IF NOT EXISTS fulfillment_lines AS
+        SELECT * FROM read_parquet('{bucket}/fulfillment_lines.parquet');
+
+        CREATE TABLE IF NOT EXISTS currencies AS
+        SELECT * FROM read_parquet('{bucket}/currencies.parquet');
+
+        CREATE TABLE IF NOT EXISTS subsidiaries AS
+        SELECT * FROM read_parquet('{bucket}/subsidiaries.parquet');
+
+        CREATE TABLE IF NOT EXISTS departments AS
+        SELECT * FROM read_parquet('{bucket}/departments.parquet');
+
+        CREATE TABLE IF NOT EXISTS classifications AS
+        SELECT * FROM read_parquet('{bucket}/classifications.parquet');
+
+        CREATE TABLE IF NOT EXISTS b2b_customers AS
+        SELECT * FROM read_parquet('{bucket}/b2b_customers.parquet');
     """
 
     return {

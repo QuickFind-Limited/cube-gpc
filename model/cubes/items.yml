@@ -1,0 +1,104 @@
+cubes:
+  - name: items
+    sql: SELECT * FROM items
+    title: Items
+    description: Product master data with dimensions like category, season, size, color
+
+    measures:
+      - name: item_count
+        type: count
+        description: Total number of items
+
+      - name: active_item_count
+        type: count
+        filters:
+          - sql: "{CUBE}.isinactive = 'F'"
+        description: Number of active items
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: itemid
+        sql: "{CUBE}.itemid"
+        type: string
+        title: SKU
+        description: Item SKU code
+
+      - name: displayname
+        sql: "{CUBE}.displayname"
+        type: string
+        title: Product Name
+        description: Product display name
+
+      - name: category
+        sql: "{CUBE}.custitem_gpc_category"
+        type: string
+        description: Product category
+
+      - name: category_with_default
+        sql: "COALESCE({CUBE}.custitem_gpc_category, 'Uncategorized')"
+        type: string
+        description: Product category with default for missing values
+
+      - name: season
+        sql: "{CUBE}.custitem_gpc_season"
+        type: string
+        description: Product season (e.g., AW25, SS24)
+
+      - name: season_with_default
+        sql: "COALESCE({CUBE}.custitem_gpc_season, 'No Season')"
+        type: string
+        description: Product season with default for missing values
+
+      - name: size
+        sql: "{CUBE}.custitem_gpc_size"
+        type: string
+        description: Product size
+
+      - name: color
+        sql: "{CUBE}.custitem_gpc_color"
+        type: string
+        description: Product color
+
+      - name: range
+        sql: "{CUBE}.custitem_gpc_range"
+        type: string
+        description: Product range
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: string
+        description: Product department
+
+      - name: classification
+        sql: "{CUBE}.class"
+        type: string
+        description: Product classification
+
+      - name: is_inactive
+        sql: "{CUBE}.isinactive"
+        type: string
+        description: Whether item is inactive
+
+      - name: cost
+        sql: "{CUBE}.cost"
+        type: number
+        description: Item cost
+
+      - name: has_dimensions
+        sql: "CASE WHEN {CUBE}.custitem_gpc_category IS NOT NULL THEN 'Yes' ELSE 'No' END"
+        type: string
+        description: Whether item has product dimensions
+
+    segments:
+      - name: categorized_products
+        sql: "{CUBE}.custitem_gpc_category IS NOT NULL"
+
+      - name: active_products
+        sql: "{CUBE}.isinactive = 'F'"
+
+      - name: with_season
+        sql: "{CUBE}.custitem_gpc_season IS NOT NULL"

@@ -1,0 +1,110 @@
+cubes:
+  - name: inventory
+    sql: SELECT * FROM inventory_calculated
+    title: Inventory
+    description: Current inventory positions from inventory_calculated table (Rule 6)
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      - name: total_stock
+        sql: "{CUBE}.calculated_quantity_available"
+        type: sum
+        description: Total stock (can be negative for backorders)
+
+      - name: available_stock
+        sql: "{CUBE}.calculated_quantity_available"
+        type: sum
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available > 0"
+        description: Available stock (positive only)
+
+      - name: backorder_units
+        sql: "ABS({CUBE}.calculated_quantity_available)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available < 0"
+        description: Backorder units (negative stock as positive number)
+
+      - name: position_count
+        type: count
+        description: Total number of inventory positions
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct
+        description: Number of unique SKUs in inventory
+
+      - name: location_count
+        sql: "{CUBE}.location"
+        type: count_distinct
+        description: Number of locations with inventory
+
+      - name: zero_stock_positions
+        type: count
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available = 0"
+        description: Number of positions with zero stock
+
+      - name: negative_stock_positions
+        type: count
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available < 0"
+        description: Number of positions with negative stock
+
+      - name: average_stock_per_position
+        sql: "{total_stock} / NULLIF({position_count}, 0)"
+        type: number
+        description: Average stock per position
+
+    dimensions:
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: itemid
+        sql: "{CUBE}.itemid"
+        type: string
+        title: SKU
+        description: Item SKU code
+
+      - name: displayname
+        sql: "{CUBE}.displayname"
+        type: string
+        description: Item display name
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: quantity
+        sql: "{CUBE}.calculated_quantity_available"
+        type: number
+        description: Quantity available
+
+      - name: stock_status
+        sql: >
+          CASE
+            WHEN {CUBE}.calculated_quantity_available > 0 THEN 'In Stock'
+            WHEN {CUBE}.calculated_quantity_available = 0 THEN 'Zero Stock'
+            ELSE 'Backorder'
+          END
+        type: string
+        description: Stock status category
+
+    segments:
+      - name: positive_stock
+        sql: "{CUBE}.calculated_quantity_available > 0"
+
+      - name: zero_stock
+        sql: "{CUBE}.calculated_quantity_available = 0"
+
+      - name: backorder
+        sql: "{CUBE}.calculated_quantity_available < 0"

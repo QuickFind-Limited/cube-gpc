@@ -1,0 +1,144 @@
+cubes:
+  - name: transaction_lines
+    sql: SELECT * FROM transaction_lines
+    title: Transaction Lines
+    description: Line items from all transactions - the main fact table for metrics
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions.id}"
+
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments.id}"
+
+    measures:
+      # Revenue Measures - Rule 5: CustInvc + CashSale only
+      - name: total_revenue
+        sql: "{CUBE}.amount * -1"
+        type: sum
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Total gross revenue (CustInvc + CashSale only)
+
+      - name: net_revenue
+        sql: "{CUBE}.netamount * -1"
+        type: sum
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Net revenue after discounts
+
+      # Units Measures - Rule 2: Sales quantities are negative
+      - name: units_sold
+        sql: "ABS({CUBE}.quantity)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.quantity < 0"
+        description: Total units sold (absolute value)
+
+      - name: units_returned
+        sql: "{CUBE}.quantity"
+        type: sum
+        filters:
+          - sql: "{CUBE}.quantity > 0"
+        description: Total units returned
+
+      # Discount Measures
+      - name: total_discount
+        sql: "({CUBE}.amount - {CUBE}.netamount) * -1"
+        type: sum
+        format: currency
+        description: Total discount amount
+
+      - name: discount_rate
+        sql: "CASE WHEN {CUBE}.amount != 0 THEN ({CUBE}.amount - {CUBE}.netamount) / {CUBE}.amount * 100 ELSE 0 END"
+        type: avg
+        description: Average discount percentage
+
+      # Count Measures
+      - name: line_count
+        type: count
+        description: Total number of line items
+
+      - name: transaction_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct
+        description: Number of unique transactions
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct
+        description: Number of unique SKUs
+
+      # Calculated Measures
+      - name: average_order_value
+        sql: "{total_revenue} / NULLIF({transaction_count}, 0)"
+        type: number
+        format: currency
+        description: Average order value (AOV)
+
+      - name: average_items_per_order
+        sql: "{line_count} / NULLIF({transaction_count}, 0)"
+        type: number
+        description: Average number of items per order
+
+      - name: average_selling_price
+        sql: "{total_revenue} / NULLIF({units_sold}, 0)"
+        type: number
+        format: currency
+        description: Average selling price per unit
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: quantity
+        sql: "{CUBE}.quantity"
+        type: number
+
+      - name: amount
+        sql: "{CUBE}.amount"
+        type: number
+
+      - name: netamount
+        sql: "{CUBE}.netamount"
+        type: number
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+
+    segments:
+      - name: with_discount
+        sql: "{CUBE}.amount != {CUBE}.netamount"
+
+      - name: sales_lines
+        sql: "{CUBE}.quantity < 0"
+
+      - name: return_lines
+        sql: "{CUBE}.quantity > 0"

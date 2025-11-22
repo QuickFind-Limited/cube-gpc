@@ -1,0 +1,77 @@
+cubes:
+  - name: locations
+    sql: SELECT * FROM locations
+    title: Locations
+    description: Warehouse and store locations with centralized channel type logic
+
+    measures:
+      - name: location_count
+        type: count
+        description: Total number of locations
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+        description: Location name
+
+      # CRITICAL: Centralized channel type logic - Rule 4
+      - name: channel_type
+        sql: >
+          CASE
+            WHEN {CUBE}.name IS NULL THEN 'D2C'
+            WHEN {CUBE}.name LIKE 'Bleckmann%' AND {CUBE}.name NOT LIKE '%Quarantine%' AND {CUBE}.name NOT LIKE '%Miscellaneous%' THEN 'D2C'
+            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'D2C'
+            WHEN {CUBE}.name IN (
+              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+              'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
+            ) THEN 'RETAIL'
+            WHEN {CUBE}.name LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
+            WHEN {CUBE}.name LIKE 'Lifestyle Sports%' AND {CUBE}.name NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
+            WHEN {CUBE}.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+            WHEN {CUBE}.name LIKE 'Events%' THEN 'EVENTS'
+            ELSE 'OTHER'
+          END
+        type: string
+        description: "Channel type: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER"
+
+      - name: location_type
+        sql: >
+          CASE
+            WHEN {CUBE}.name LIKE 'Bleckmann%' THEN 'FULFILLMENT_CENTER'
+            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'FULFILLMENT_CENTER'
+            WHEN {CUBE}.name IN (
+              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+              'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
+            ) THEN 'RETAIL_STORE'
+            WHEN {CUBE}.name LIKE 'Wholesale%' THEN 'WHOLESALE'
+            WHEN {CUBE}.name LIKE 'Lifestyle Sports%' THEN 'WHOLESALE'
+            WHEN {CUBE}.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+            WHEN {CUBE}.name LIKE 'Events%' THEN 'EVENTS'
+            WHEN {CUBE}.name = 'GPC HQ' THEN 'HQ'
+            ELSE 'OTHER'
+          END
+        type: string
+        description: "Location type: FULFILLMENT_CENTER, RETAIL_STORE, WHOLESALE, PARTNER, EVENTS, HQ, OTHER"
+
+      - name: location_region
+        sql: >
+          CASE
+            WHEN {CUBE}.name IN (
+              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+              'GPC HQ'
+            ) THEN 'IRELAND'
+            WHEN {CUBE}.name IN ('Westfield London', 'Manchester', 'Belfast', 'Liverpool') THEN 'UK'
+            WHEN {CUBE}.name LIKE 'Bleckmann%' THEN 'EU'
+            ELSE 'GLOBAL'
+          END
+        type: string
+        description: "Location region: IRELAND, UK, EU, GLOBAL"

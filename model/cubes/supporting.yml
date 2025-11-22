@@ -1,0 +1,137 @@
+cubes:
+  - name: currencies
+    sql: SELECT * FROM currencies
+    title: Currencies
+    description: Currency reference data
+
+    measures:
+      - name: currency_count
+        type: count
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: symbol
+        sql: "{CUBE}.symbol"
+        type: string
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+
+  - name: subsidiaries
+    sql: SELECT * FROM subsidiaries
+    title: Subsidiaries
+    description: Legal entity reference data
+
+    measures:
+      - name: subsidiary_count
+        type: count
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+
+  - name: departments
+    sql: SELECT * FROM departments
+    title: Departments
+    description: Department reference data
+
+    measures:
+      - name: department_count
+        type: count
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+
+  - name: classifications
+    sql: SELECT * FROM classifications
+    title: Classifications
+    description: Product classification reference data
+
+    measures:
+      - name: classification_count
+        type: count
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+
+  - name: fulfillments
+    sql: SELECT * FROM fulfillments
+    title: Fulfillments
+    description: Item fulfillment records
+
+    measures:
+      - name: fulfillment_count
+        type: count
+        description: Total number of fulfillments
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: trandate
+        sql: "{CUBE}.trandate"
+        type: time
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+  - name: fulfillment_lines
+    sql: SELECT * FROM fulfillment_lines
+    title: Fulfillment Lines
+    description: Fulfillment line item details
+
+    measures:
+      - name: fulfillment_line_count
+        type: count
+        description: Total number of fulfillment lines
+
+      - name: units_fulfilled
+        sql: "{CUBE}.quantity"
+        type: sum
+        description: Total units fulfilled
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: quantity
+        sql: "{CUBE}.quantity"
+        type: number

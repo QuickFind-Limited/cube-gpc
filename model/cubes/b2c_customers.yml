@@ -1,0 +1,112 @@
+cubes:
+  - name: b2c_customers
+    sql: >
+      SELECT
+        t.custbody_customer_email as email,
+        t.billing_country,
+        MIN(t.trandate) as first_order_date,
+        MAX(t.trandate) as last_order_date,
+        COUNT(DISTINCT t.id) as order_count,
+        SUM(t.foreigntotal) as lifetime_value
+      FROM transactions t
+      WHERE t.type = 'SalesOrd'
+        AND t.custbody_customer_email IS NOT NULL
+        AND t.custbody_customer_email != ''
+      GROUP BY t.custbody_customer_email, t.billing_country
+    title: B2C Customers
+    description: Virtual cube for B2C customer metrics aggregated from SalesOrd
+
+    measures:
+      - name: customer_count
+        type: count
+        description: Total number of unique customers
+
+      - name: total_lifetime_value
+        sql: "{CUBE}.lifetime_value"
+        type: sum
+        format: currency
+        description: Total lifetime value across all customers
+
+      - name: average_ltv
+        sql: "{CUBE}.lifetime_value"
+        type: avg
+        format: currency
+        description: Average customer lifetime value
+
+      - name: total_orders
+        sql: "{CUBE}.order_count"
+        type: sum
+        description: Total number of orders
+
+      - name: repeat_customers
+        type: count
+        filters:
+          - sql: "{CUBE}.order_count > 1"
+        description: Number of customers with more than one order
+
+      - name: repeat_rate
+        sql: "{repeat_customers} * 100.0 / NULLIF({customer_count}, 0)"
+        type: number
+        format: percent
+        description: Percentage of repeat customers
+
+    dimensions:
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        primary_key: true
+        description: Customer email address
+
+      - name: billing_country
+        sql: "{CUBE}.billing_country"
+        type: string
+        description: Customer billing country
+
+      - name: first_order_date
+        sql: "{CUBE}.first_order_date"
+        type: time
+        description: Date of first order
+
+      - name: last_order_date
+        sql: "{CUBE}.last_order_date"
+        type: time
+        description: Date of most recent order
+
+      - name: order_count
+        sql: "{CUBE}.order_count"
+        type: number
+        description: Number of orders placed
+
+      - name: lifetime_value
+        sql: "{CUBE}.lifetime_value"
+        type: number
+        description: Total lifetime value
+
+      - name: customer_tier
+        sql: >
+          CASE
+            WHEN {CUBE}.lifetime_value >= 500 THEN 'VIP'
+            WHEN {CUBE}.lifetime_value >= 200 THEN 'Regular'
+            WHEN {CUBE}.lifetime_value >= 100 THEN 'Occasional'
+            ELSE 'New'
+          END
+        type: string
+        description: Customer tier based on LTV
+
+      - name: recency_bucket
+        sql: >
+          CASE
+            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '30 days' THEN 'Active (30d)'
+            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '90 days' THEN 'Recent (90d)'
+            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '180 days' THEN 'Lapsed (180d)'
+            ELSE 'Dormant (180d+)'
+          END
+        type: string
+        description: Customer recency bucket
+
+    segments:
+      - name: repeat_customers
+        sql: "{CUBE}.order_count > 1"
+
+      - name: vip_customers
+        sql: "{CUBE}.lifetime_value >= 500"
