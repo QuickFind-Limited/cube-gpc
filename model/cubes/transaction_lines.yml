@@ -98,6 +98,15 @@ cubes:
         type: number
         description: Average number of items per order
 
+      # Line count bucket dimension for BASK003
+      - name: line_count_per_order
+        sql: >
+          (SELECT COUNT(*) FROM transaction_lines tl2
+           WHERE tl2.transaction = {CUBE}.transaction AND tl2.mainline = 'F')
+        type: number
+        sub_query: true
+        description: Number of line items in this order
+
       - name: average_selling_price
         sql: "1.0 * {total_revenue} / NULLIF({units_sold}, 0)"
         type: number
@@ -125,6 +134,11 @@ cubes:
         sql: "100.0 * (({total_revenue}) - ({total_cost})) / NULLIF({total_revenue}, 0)"
         type: number
         description: Gross margin percentage
+
+      - name: units_per_week
+        sql: "1.0 * {units_sold} / NULLIF(DATE_DIFF('week', MIN({transactions.trandate}), MAX({transactions.trandate})) + 1, 0)"
+        type: number
+        description: Sales velocity - units sold per week (LIFE004)
 
     dimensions:
       - name: id

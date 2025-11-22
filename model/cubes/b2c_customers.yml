@@ -104,6 +104,17 @@ cubes:
         type: string
         description: Customer recency bucket
 
+      - name: purchase_frequency_bucket
+        sql: >
+          CASE
+            WHEN {CUBE}.order_count = 1 THEN '1x'
+            WHEN {CUBE}.order_count = 2 THEN '2x'
+            WHEN {CUBE}.order_count = 3 THEN '3x'
+            ELSE '4+'
+          END
+        type: string
+        description: Purchase frequency bucket for CM059
+
     segments:
       - name: is_repeat_customer
         sql: "{CUBE}.order_count > 1"
