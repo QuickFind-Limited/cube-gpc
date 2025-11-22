@@ -65,6 +65,11 @@ cubes:
         description: Average stock per position
 
     dimensions:
+      - name: id
+        sql: "ROW_NUMBER() OVER ()"
+        type: number
+        primary_key: true
+
       - name: item
         sql: "{CUBE}.item"
         type: number

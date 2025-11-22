@@ -105,7 +105,7 @@ cubes:
         description: Customer recency bucket
 
     segments:
-      - name: repeat_customers
+      - name: is_repeat_customer
         sql: "{CUBE}.order_count > 1"
 
       - name: vip_customers
