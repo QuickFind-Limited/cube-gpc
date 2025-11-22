@@ -82,7 +82,16 @@ cubes:
   - name: fulfillments
     sql: SELECT * FROM fulfillments
     title: Fulfillments
-    description: Item fulfillment records
+    description: Item fulfillment records. Tracks ship times and carrier performance.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.createdfrom = {transactions.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
 
     measures:
       - name: fulfillment_count
@@ -106,6 +115,11 @@ cubes:
       - name: location
         sql: "{CUBE}.location"
         type: number
+
+      - name: createdfrom
+        sql: "{CUBE}.createdfrom"
+        type: number
+        description: Source transaction ID
 
   - name: fulfillment_lines
     sql: SELECT * FROM fulfillment_lines

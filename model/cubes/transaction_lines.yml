@@ -41,17 +41,13 @@ cubes:
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
-        sql: "ABS({CUBE}.quantity)"
+        sql: "CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END"
         type: sum
-        filters:
-          - sql: "{CUBE}.quantity < 0"
-        description: Total units sold (absolute value)
+        description: Total units sold (uses CASE per Rule 2)
 
       - name: units_returned
-        sql: "{CUBE}.quantity"
+        sql: "CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END"
         type: sum
-        filters:
-          - sql: "{CUBE}.quantity > 0"
         description: Total units returned
 
       # Discount Measures
