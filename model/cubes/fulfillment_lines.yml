@@ -96,3 +96,18 @@ cubes:
     segments:
       - name: shipped_lines
         sql: "{CUBE}.quantity > 0"
+
+    pre_aggregations:
+      - name: fulfillment_performance
+        measures:
+          - units_shipped
+          - fulfillment_count
+          - line_count
+          - sku_count
+        dimensions:
+          - locations.name
+        time_dimension: shipdate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour

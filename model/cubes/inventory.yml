@@ -118,3 +118,35 @@ cubes:
 
       - name: backorder
         sql: "{CUBE}.calculated_quantity_available < 0"
+
+    pre_aggregations:
+      # Stock by Location
+      - name: stock_by_location
+        type: rollup
+        measures:
+          - total_stock
+          - available_stock
+          - backorder_units
+          - sku_count
+          - zero_stock_positions
+          - negative_stock_positions
+        dimensions:
+          - locations.name
+          - stock_status
+        refresh_key:
+          every: 30 minutes
+
+      # Stock by Product
+      - name: stock_by_product
+        type: rollup
+        measures:
+          - total_stock
+          - available_stock
+          - sku_count
+          - zero_stock_positions
+        dimensions:
+          - items.category
+          - items.season
+          - stock_status
+        refresh_key:
+          every: 30 minutes

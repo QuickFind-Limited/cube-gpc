@@ -111,3 +111,18 @@ cubes:
 
       - name: large_basket
         sql: "{CUBE}.line_count >= 4"
+
+    pre_aggregations:
+      - name: basket_distribution
+        measures:
+          - order_count
+          - total_revenue
+          - total_units
+        dimensions:
+          - line_count_bucket
+          - billing_country
+        time_dimension: trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour

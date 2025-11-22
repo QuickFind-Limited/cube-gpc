@@ -274,27 +274,93 @@ cubes:
         sql: "{CUBE}.quantity > 0"
 
     pre_aggregations:
-      # Simple daily rollup - most likely to match common queries
-      - name: daily_revenue
+      # 1. Primary Revenue Rollup - Covers most revenue queries
+      - name: revenue_complete
+        measures:
+          - total_revenue
+          - net_revenue
+          - units_sold
+          - units_returned
+          - transaction_count
+          - sku_count
+          - line_count
+          - total_discount
+          - gross_margin
+          - total_cost
+          - total_tax
+        dimensions:
+          - channel_type
+          - pos_vs_online
+          - department_name
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: "SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '13 months')"
+        build_range_end:
+          sql: "SELECT DATE_TRUNC('day', CURRENT_DATE)"
+        refresh_key:
+          every: 1 hour
+
+      # 2. Product Category Rollup - Category/Season analysis
+      - name: category_performance
         measures:
           - total_revenue
           - units_sold
           - transaction_count
+          - sku_count
+          - gross_margin
+          - total_discount
         dimensions:
-          - channel_type
+          - items.category
+          - items.season
         time_dimension: transactions.trandate
         granularity: day
         partition_granularity: month
         refresh_key:
           every: 1 hour
 
-      # Category analysis rollup
-      - name: category_revenue
+      # 3. Geographic Rollup - Country analysis
+      - name: geographic_revenue
         measures:
           - total_revenue
           - units_sold
+          - transaction_count
         dimensions:
+          - transactions.billing_country
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # 4. Product Detail Rollup - SKU level
+      - name: product_detail
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+          - total_discount
+        dimensions:
+          - items.itemid
+          - items.displayname
           - items.category
+          - items.season
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 2 hours
+
+      # 5. Location Analysis - For channel/location queries
+      - name: location_revenue
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - locations.name
+          - channel_type
         time_dimension: transactions.trandate
         granularity: day
         partition_granularity: month
