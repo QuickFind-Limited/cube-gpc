@@ -64,12 +64,35 @@ cubes:
         type: sum
         description: Total units returned
 
-      # Tax Measures (no discount data available in transaction_lines)
+      # Tax Measures
       - name: total_tax
         sql: "{CUBE}.taxamount"
         type: sum
         format: currency
         description: Total tax amount
+
+      # Discount Measures (calculated from baseprice vs rate)
+      - name: total_discount
+        sql: "SUM(CASE WHEN {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END)"
+        type: number
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Total discount amount (baseprice - rate) for DM001
+
+      - name: discount_rate
+        sql: "100.0 * SUM(CASE WHEN {items.base_price} > 0 AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END) / NULLIF(SUM(CASE WHEN {CUBE}.quantity < 0 THEN {items.base_price} * ABS({CUBE}.quantity) ELSE 0 END), 0)"
+        type: number
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Average discount rate percentage for DM002
+
+      - name: discounted_units
+        sql: "SUM(CASE WHEN {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END)"
+        type: number
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Units sold at discount for DM058
 
       # Count Measures
       - name: line_count
