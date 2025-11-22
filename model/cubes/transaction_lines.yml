@@ -190,16 +190,3 @@ cubes:
               - locations.channel_type
               - transactions.trandate
 
-      # Separate rollup for count_distinct (non-additive)
-      - name: distinct_counts
-        measures:
-          - transaction_count
-          - sku_count
-        dimensions:
-          - locations.channel_type
-          - items.category
-        time_dimension: transactions.trandate
-        granularity: month
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
