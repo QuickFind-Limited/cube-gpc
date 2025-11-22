@@ -169,6 +169,16 @@ cubes:
         type: number
         description: Sales velocity - units sold per week (LIFE004)
 
+      # YoY Comparison for RM003
+      - name: prior_year_revenue
+        sql: "{CUBE}.amount * -1"
+        type: sum
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+          - sql: "{transactions.trandate} >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR) AND {transactions.trandate} < DATE_TRUNC('year', CURRENT_DATE)"
+        description: Revenue from prior year for YoY comparison (RM003)
+
     dimensions:
       - name: id
         sql: "{CUBE}.id"

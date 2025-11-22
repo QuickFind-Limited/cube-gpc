@@ -1,0 +1,109 @@
+cubes:
+  - name: cross_sell
+    sql: >
+      SELECT
+        tl1.item as item_a,
+        tl2.item as item_b,
+        i1.itemid as item_a_sku,
+        i2.itemid as item_b_sku,
+        i1.displayname as item_a_name,
+        i2.displayname as item_b_name,
+        i1.custitem_gpc_category as item_a_category,
+        i2.custitem_gpc_category as item_b_category,
+        COUNT(DISTINCT tl1.transaction) as co_purchase_count
+      FROM transaction_lines tl1
+      JOIN transaction_lines tl2 ON tl1.transaction = tl2.transaction AND tl1.item < tl2.item
+      JOIN transactions t ON tl1.transaction = t.id
+      JOIN items i1 ON tl1.item = i1.id
+      JOIN items i2 ON tl2.item = i2.id
+      WHERE t.type IN ('CustInvc', 'CashSale')
+        AND tl1.quantity < 0
+        AND tl2.quantity < 0
+        AND tl1.mainline = 'F'
+        AND tl2.mainline = 'F'
+      GROUP BY tl1.item, tl2.item, i1.itemid, i2.itemid, i1.displayname, i2.displayname,
+               i1.custitem_gpc_category, i2.custitem_gpc_category
+      HAVING COUNT(DISTINCT tl1.transaction) >= 2
+    title: Cross-Sell Analysis
+    description: Product affinity pairs showing items frequently purchased together (BASK002)
+
+    measures:
+      - name: pair_count
+        type: count
+        description: Number of product pairs
+
+      - name: total_co_purchases
+        sql: "{CUBE}.co_purchase_count"
+        type: sum
+        description: Total co-purchase occurrences
+
+      - name: average_co_purchases
+        sql: "{CUBE}.co_purchase_count"
+        type: avg
+        description: Average co-purchase count per pair
+
+      - name: max_co_purchases
+        sql: "{CUBE}.co_purchase_count"
+        type: max
+        description: Maximum co-purchase count
+
+    dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.item_a AS VARCHAR), '-', CAST({CUBE}.item_b AS VARCHAR))"
+        type: string
+        primary_key: true
+
+      - name: item_a
+        sql: "{CUBE}.item_a"
+        type: number
+        description: First item ID
+
+      - name: item_b
+        sql: "{CUBE}.item_b"
+        type: number
+        description: Second item ID
+
+      - name: item_a_sku
+        sql: "{CUBE}.item_a_sku"
+        type: string
+        description: First item SKU
+
+      - name: item_b_sku
+        sql: "{CUBE}.item_b_sku"
+        type: string
+        description: Second item SKU
+
+      - name: item_a_name
+        sql: "{CUBE}.item_a_name"
+        type: string
+        description: First item name
+
+      - name: item_b_name
+        sql: "{CUBE}.item_b_name"
+        type: string
+        description: Second item name
+
+      - name: item_a_category
+        sql: "{CUBE}.item_a_category"
+        type: string
+        description: First item category
+
+      - name: item_b_category
+        sql: "{CUBE}.item_b_category"
+        type: string
+        description: Second item category
+
+      - name: co_purchase_count
+        sql: "{CUBE}.co_purchase_count"
+        type: number
+        description: Number of times purchased together
+
+    segments:
+      - name: high_affinity
+        sql: "{CUBE}.co_purchase_count >= 10"
+
+      - name: same_category
+        sql: "{CUBE}.item_a_category = {CUBE}.item_b_category"
+
+      - name: cross_category
+        sql: "{CUBE}.item_a_category != {CUBE}.item_b_category"
