@@ -78,6 +78,26 @@ cubes:
         type: string
         description: Product fabric
 
+      - name: color
+        sql: "{CUBE}.custitem_gpc_child_colour"
+        type: string
+        description: Product color (child colour)
+
+      - name: parent_color
+        sql: "{CUBE}.custitem_gpc_parent_colour"
+        type: string
+        description: Product parent color
+
+      - name: style_number
+        sql: "{CUBE}.custitem_gpc_style_number"
+        type: string
+        description: Style number
+
+      - name: season_type
+        sql: "{CUBE}.custitem_gpc_seasontype"
+        type: string
+        description: Season type (Core, Fashion, etc.)
+
       - name: is_inactive
         sql: "{CUBE}.isinactive"
         type: string
@@ -87,6 +107,16 @@ cubes:
         sql: "{CUBE}.cost"
         type: number
         description: Item cost
+
+      - name: base_price
+        sql: "{CUBE}.baseprice"
+        type: number
+        description: Base price
+
+      - name: description
+        sql: "{CUBE}.salesdescription"
+        type: string
+        description: Sales description
 
       - name: has_dimensions
         sql: "CASE WHEN {CUBE}.custitem_gpc_category IS NOT NULL THEN 'Yes' ELSE 'No' END"

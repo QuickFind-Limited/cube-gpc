@@ -21,6 +21,10 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.department = {departments.id}"
 
+      - name: classifications
+        relationship: many_to_one
+        sql: "{CUBE}.class = {classifications.id}"
+
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
       - name: total_revenue
@@ -135,6 +139,51 @@ cubes:
         sql: "{CUBE}.department"
         type: number
 
+      # Channel type with John Lewis PARTNER detection (Golden Rule 4 + PARTNER fix)
+      - name: channel_type
+        sql: >
+          CASE
+            WHEN {transactions.custbody_pwks_remote_order_source} = 'John Lewis' THEN 'PARTNER'
+            WHEN {locations.name} IS NULL THEN 'D2C'
+            WHEN {locations.name} LIKE 'Bleckmann%' AND {locations.name} NOT LIKE '%Quarantine%' AND {locations.name} NOT LIKE '%Miscellaneous%' THEN 'D2C'
+            WHEN {locations.name} IN ('Meteor Space', '2Flow') THEN 'D2C'
+            WHEN {locations.name} IN (
+              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+              'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
+            ) THEN 'RETAIL'
+            WHEN {locations.name} LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
+            WHEN {locations.name} LIKE 'Lifestyle Sports%' AND {locations.name} NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
+            WHEN {locations.name} IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+            WHEN {locations.name} LIKE 'Events%' THEN 'EVENTS'
+            ELSE 'OTHER'
+          END
+        type: string
+        description: "Channel type with John Lewis detection: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER"
+
+      # Department name for POS vs Online analysis
+      - name: department_name
+        sql: "{departments.name}"
+        type: string
+        description: "Department name: eCommerce, Retail, Wholesale"
+
+      # Classification name for specific location/website
+      - name: classification_name
+        sql: "{classifications.name}"
+        type: string
+        description: "Classification: EU Website, UK Website, Kildare Village, etc."
+
+      # POS vs Online derived dimension
+      - name: pos_vs_online
+        sql: >
+          CASE
+            WHEN {departments.name} = 'eCommerce' THEN 'Online'
+            WHEN {departments.name} = 'Retail' THEN 'POS'
+            ELSE 'Other'
+          END
+        type: string
+        description: "POS vs Online classification based on department"
+
     segments:
       - name: sales_lines
         sql: "{CUBE}.quantity < 0"
@@ -153,11 +202,14 @@ cubes:
           - total_tax
           - line_count
         dimensions:
-          - locations.channel_type
+          - channel_type
           - locations.region
           - items.category
           - items.season
+          - items.size
+          - items.range
           - transactions.type
+          - transactions.billing_country
         time_dimension: transactions.trandate
         granularity: day
         partition_granularity: month
@@ -167,7 +219,7 @@ cubes:
           # Index for channel analysis (most common)
           - name: channel_idx
             columns:
-              - locations.channel_type
+              - channel_type
               - "{'transactions__trandate_day'}"
           # Index for product analysis
           - name: product_idx
@@ -179,6 +231,11 @@ cubes:
           - name: region_idx
             columns:
               - locations.region
-              - locations.channel_type
+              - channel_type
+              - "{'transactions__trandate_day'}"
+          # Index for country analysis
+          - name: country_idx
+            columns:
+              - transactions.billing_country
               - "{'transactions__trandate_day'}"
 
