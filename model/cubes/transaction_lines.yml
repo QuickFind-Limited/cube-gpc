@@ -143,7 +143,7 @@ cubes:
       - name: channel_type
         sql: >
           CASE
-            WHEN {transactions.custbody_pwks_remote_order_source} = 'John Lewis' THEN 'PARTNER'
+            WHEN {transactions.remote_order_source} = 'John Lewis' THEN 'PARTNER'
             WHEN {locations.name} IS NULL THEN 'D2C'
             WHEN {locations.name} LIKE 'Bleckmann%' AND {locations.name} NOT LIKE '%Quarantine%' AND {locations.name} NOT LIKE '%Miscellaneous%' THEN 'D2C'
             WHEN {locations.name} IN ('Meteor Space', '2Flow') THEN 'D2C'
