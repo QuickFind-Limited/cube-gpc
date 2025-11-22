@@ -138,3 +138,50 @@ cubes:
 
       - name: return_lines
         sql: "{CUBE}.quantity > 0"
+
+    pre_aggregations:
+      # Daily sales metrics - most common query pattern
+      - name: daily_sales
+        measures:
+          - total_revenue
+          - net_revenue
+          - units_sold
+          - units_returned
+          - transaction_count
+          - sku_count
+        time_dimension: transactions.trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Monthly sales by channel - dashboard overview
+      - name: monthly_by_channel
+        measures:
+          - total_revenue
+          - net_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - locations.channel_type
+        time_dimension: transactions.trandate
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Product performance - category analysis
+      - name: product_performance
+        measures:
+          - total_revenue
+          - units_sold
+          - sku_count
+        dimensions:
+          - items.category
+          - items.season
+          - items.gender
+        time_dimension: transactions.trandate
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
