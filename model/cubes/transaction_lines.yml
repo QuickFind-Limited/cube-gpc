@@ -37,12 +37,12 @@ cubes:
           - locations.name
 
       - name: net_revenue
-        sql: "{CUBE}.netamount * -1"
+        sql: "({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1"
         type: sum
         format: currency
         filters:
           - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
-        description: Net revenue after discounts
+        description: Net revenue (amount minus tax)
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
@@ -60,17 +60,12 @@ cubes:
         type: sum
         description: Total units returned
 
-      # Discount Measures
-      - name: total_discount
-        sql: "({CUBE}.amount - {CUBE}.netamount) * -1"
+      # Tax Measures (no discount data available in transaction_lines)
+      - name: total_tax
+        sql: "{CUBE}.taxamount"
         type: sum
         format: currency
-        description: Total discount amount
-
-      - name: discount_rate
-        sql: "CASE WHEN {CUBE}.amount != 0 THEN ({CUBE}.amount - {CUBE}.netamount) / {CUBE}.amount * 100 ELSE 0 END"
-        type: avg
-        description: Average discount percentage
+        description: Total tax amount
 
       # Count Measures
       - name: line_count
@@ -131,18 +126,16 @@ cubes:
         sql: "{CUBE}.amount"
         type: number
 
-      - name: netamount
-        sql: "{CUBE}.netamount"
+      - name: rate
+        sql: "{CUBE}.rate"
         type: number
+        description: Unit rate
 
       - name: department
         sql: "{CUBE}.department"
         type: number
 
     segments:
-      - name: with_discount
-        sql: "{CUBE}.amount != {CUBE}.netamount"
-
       - name: sales_lines
         sql: "{CUBE}.quantity < 0"
 
@@ -157,7 +150,7 @@ cubes:
           - net_revenue
           - units_sold
           - units_returned
-          - total_discount
+          - total_tax
           - line_count
         dimensions:
           - locations.channel_type

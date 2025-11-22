@@ -63,25 +63,20 @@ cubes:
         type: string
         description: Product size
 
-      - name: color
-        sql: "{CUBE}.custitem_gpc_color"
-        type: string
-        description: Product color
-
       - name: range
         sql: "{CUBE}.custitem_gpc_range"
         type: string
         description: Product range
 
-      - name: department
-        sql: "{CUBE}.department"
+      - name: collection
+        sql: "{CUBE}.custitem_gpc_collection"
         type: string
-        description: Product department
+        description: Product collection
 
-      - name: classification
-        sql: "{CUBE}.class"
+      - name: fabric
+        sql: "{CUBE}.custitem_gpc_fabric"
         type: string
-        description: Product classification
+        description: Product fabric
 
       - name: is_inactive
         sql: "{CUBE}.isinactive"

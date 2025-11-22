@@ -12,8 +12,7 @@ views:
           - net_revenue
           - units_sold
           - units_returned
-          - total_discount
-          - discount_rate
+          - total_tax
           # Calculated metrics
           - average_order_value
           - average_selling_price
@@ -44,8 +43,8 @@ views:
           - itemtype
           - category
           - season
-          - color
           - size
+          - range
 
   # Inventory Snapshot View - Current stock positions
   - name: inventory_snapshot
