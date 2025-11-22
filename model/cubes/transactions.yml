@@ -102,26 +102,6 @@ cubes:
         type: string
         description: Whether order is from a partner
 
-      - name: shipping_country
-        sql: "{CUBE}.shipping_country"
-        type: string
-        description: Shipping destination country
-
-      - name: ship_carrier
-        sql: "{CUBE}.shipcarrier"
-        type: string
-        description: Shipping carrier
-
-      - name: memo
-        sql: "{CUBE}.memo"
-        type: string
-        description: Transaction memo/notes
-
-      - name: shopify_order_name
-        sql: "{CUBE}.custbody_shopify_order_name"
-        type: string
-        description: Shopify order reference
-
     segments:
       - name: revenue_transactions
         sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
