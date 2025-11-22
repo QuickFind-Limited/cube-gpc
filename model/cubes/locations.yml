@@ -61,7 +61,7 @@ cubes:
         type: string
         description: "Location type: FULFILLMENT_CENTER, RETAIL_STORE, WHOLESALE, PARTNER, EVENTS, HQ, OTHER"
 
-      - name: location_region
+      - name: region
         sql: >
           CASE
             WHEN {CUBE}.name IN (

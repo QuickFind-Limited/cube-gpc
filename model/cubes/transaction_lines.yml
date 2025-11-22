@@ -30,6 +30,11 @@ cubes:
         filters:
           - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Total gross revenue (CustInvc + CashSale only)
+        drill_members:
+          - transactions.trandate
+          - items.itemid
+          - items.displayname
+          - locations.name
 
       - name: net_revenue
         sql: "{CUBE}.netamount * -1"
@@ -44,6 +49,11 @@ cubes:
         sql: "CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END"
         type: sum
         description: Total units sold (uses CASE per Rule 2)
+        drill_members:
+          - transactions.trandate
+          - items.itemid
+          - items.displayname
+          - items.category
 
       - name: units_returned
         sql: "CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END"

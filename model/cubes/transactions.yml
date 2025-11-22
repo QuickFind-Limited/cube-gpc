@@ -102,6 +102,11 @@ cubes:
         type: string
         description: Whether order is from a partner
 
+      - name: channel
+        sql: "{CUBE}.custbody_gpc_channel"
+        type: string
+        description: Sales channel
+
     segments:
       - name: revenue_transactions
         sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"

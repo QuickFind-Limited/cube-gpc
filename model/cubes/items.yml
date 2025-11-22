@@ -27,6 +27,11 @@ cubes:
         title: SKU
         description: Item SKU code
 
+      - name: itemtype
+        sql: "{CUBE}.itemtype"
+        type: string
+        description: Item type (e.g., InvtPart, Kit, NonInvtPart)
+
       - name: displayname
         sql: "{CUBE}.displayname"
         type: string
