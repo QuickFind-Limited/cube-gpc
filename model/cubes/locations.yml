@@ -44,22 +44,25 @@ cubes:
       - name: location_type
         sql: >
           CASE
-            WHEN {CUBE}.name LIKE 'Bleckmann%' THEN 'FULFILLMENT_CENTER'
-            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'FULFILLMENT_CENTER'
             WHEN {CUBE}.name IN (
               'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
               'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
               'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
-            ) THEN 'RETAIL_STORE'
+            ) THEN 'RETAIL'
+            WHEN {CUBE}.name LIKE 'Bleckmann%' AND {CUBE}.name NOT LIKE '%Quarantine%' AND {CUBE}.name NOT LIKE '%Miscellaneous%' THEN 'FULFILLMENT'
+            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'FULFILLMENT'
             WHEN {CUBE}.name LIKE 'Wholesale%' THEN 'WHOLESALE'
-            WHEN {CUBE}.name LIKE 'Lifestyle Sports%' THEN 'WHOLESALE'
-            WHEN {CUBE}.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+            WHEN {CUBE}.name LIKE 'Lifestyle Sports B2B%' THEN 'B2B_PARTNER'
+            WHEN {CUBE}.name IN ('The Very Group', '2Flow') THEN 'B2B_PARTNER'
+            WHEN {CUBE}.name IN ('Otrium', 'Digme', 'Academy Crests', 'PCH-UK') THEN 'MARKETPLACE'
+            WHEN {CUBE}.name LIKE '%Quarantine%' OR {CUBE}.name LIKE '%Miscellaneous%' OR {CUBE}.name = 'Kildare B Stock' THEN 'RETURNS_QC'
             WHEN {CUBE}.name LIKE 'Events%' THEN 'EVENTS'
-            WHEN {CUBE}.name = 'GPC HQ' THEN 'HQ'
+            WHEN {CUBE}.name LIKE 'Headquarters%' THEN 'HQ_ADMIN'
+            WHEN {CUBE}.name LIKE 'PCH China%' THEN 'SOURCING'
             ELSE 'OTHER'
           END
         type: string
-        description: "Location type: FULFILLMENT_CENTER, RETAIL_STORE, WHOLESALE, PARTNER, EVENTS, HQ, OTHER"
+        description: "Location type: RETAIL, FULFILLMENT, WHOLESALE, B2B_PARTNER, MARKETPLACE, RETURNS_QC, EVENTS, HQ_ADMIN, SOURCING, OTHER"
 
       - name: region
         sql: >

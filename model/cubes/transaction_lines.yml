@@ -104,6 +104,28 @@ cubes:
         format: currency
         description: Average selling price per unit
 
+      # Margin Measures for MM001
+      - name: total_cost
+        sql: "{CUBE}.costestimate"
+        type: sum
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Total cost estimate
+
+      - name: gross_margin
+        sql: "({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0)"
+        type: sum
+        format: currency
+        filters:
+          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
+        description: Gross margin (revenue - cost)
+
+      - name: gross_margin_percent
+        sql: "100.0 * (({total_revenue}) - ({total_cost})) / NULLIF({total_revenue}, 0)"
+        type: number
+        description: Gross margin percentage
+
     dimensions:
       - name: id
         sql: "{CUBE}.id"
@@ -134,6 +156,21 @@ cubes:
         sql: "{CUBE}.rate"
         type: number
         description: Unit rate
+
+      - name: costestimate
+        sql: "{CUBE}.costestimate"
+        type: number
+        description: Cost estimate for margin calculations
+
+      - name: mainline
+        sql: "{CUBE}.mainline"
+        type: string
+        description: "Mainline flag: T for header, F for detail lines"
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Classification ID
 
       - name: department
         sql: "{CUBE}.department"
