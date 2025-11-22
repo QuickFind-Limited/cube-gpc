@@ -30,7 +30,6 @@ views:
           # Transaction attributes
           - type
           - status
-          - channel
 
       - join_path: transaction_lines.locations
         includes:
