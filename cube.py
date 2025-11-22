@@ -13,6 +13,10 @@ def driver_factory(ctx: dict) -> dict:
     # GCS bucket with Parquet files
     bucket = 'gs://gym-plus-coffee-bucket-dev/parquet'
 
+    # Extract credentials
+    client_email = creds.get("client_email", "")
+    private_key = creds.get("private_key", "").replace("\n", "\\n")
+
     # Init SQL to create tables from Parquet files on GCS
     init_sql = f"""
         -- Install and load GCS extension
@@ -26,8 +30,8 @@ def driver_factory(ctx: dict) -> dict:
         -- Create secret for GCS access
         CREATE SECRET gcs_secret (
             TYPE GCS,
-            KEY_ID '{creds.get("client_email", "")}',
-            SECRET '{creds.get("private_key", "").replace(chr(10), "\\n")}'
+            KEY_ID '{client_email}',
+            SECRET '{private_key}'
         );
 
         -- Create tables from Parquet files
