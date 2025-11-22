@@ -46,7 +46,7 @@ cubes:
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
-        sql: "CASE WHEN {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS DOUBLE)"
         type: sum
         description: Total units sold (uses CASE per Rule 2)
         drill_members:
@@ -56,7 +56,7 @@ cubes:
           - items.category
 
       - name: units_returned
-        sql: "CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS DOUBLE)"
         type: sum
         description: Total units returned
 
