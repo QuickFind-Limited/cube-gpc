@@ -67,8 +67,6 @@ views:
           - zero_stock_positions
           - negative_stock_positions
           # Dimensions
-          - itemid
-          - displayname
           - stock_status
 
       - join_path: inventory.locations
@@ -80,8 +78,10 @@ views:
 
       - join_path: inventory.items
         includes:
-          - itemid
-          - displayname
+          - name: itemid
+            alias: sku
+          - name: displayname
+            alias: product_name
           - itemtype
           - category
           - season
