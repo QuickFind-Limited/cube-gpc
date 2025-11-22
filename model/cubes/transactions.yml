@@ -77,6 +77,11 @@ cubes:
         type: time
         description: Transaction year
 
+      - name: week
+        sql: "DATE_TRUNC('week', CAST({CUBE}.trandate AS TIMESTAMP))"
+        type: time
+        description: Transaction week
+
       - name: customer_email
         sql: "{CUBE}.custbody_customer_email"
         type: string

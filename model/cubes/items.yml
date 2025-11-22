@@ -123,6 +123,11 @@ cubes:
         type: string
         description: Whether item has product dimensions
 
+      - name: markdown
+        sql: "{CUBE}.custitemmarkdown"
+        type: string
+        description: Markdown status for inventory analysis
+
     segments:
       - name: categorized_products
         sql: "{CUBE}.custitem_gpc_category IS NOT NULL"
