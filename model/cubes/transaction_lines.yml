@@ -168,14 +168,17 @@ cubes:
           - name: channel_idx
             columns:
               - locations.channel_type
+              - transactions__trandate_day
           # Index for product analysis
           - name: product_idx
             columns:
               - items.category
               - items.season
+              - transactions__trandate_day
           # Index for region analysis
           - name: region_idx
             columns:
               - locations.region
               - locations.channel_type
+              - transactions__trandate_day
 
