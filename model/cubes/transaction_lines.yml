@@ -140,46 +140,54 @@ cubes:
         sql: "{CUBE}.quantity > 0"
 
     pre_aggregations:
-      # Daily sales metrics - most common query pattern
-      - name: daily_sales
+      # Main rollup - covers most query patterns with multiple indexes
+      - name: main_rollup
         measures:
           - total_revenue
           - net_revenue
           - units_sold
           - units_returned
-          - transaction_count
-          - sku_count
+          - total_discount
+          - line_count
+        dimensions:
+          - locations.channel_type
+          - locations.region
+          - items.category
+          - items.season
+          - items.gender
+          - transactions.type
         time_dimension: transactions.trandate
         granularity: day
         partition_granularity: month
         refresh_key:
           every: 1 hour
+        indexes:
+          # Index for channel analysis (most common)
+          - name: channel_idx
+            columns:
+              - locations.channel_type
+              - transactions.trandate
+          # Index for product analysis
+          - name: product_idx
+            columns:
+              - items.category
+              - items.season
+              - transactions.trandate
+          # Index for region analysis
+          - name: region_idx
+            columns:
+              - locations.region
+              - locations.channel_type
+              - transactions.trandate
 
-      # Monthly sales by channel - dashboard overview
-      - name: monthly_by_channel
+      # Separate rollup for count_distinct (non-additive)
+      - name: distinct_counts
         measures:
-          - total_revenue
-          - net_revenue
-          - units_sold
           - transaction_count
-        dimensions:
-          - locations.channel_type
-        time_dimension: transactions.trandate
-        granularity: month
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
-
-      # Product performance - category analysis
-      - name: product_performance
-        measures:
-          - total_revenue
-          - units_sold
           - sku_count
         dimensions:
+          - locations.channel_type
           - items.category
-          - items.season
-          - items.gender
         time_dimension: transactions.trandate
         granularity: month
         partition_granularity: month
