@@ -1,0 +1,36 @@
+cubes:
+  - name: subsidiaries
+    sql: SELECT * FROM subsidiaries
+    title: Subsidiaries
+    description: Legal entity reference data for multi-entity accounting
+
+    measures:
+      - name: subsidiary_count
+        type: count
+        description: Total number of subsidiaries
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+        description: Subsidiary name
+
+      - name: legalname
+        sql: "{CUBE}.legalname"
+        type: string
+        description: Legal company name
+
+      - name: country
+        sql: "{CUBE}.country"
+        type: string
+        description: Country code (IE, GB)
+
+      - name: currency
+        sql: "{CUBE}.currency"
+        type: number
+        description: Currency ID

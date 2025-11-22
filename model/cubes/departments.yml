@@ -1,0 +1,46 @@
+cubes:
+  - name: departments
+    sql: SELECT * FROM departments
+    title: Departments
+    description: Department reference data (eCommerce, Retail, Wholesale, etc.)
+
+    measures:
+      - name: department_count
+        type: count
+        description: Total number of departments
+
+      - name: active_department_count
+        type: count
+        filters:
+          - sql: "{CUBE}.isinactive = 'F'"
+        description: Number of active departments
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+        description: Department name (eCommerce, Retail, Wholesale)
+
+      - name: fullname
+        sql: "{CUBE}.fullname"
+        type: string
+        description: Full department name
+
+      - name: parent
+        sql: "{CUBE}.parent"
+        type: number
+        description: Parent department ID
+
+      - name: isinactive
+        sql: "{CUBE}.isinactive"
+        type: string
+        description: Whether department is inactive (T/F)
+
+    segments:
+      - name: active
+        sql: "{CUBE}.isinactive = 'F'"
