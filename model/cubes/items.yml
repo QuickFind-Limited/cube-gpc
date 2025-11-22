@@ -78,6 +78,36 @@ cubes:
         type: string
         description: Product fabric
 
+      - name: child_colour
+        sql: "{CUBE}.custitem_gpc_child_colour"
+        type: string
+        description: Product child colour variant
+
+      - name: parent_colour
+        sql: "{CUBE}.custitem_gpc_parent_colour"
+        type: string
+        description: Product parent colour family
+
+      - name: style_number
+        sql: "{CUBE}.custitem_gpc_stylenumber"
+        type: string
+        description: Product style number for grouping
+
+      - name: description
+        sql: "{CUBE}.description"
+        type: string
+        description: Full product description
+
+      - name: base_price
+        sql: "{CUBE}.baseprice"
+        type: number
+        description: Base selling price
+
+      - name: last_purchase_price
+        sql: "{CUBE}.lastpurchaseprice"
+        type: number
+        description: Last purchase price from vendor
+
       - name: is_inactive
         sql: "{CUBE}.isinactive"
         type: string
