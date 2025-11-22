@@ -1,0 +1,31 @@
+cubes:
+  - name: currencies
+    sql: SELECT * FROM currencies
+    title: Currencies
+    description: Currency reference data with exchange rates for multi-currency support
+
+    measures:
+      - name: currency_count
+        type: count
+        description: Total number of currencies
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+        description: Currency name (EUR, GBP, USD, etc.)
+
+      - name: symbol
+        sql: "{CUBE}.symbol"
+        type: string
+        description: Currency symbol
+
+      - name: exchangerate
+        sql: "{CUBE}.exchangerate"
+        type: number
+        description: Exchange rate to base currency
