@@ -22,7 +22,7 @@ cubes:
         description: Total number of unique customers
 
       - name: total_lifetime_value
-        sql: "{CUBE}.lifetime_value"
+        sql: "CAST({CUBE}.lifetime_value AS DOUBLE)"
         type: sum
         format: currency
         description: Total lifetime value across all customers

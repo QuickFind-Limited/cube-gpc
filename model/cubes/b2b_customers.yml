@@ -16,13 +16,13 @@ cubes:
         description: Number of active B2B customers
 
       - name: total_balance
-        sql: "{CUBE}.balance"
+        sql: "CAST({CUBE}.balance AS DOUBLE)"
         type: sum
         format: currency
         description: Total outstanding balance
 
       - name: total_overdue
-        sql: "{CUBE}.overdueBalance"
+        sql: "CAST({CUBE}.overdueBalance AS DOUBLE)"
         type: sum
         format: currency
         description: Total overdue balance

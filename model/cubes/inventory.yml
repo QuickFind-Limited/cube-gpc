@@ -15,19 +15,19 @@ cubes:
 
     measures:
       - name: total_stock
-        sql: "{CUBE}.calculated_quantity_available"
+        sql: "CAST({CUBE}.calculated_quantity_available AS DOUBLE)"
         type: sum
         description: Total stock (can be negative for backorders)
 
       - name: available_stock
-        sql: "{CUBE}.calculated_quantity_available"
+        sql: "CAST({CUBE}.calculated_quantity_available AS DOUBLE)"
         type: sum
         filters:
           - sql: "{CUBE}.calculated_quantity_available > 0"
         description: Available stock (positive only)
 
       - name: backorder_units
-        sql: "ABS({CUBE}.calculated_quantity_available)"
+        sql: "CAST(ABS({CUBE}.calculated_quantity_available) AS DOUBLE)"
         type: sum
         filters:
           - sql: "{CUBE}.calculated_quantity_available < 0"

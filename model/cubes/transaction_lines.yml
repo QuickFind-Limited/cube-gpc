@@ -53,24 +53,24 @@ cubes:
       # Currency conversion: GBP (currency=4) converted to EUR at 1.13528
       - name: total_revenue
         sql: >
-          CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
+          CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
             CASE
               WHEN {CUBE}.transaction_currency = 4 THEN {CUBE}.amount * -1 * 1.13528
               ELSE {CUBE}.amount * -1
             END
-          ELSE 0 END
+          ELSE 0 END AS DOUBLE)
         type: sum
         format: currency
         description: Total gross revenue in EUR (CustInvc + CashSale only, GBP converted)
 
       - name: net_revenue
         sql: >
-          CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
+          CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
             CASE
               WHEN {CUBE}.transaction_currency = 4 THEN ({CUBE}.amount * -1 * 1.13528) - COALESCE({CUBE}.taxamount, 0)
               ELSE ({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)
             END
-          ELSE 0 END
+          ELSE 0 END AS DOUBLE)
         type: sum
         format: currency
         description: Net revenue in EUR (gross revenue minus tax, GBP converted)
@@ -158,12 +158,12 @@ cubes:
 
       - name: gross_margin
         sql: >
-          CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
+          CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
             CASE
               WHEN {CUBE}.transaction_currency = 4 THEN ({CUBE}.amount * -1 * 1.13528) - (COALESCE({CUBE}.costestimate, 0) * -1)
               ELSE ({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)
             END
-          ELSE 0 END
+          ELSE 0 END AS DOUBLE)
         type: sum
         format: currency
         description: Gross margin in EUR (revenue - cost, GBP converted)

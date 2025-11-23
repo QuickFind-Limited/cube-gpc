@@ -36,7 +36,7 @@ cubes:
         description: Number of product pairs
 
       - name: total_co_purchases
-        sql: "{CUBE}.co_purchase_count"
+        sql: "CAST({CUBE}.co_purchase_count AS DOUBLE)"
         type: sum
         description: Total co-purchase occurrences
 
