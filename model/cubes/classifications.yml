@@ -39,3 +39,13 @@ cubes:
     segments:
       - name: active
         sql: "{CUBE}.isinactive = 'F'"
+
+    pre_aggregations:
+      - name: classification_analysis
+        measures:
+          - classification_count
+          - active_count
+        dimensions:
+          - name
+        refresh_key:
+          every: 1 hour

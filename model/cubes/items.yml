@@ -137,3 +137,18 @@ cubes:
 
       - name: with_season
         sql: "{CUBE}.custitem_gpc_season IS NOT NULL"
+
+    pre_aggregations:
+      - name: item_analysis
+        measures:
+          - item_count
+          - active_item_count
+        dimensions:
+          - category
+          - season
+          - size
+          - color
+          - itemtype
+          - season_type
+        refresh_key:
+          every: 1 hour

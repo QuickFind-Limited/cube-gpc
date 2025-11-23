@@ -29,3 +29,12 @@ cubes:
         sql: "{CUBE}.exchangerate"
         type: number
         description: Exchange rate to base currency
+
+    pre_aggregations:
+      - name: currency_analysis
+        measures:
+          - currency_count
+        dimensions:
+          - name
+        refresh_key:
+          every: 1 hour

@@ -64,3 +64,13 @@ cubes:
         sql: "{CUBE}.recordowner"
         type: number
         description: Record owner ID
+
+    pre_aggregations:
+      - name: address_analysis
+        measures:
+          - address_count
+        dimensions:
+          - country
+          - city
+        refresh_key:
+          every: 1 hour

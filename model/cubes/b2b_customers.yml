@@ -217,3 +217,20 @@ cubes:
 
       - name: tier2
         sql: "{CUBE}.custentitycustomertier LIKE '%T2%'"
+
+    pre_aggregations:
+      - name: b2b_customer_analysis
+        measures:
+          - customer_count
+          - active_customer_count
+          - total_balance
+          - total_overdue
+          - average_balance
+        dimensions:
+          - customer_tier
+          - wholesale_market_segment
+          - buying_group
+          - subsidiary
+          - currency
+        refresh_key:
+          every: 1 hour

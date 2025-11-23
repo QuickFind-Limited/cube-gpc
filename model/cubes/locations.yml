@@ -78,3 +78,14 @@ cubes:
           END
         type: string
         description: "Location region: IRELAND, UK, EU, GLOBAL"
+
+    pre_aggregations:
+      - name: location_analysis
+        measures:
+          - location_count
+        dimensions:
+          - channel_type
+          - location_type
+          - region
+        refresh_key:
+          every: 1 hour

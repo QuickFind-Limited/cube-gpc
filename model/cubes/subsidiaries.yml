@@ -34,3 +34,13 @@ cubes:
         sql: "{CUBE}.currency"
         type: number
         description: Currency ID
+
+    pre_aggregations:
+      - name: subsidiary_analysis
+        measures:
+          - subsidiary_count
+        dimensions:
+          - name
+          - country
+        refresh_key:
+          every: 1 hour

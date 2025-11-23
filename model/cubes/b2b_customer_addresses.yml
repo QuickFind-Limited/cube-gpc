@@ -94,3 +94,14 @@ cubes:
 
       - name: business_addresses
         sql: "{CUBE}.isresidential = 'F'"
+
+    pre_aggregations:
+      - name: customer_address_analysis
+        measures:
+          - address_count
+          - customer_count
+        dimensions:
+          - country
+          - city
+        refresh_key:
+          every: 1 hour
