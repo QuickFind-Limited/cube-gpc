@@ -42,8 +42,13 @@ cubes:
         type: count_distinct
         description: Number of shipping locations
 
+      - name: total_fulfillment_days
+        sql: "DATE_DIFF('day', CAST({fulfillments.trandate} AS TIMESTAMP), CAST({CUBE}.shipdate AS TIMESTAMP))"
+        type: sum
+        description: Total days from order to ship (for averaging)
+
       - name: average_fulfillment_days
-        sql: "AVG(DATE_DIFF('day', CAST({fulfillments.trandate} AS TIMESTAMP), CAST({CUBE}.shipdate AS TIMESTAMP)))"
+        sql: "1.0 * {total_fulfillment_days} / NULLIF({fulfillment_count}, 0)"
         type: number
         description: Average days from order to ship (FD002)
 
@@ -106,6 +111,7 @@ cubes:
           - fulfillment_count
           - sku_count
           - location_count
+          - total_fulfillment_days
         dimensions:
           - location
         time_dimension: shipdate

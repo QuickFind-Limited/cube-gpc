@@ -532,3 +532,19 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 hour
+
+      # Yearly metrics for YoY comparisons
+      - name: yearly_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin
+        dimensions:
+          - channel_type
+          - category
+          - billing_country
+        time_dimension: transaction_date
+        granularity: year
+        refresh_key:
+          every: 1 hour
