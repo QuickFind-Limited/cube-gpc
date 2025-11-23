@@ -204,50 +204,9 @@ cubes:
         sql: "{CUBE}.department"
         type: number
 
-      # Channel type with John Lewis PARTNER detection (Golden Rule 4 + PARTNER fix)
-      - name: channel_type
-        sql: >
-          CASE
-            WHEN {transactions.remote_order_source} = 'John Lewis' THEN 'PARTNER'
-            WHEN {locations.name} IS NULL THEN 'D2C'
-            WHEN {locations.name} LIKE 'Bleckmann%' AND {locations.name} NOT LIKE '%Quarantine%' AND {locations.name} NOT LIKE '%Miscellaneous%' THEN 'D2C'
-            WHEN {locations.name} IN ('Meteor Space', '2Flow') THEN 'D2C'
-            WHEN {locations.name} IN (
-              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
-              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
-              'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
-            ) THEN 'RETAIL'
-            WHEN {locations.name} LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
-            WHEN {locations.name} LIKE 'Lifestyle Sports%' AND {locations.name} NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
-            WHEN {locations.name} IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
-            WHEN {locations.name} LIKE 'Events%' THEN 'EVENTS'
-            ELSE 'OTHER'
-          END
-        type: string
-        description: "Channel type with John Lewis detection: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER"
-
-      # Department name for POS vs Online analysis
-      - name: department_name
-        sql: "{departments.name}"
-        type: string
-        description: "Department name: eCommerce, Retail, Wholesale"
-
-      # Classification name for specific location/website
-      - name: classification_name
-        sql: "{classifications.name}"
-        type: string
-        description: "Classification: EU Website, UK Website, Kildare Village, etc."
-
-      # POS vs Online derived dimension
-      - name: pos_vs_online
-        sql: >
-          CASE
-            WHEN {departments.name} = 'eCommerce' THEN 'Online'
-            WHEN {departments.name} = 'Retail' THEN 'POS'
-            ELSE 'Other'
-          END
-        type: string
-        description: "POS vs Online classification based on department"
+      # Use locations.channel_type instead of computed dimension
+      # Use departments.name for department analysis
+      # Use classifications.name for classification analysis
 
     segments:
       - name: sales_lines
