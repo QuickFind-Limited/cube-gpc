@@ -34,8 +34,8 @@ cubes:
         description: Average customer lifetime value
 
       - name: total_orders
-        sql: "CAST({CUBE}.order_count AS BIGINT)"
-        type: sum
+        sql: "CAST(SUM({CUBE}.order_count) AS BIGINT)"
+        type: number
         description: Total number of orders
 
       - name: repeat_customers
