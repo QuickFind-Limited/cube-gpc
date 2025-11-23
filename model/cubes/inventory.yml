@@ -71,8 +71,8 @@ cubes:
 
     dimensions:
       - name: id
-        sql: "ROW_NUMBER() OVER ()"
-        type: number
+        sql: "CONCAT(CAST({CUBE}.item AS VARCHAR), '-', CAST({CUBE}.location AS VARCHAR))"
+        type: string
         primary_key: true
 
       - name: item
