@@ -61,6 +61,12 @@ def driver_factory(ctx: dict) -> dict:
 
         CREATE TABLE IF NOT EXISTS b2b_customers AS
         SELECT * FROM read_parquet('{bucket}/b2b_customers.parquet');
+
+        CREATE TABLE IF NOT EXISTS b2b_addresses AS
+        SELECT * FROM read_parquet('{bucket}/b2b_addresses.parquet');
+
+        CREATE TABLE IF NOT EXISTS b2b_customer_addresses AS
+        SELECT * FROM read_parquet('{bucket}/b2b_customer_addresses.parquet');
     """
 
     return {
