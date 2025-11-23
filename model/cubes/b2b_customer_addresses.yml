@@ -16,8 +16,8 @@ cubes:
 
       - name: customer_count
         sql: "{CUBE}.customer_id"
-        type: count_distinct
-        description: Number of customers with addresses
+        type: count_distinct_approx
+        description: Number of customers with addresses (approximate)
 
     dimensions:
       - name: address_id
