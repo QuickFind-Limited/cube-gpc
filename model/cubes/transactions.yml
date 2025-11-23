@@ -107,6 +107,11 @@ cubes:
         type: number
         description: Currency ID
 
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: Subsidiary ID (2=Ireland/EUR, 6=UK/GBP)
+
       - name: remote_order_source
         sql: "{CUBE}.custbody_pwks_remote_order_source"
         type: string
