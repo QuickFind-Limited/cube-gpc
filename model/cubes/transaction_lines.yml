@@ -101,7 +101,7 @@ cubes:
         description: Average discount rate percentage for DM002
 
       - name: discounted_units
-        sql: "CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS DOUBLE)"
         type: sum
         description: Units sold at discount for DM058
 
