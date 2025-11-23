@@ -52,8 +52,8 @@ cubes:
         description: Average order value
 
       - name: total_line_count
-        sql: "CAST(SUM({CUBE}.line_count) AS DOUBLE)"
-        type: number
+        sql: "CAST({CUBE}.line_count AS DOUBLE)"
+        type: sum
         description: Total line count across all orders
 
     dimensions:
