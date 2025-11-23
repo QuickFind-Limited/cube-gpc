@@ -132,5 +132,6 @@ cubes:
           - type
         time_dimension: trandate
         granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
