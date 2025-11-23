@@ -37,9 +37,10 @@ cubes:
       FROM transaction_lines tl
       LEFT JOIN transactions t ON tl.transaction = t.id
       LEFT JOIN locations l ON tl.location = l.id
-      LEFT JOIN items i ON tl.item = i.id
+      INNER JOIN items i ON tl.item = i.id
       LEFT JOIN departments d ON tl.department = d.id
       LEFT JOIN classifications c ON tl.class = c.id
+      WHERE tl.mainline = 'F'
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
