@@ -43,6 +43,11 @@ cubes:
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions.id}"
+
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
       # Currency conversion: GBP (currency=4) converted to EUR at 1.13528
