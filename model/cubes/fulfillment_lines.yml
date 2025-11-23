@@ -110,5 +110,20 @@ cubes:
           - location
         time_dimension: shipdate
         granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Item-level fulfillment tracking
+      - name: item_fulfillment_analysis
+        measures:
+          - units_shipped
+          - fulfillment_count
+        dimensions:
+          - item
+          - location
+        time_dimension: shipdate
+        granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour

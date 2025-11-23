@@ -136,3 +136,17 @@ cubes:
           - stock_status
         refresh_key:
           every: 1 hour
+
+      # Item-level inventory (for SKU lookups)
+      - name: item_inventory
+        measures:
+          - total_stock
+          - available_stock
+          - backorder_units
+          - position_count
+        dimensions:
+          - item
+          - itemid
+          - location
+        refresh_key:
+          every: 1 hour

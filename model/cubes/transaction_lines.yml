@@ -452,3 +452,83 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 hour
+
+      # Customer geography analysis
+      - name: customer_geography
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - customer_email
+          - billing_country
+          - shipping_country
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Product range/collection analysis
+      - name: product_range_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+        dimensions:
+          - product_range
+          - collection
+          - category
+          - season
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Size/color by geography
+      - name: size_geography
+        measures:
+          - units_sold
+          - total_revenue
+        dimensions:
+          - size
+          - color
+          - billing_country
+          - category
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Transaction type breakdown
+      - name: transaction_type_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - transaction_type
+          - channel_type
+          - billing_country
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Weekly trends
+      - name: weekly_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - channel_type
+          - category
+        time_dimension: transaction_date
+        granularity: week
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
