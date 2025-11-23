@@ -63,12 +63,12 @@ cubes:
         description: Customer billing country
 
       - name: first_order_date
-        sql: "{CUBE}.first_order_date"
+        sql: "CAST({CUBE}.first_order_date AS TIMESTAMP)"
         type: time
         description: Date of first order
 
       - name: last_order_date
-        sql: "{CUBE}.last_order_date"
+        sql: "CAST({CUBE}.last_order_date AS TIMESTAMP)"
         type: time
         description: Date of most recent order
 
