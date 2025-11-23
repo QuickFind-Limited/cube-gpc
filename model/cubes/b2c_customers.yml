@@ -121,3 +121,20 @@ cubes:
 
       - name: vip_customers
         sql: "{CUBE}.lifetime_value >= 500"
+
+    pre_aggregations:
+      # Customer analysis by tier and country
+      - name: customer_analysis
+        measures:
+          - customer_count
+          - total_lifetime_value
+          - average_ltv
+          - total_orders
+          - repeat_customers
+        dimensions:
+          - billing_country
+          - customer_tier
+          - recency_bucket
+          - purchase_frequency_bucket
+        refresh_key:
+          every: 1 hour

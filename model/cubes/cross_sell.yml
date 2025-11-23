@@ -107,3 +107,17 @@ cubes:
 
       - name: cross_category
         sql: "{CUBE}.item_a_category != {CUBE}.item_b_category"
+
+    pre_aggregations:
+      # Cross-sell analysis by category
+      - name: cross_sell_analysis
+        measures:
+          - pair_count
+          - total_co_purchases
+          - average_co_purchases
+          - max_co_purchases
+        dimensions:
+          - item_a_category
+          - item_b_category
+        refresh_key:
+          every: 1 hour

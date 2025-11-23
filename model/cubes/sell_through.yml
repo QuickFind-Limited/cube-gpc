@@ -78,3 +78,16 @@ cubes:
 
       - name: has_stock
         sql: "{CUBE}.current_stock > 0"
+
+    pre_aggregations:
+      # Sell-through by category and season
+      - name: sell_through_analysis
+        measures:
+          - total_units_sold
+          - total_current_stock
+          - item_count
+        dimensions:
+          - category
+          - season
+        refresh_key:
+          every: 1 hour

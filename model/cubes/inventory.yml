@@ -118,3 +118,21 @@ cubes:
 
       - name: backorder
         sql: "{CUBE}.calculated_quantity_available < 0"
+
+    pre_aggregations:
+      # Inventory analysis by location and item attributes
+      - name: inventory_analysis
+        measures:
+          - total_stock
+          - available_stock
+          - backorder_units
+          - position_count
+          - sku_count
+          - location_count
+          - zero_stock_positions
+          - negative_stock_positions
+        dimensions:
+          - location
+          - stock_status
+        refresh_key:
+          every: 1 hour
