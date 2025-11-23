@@ -10,7 +10,7 @@ cubes:
         i2.displayname as item_b_name,
         i1.custitem_gpc_category as item_a_category,
         i2.custitem_gpc_category as item_b_category,
-        COUNT(DISTINCT tl1.transaction) as co_purchase_count
+        CAST(COUNT(DISTINCT tl1.transaction) AS BIGINT) as co_purchase_count
       FROM transaction_lines tl1
       JOIN transaction_lines tl2 ON tl1.transaction = tl2.transaction AND tl1.item < tl2.item
       JOIN transactions t ON tl1.transaction = t.id
