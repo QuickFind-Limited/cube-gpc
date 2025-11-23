@@ -28,11 +28,9 @@ cubes:
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
       - name: total_revenue
-        sql: "{CUBE}.amount * -1"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.amount * -1 ELSE 0 END"
         type: sum
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Total gross revenue (CustInvc + CashSale only)
         drill_members:
           - transactions.trandate
@@ -41,11 +39,9 @@ cubes:
           - locations.name
 
       - name: net_revenue
-        sql: "({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1 ELSE 0 END"
         type: sum
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Net revenue (amount minus tax)
 
       # Units Measures - Rule 2: Sales quantities are negative
@@ -73,25 +69,19 @@ cubes:
 
       # Discount Measures (calculated from baseprice vs rate)
       - name: total_discount
-        sql: "SUM(CASE WHEN {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END)"
+        sql: "SUM(CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END)"
         type: number
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Total discount amount (baseprice - rate) for DM001
 
       - name: discount_rate
-        sql: "100.0 * SUM(CASE WHEN {items.base_price} > 0 AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END) / NULLIF(SUM(CASE WHEN {CUBE}.quantity < 0 THEN {items.base_price} * ABS({CUBE}.quantity) ELSE 0 END), 0)"
+        sql: "100.0 * SUM(CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {items.base_price} > 0 AND {CUBE}.quantity < 0 THEN ({items.base_price} - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END) / NULLIF(SUM(CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {items.base_price} * ABS({CUBE}.quantity) ELSE 0 END), 0)"
         type: number
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Average discount rate percentage for DM002
 
       - name: discounted_units
-        sql: "SUM(CASE WHEN {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END)"
+        sql: "SUM(CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {items.base_price} > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END)"
         type: number
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Units sold at discount for DM058
 
       # Count Measures
@@ -136,19 +126,15 @@ cubes:
 
       # Margin Measures for MM001
       - name: total_cost
-        sql: "{CUBE}.costestimate"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate ELSE 0 END"
         type: sum
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Total cost estimate
 
       - name: gross_margin
-        sql: "({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0)"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN ({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0) ELSE 0 END"
         type: sum
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
         description: Gross margin (revenue - cost)
 
       - name: gross_margin_percent
@@ -163,12 +149,9 @@ cubes:
 
       # YoY Comparison for RM003
       - name: prior_year_revenue
-        sql: "{CUBE}.amount * -1"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {transactions.trandate} >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR) AND {transactions.trandate} < DATE_TRUNC('year', CURRENT_DATE) THEN {CUBE}.amount * -1 ELSE 0 END"
         type: sum
         format: currency
-        filters:
-          - sql: "{transactions.type} IN ('CustInvc', 'CashSale')"
-          - sql: "{transactions.trandate} >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR) AND {transactions.trandate} < DATE_TRUNC('year', CURRENT_DATE)"
         description: Revenue from prior year for YoY comparison (RM003)
 
     dimensions:
