@@ -121,18 +121,3 @@ cubes:
 
       - name: vip_customers
         sql: "{CUBE}.lifetime_value >= 500"
-
-    pre_aggregations:
-      - name: customer_segments
-        type: rollup
-        measures:
-          - customer_count
-          - repeat_customers
-          - total_lifetime_value
-          - total_orders
-        dimensions:
-          - billing_country
-          - customer_tier
-          - purchase_frequency_bucket
-        refresh_key:
-          every: 2 hours
