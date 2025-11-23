@@ -356,3 +356,133 @@ cubes:
 
       - name: revenue_transactions
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
+
+    pre_aggregations:
+      # Main rollup for time-series queries
+      - name: monthly_metrics
+        measures:
+          - total_revenue
+          - net_revenue
+          - units_sold
+          - units_returned
+          - total_tax
+          - total_cost
+          - gross_margin
+          - transaction_count
+          - sku_count
+          - line_count
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Revenue by channel - most common query
+      - name: revenue_by_channel
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin
+        dimensions:
+          - channel_type
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Revenue by category
+      - name: revenue_by_category
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+          - average_selling_price
+        dimensions:
+          - category
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Revenue by season
+      - name: revenue_by_season
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+        dimensions:
+          - season
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Revenue by department
+      - name: revenue_by_department
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - department_name
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Revenue by country
+      - name: revenue_by_country
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - billing_country
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
+        build_range_start:
+          sql: SELECT DATE '2022-01-01'
+        build_range_end:
+          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
+
+      # Top products - no time dimension for simpler aggregation
+      - name: product_performance
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+        dimensions:
+          - sku
+          - product_name
+          - category
+          - season
+        refresh_key:
+          every: 1 hour
