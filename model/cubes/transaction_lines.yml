@@ -373,13 +373,8 @@ cubes:
           - line_count
         time_dimension: transaction_date
         granularity: month
-        partition_granularity: month
         refresh_key:
           every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
 
       # Revenue by channel - most common query
       - name: revenue_by_channel
@@ -392,13 +387,8 @@ cubes:
           - channel_type
         time_dimension: transaction_date
         granularity: month
-        partition_granularity: month
         refresh_key:
           every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
 
       # Revenue by category
       - name: revenue_by_category
@@ -406,54 +396,12 @@ cubes:
           - total_revenue
           - units_sold
           - gross_margin
-          - average_selling_price
         dimensions:
           - category
         time_dimension: transaction_date
         granularity: month
-        partition_granularity: month
         refresh_key:
           every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
-
-      # Revenue by season
-      - name: revenue_by_season
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin
-        dimensions:
-          - season
-        time_dimension: transaction_date
-        granularity: month
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
-
-      # Revenue by department
-      - name: revenue_by_department
-        measures:
-          - total_revenue
-          - units_sold
-          - transaction_count
-        dimensions:
-          - department_name
-        time_dimension: transaction_date
-        granularity: month
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
 
       # Revenue by country
       - name: revenue_by_country
@@ -465,24 +413,5 @@ cubes:
           - billing_country
         time_dimension: transaction_date
         granularity: month
-        partition_granularity: month
-        refresh_key:
-          every: 1 hour
-        build_range_start:
-          sql: SELECT DATE '2022-01-01'
-        build_range_end:
-          sql: SELECT CURRENT_DATE + INTERVAL '1' DAY
-
-      # Top products - no time dimension for simpler aggregation
-      - name: product_performance
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin
-        dimensions:
-          - sku
-          - product_name
-          - category
-          - season
         refresh_key:
           every: 1 hour
