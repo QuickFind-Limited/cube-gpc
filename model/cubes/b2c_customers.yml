@@ -96,9 +96,9 @@ cubes:
       - name: recency_bucket
         sql: >
           CASE
-            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '30 days' THEN 'Active (30d)'
-            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '90 days' THEN 'Recent (90d)'
-            WHEN {CUBE}.last_order_date >= CURRENT_DATE - INTERVAL '180 days' THEN 'Lapsed (180d)'
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= CURRENT_DATE - INTERVAL '30 days' THEN 'Active (30d)'
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= CURRENT_DATE - INTERVAL '90 days' THEN 'Recent (90d)'
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= CURRENT_DATE - INTERVAL '180 days' THEN 'Lapsed (180d)'
             ELSE 'Dormant (180d+)'
           END
         type: string
