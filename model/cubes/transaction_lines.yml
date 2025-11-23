@@ -117,13 +117,13 @@ cubes:
 
       - name: transaction_count
         sql: "{CUBE}.transaction"
-        type: count_distinct_approx
-        description: Number of unique transactions (approximate)
+        type: count_distinct
+        description: Number of unique transactions
 
       - name: sku_count
         sql: "{CUBE}.item"
-        type: count_distinct_approx
-        description: Number of unique SKUs (approximate)
+        type: count_distinct
+        description: Number of unique SKUs
 
       # Calculated Measures
       - name: average_order_value

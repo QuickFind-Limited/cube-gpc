@@ -39,13 +39,13 @@ cubes:
 
       - name: sku_count
         sql: "{CUBE}.item"
-        type: count_distinct_approx
-        description: Number of unique SKUs in inventory (approximate)
+        type: count_distinct
+        description: Number of unique SKUs in inventory
 
       - name: location_count
         sql: "{CUBE}.location"
-        type: count_distinct_approx
-        description: Number of locations with inventory (approximate)
+        type: count_distinct
+        description: Number of locations with inventory
 
       - name: zero_stock_positions
         type: count
