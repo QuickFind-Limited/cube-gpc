@@ -49,13 +49,13 @@ cubes:
         sql: >
           CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN
             CASE
-              WHEN {transactions.currency} = 4 THEN ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1 * 1.13528
-              ELSE ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1
+              WHEN {transactions.currency} = 4 THEN ({CUBE}.amount * -1 * 1.13528) - COALESCE({CUBE}.taxamount, 0)
+              ELSE ({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)
             END
           ELSE 0 END
         type: sum
         format: currency
-        description: Net revenue in EUR (amount minus tax, GBP converted)
+        description: Net revenue in EUR (gross revenue minus tax, GBP converted)
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
@@ -75,10 +75,10 @@ cubes:
 
       # Tax Measures
       - name: total_tax
-        sql: "{CUBE}.taxamount"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END"
         type: sum
         format: currency
-        description: Total tax amount
+        description: Total tax amount (CustInvc + CashSale only)
 
       # Discount Measures (calculated from baseprice vs rate)
       - name: total_discount
