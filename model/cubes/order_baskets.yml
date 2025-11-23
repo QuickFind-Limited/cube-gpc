@@ -7,7 +7,7 @@ cubes:
         t.type,
         t.custbody_customer_email as customer_email,
         t.billing_country,
-        CAST(COUNT(*) AS BIGINT) as line_count,
+        CAST(COUNT(*) AS DOUBLE) as line_count,
         CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units,
         CAST(SUM(tl.amount * -1) AS DOUBLE) as order_total,
         CASE
