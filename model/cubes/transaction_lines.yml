@@ -27,11 +27,18 @@ cubes:
 
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
+      # Currency conversion: UK subsidiary (6) is in GBP, convert to EUR at 1.13528
       - name: total_revenue
-        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.amount * -1 ELSE 0 END"
+        sql: >
+          CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN
+            CASE
+              WHEN {transactions.subsidiary} = 6 THEN {CUBE}.amount * -1 * 1.13528
+              ELSE {CUBE}.amount * -1
+            END
+          ELSE 0 END
         type: sum
         format: currency
-        description: Total gross revenue (CustInvc + CashSale only)
+        description: Total gross revenue in EUR (CustInvc + CashSale only, GBP converted)
         drill_members:
           - transactions.trandate
           - items.itemid
@@ -39,10 +46,16 @@ cubes:
           - locations.name
 
       - name: net_revenue
-        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1 ELSE 0 END"
+        sql: >
+          CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN
+            CASE
+              WHEN {transactions.subsidiary} = 6 THEN ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1 * 1.13528
+              ELSE ({CUBE}.amount - COALESCE({CUBE}.taxamount, 0)) * -1
+            END
+          ELSE 0 END
         type: sum
         format: currency
-        description: Net revenue (amount minus tax)
+        description: Net revenue in EUR (amount minus tax, GBP converted)
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
@@ -132,10 +145,16 @@ cubes:
         description: Total cost estimate
 
       - name: gross_margin
-        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN ({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0) ELSE 0 END"
+        sql: >
+          CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN
+            CASE
+              WHEN {transactions.subsidiary} = 6 THEN ({CUBE}.amount * -1 * 1.13528) - COALESCE({CUBE}.costestimate, 0)
+              ELSE ({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0)
+            END
+          ELSE 0 END
         type: sum
         format: currency
-        description: Gross margin (revenue - cost)
+        description: Gross margin in EUR (revenue - cost, GBP converted)
 
       - name: gross_margin_percent
         sql: "100.0 * (({total_revenue}) - ({total_cost})) / NULLIF({total_revenue}, 0)"
@@ -149,10 +168,18 @@ cubes:
 
       # YoY Comparison for RM003
       - name: prior_year_revenue
-        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') AND {transactions.trandate} >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR) AND {transactions.trandate} < DATE_TRUNC('year', CURRENT_DATE) THEN {CUBE}.amount * -1 ELSE 0 END"
+        sql: >
+          CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale')
+            AND {transactions.trandate} >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR)
+            AND {transactions.trandate} < DATE_TRUNC('year', CURRENT_DATE) THEN
+            CASE
+              WHEN {transactions.subsidiary} = 6 THEN {CUBE}.amount * -1 * 1.13528
+              ELSE {CUBE}.amount * -1
+            END
+          ELSE 0 END
         type: sum
         format: currency
-        description: Revenue from prior year for YoY comparison (RM003)
+        description: Revenue from prior year in EUR for YoY comparison (RM003)
 
     dimensions:
       - name: id
