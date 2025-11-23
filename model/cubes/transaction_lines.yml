@@ -380,6 +380,7 @@ cubes:
           - shipping_country
         time_dimension: transaction_date
         granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
 
@@ -399,6 +400,7 @@ cubes:
           - color
         time_dimension: transaction_date
         granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
 
@@ -416,6 +418,7 @@ cubes:
           - classification_name
         time_dimension: transaction_date
         granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
 
@@ -429,6 +432,7 @@ cubes:
           - channel_type
         time_dimension: transaction_date
         granularity: day
+        partition_granularity: month
         refresh_key:
           every: 1 hour
 
@@ -445,5 +449,6 @@ cubes:
           - season
         time_dimension: transaction_date
         granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
