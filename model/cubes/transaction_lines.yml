@@ -188,6 +188,12 @@ cubes:
         type: number
         description: Sales velocity - units sold per week (LIFE004)
 
+      # Return rate for RET001
+      - name: return_rate
+        sql: "100.0 * {units_returned} / NULLIF({units_sold} + {units_returned}, 0)"
+        type: number
+        description: Return rate percentage (RET001)
+
       # YoY Comparison for RM003
       - name: prior_year_revenue
         sql: >
