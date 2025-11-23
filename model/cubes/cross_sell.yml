@@ -10,6 +10,7 @@ cubes:
         i2.displayname as item_b_name,
         i1.custitem_gpc_category as item_a_category,
         i2.custitem_gpc_category as item_b_category,
+        CAST(t.trandate AS TIMESTAMP) as trandate,
         CAST(COUNT(DISTINCT tl1.transaction) AS BIGINT) as co_purchase_count
       FROM transaction_lines tl1
       JOIN transaction_lines tl2 ON tl1.transaction = tl2.transaction AND tl1.item < tl2.item
@@ -22,10 +23,12 @@ cubes:
         AND tl1.mainline = 'F'
         AND tl2.mainline = 'F'
       GROUP BY tl1.item, tl2.item, i1.itemid, i2.itemid, i1.displayname, i2.displayname,
-               i1.custitem_gpc_category, i2.custitem_gpc_category
-      HAVING COUNT(DISTINCT tl1.transaction) >= 2
+               i1.custitem_gpc_category, i2.custitem_gpc_category, CAST(t.trandate AS TIMESTAMP)
     title: Cross-Sell Analysis
-    description: Product affinity pairs showing items frequently purchased together (BASK002)
+    description: >
+      Product affinity pairs by transaction date showing items purchased together (BASK002).
+      Data is partitioned by month. To get total historical co-purchases, sum total_co_purchases
+      across all time periods without date filter. For recent trends, filter by date range.
 
     measures:
       - name: pair_count
@@ -98,6 +101,11 @@ cubes:
         type: number
         description: Number of times purchased together
 
+      - name: trandate
+        sql: "{CUBE}.trandate"
+        type: time
+        description: Transaction date for time-based analysis
+
     segments:
       - name: high_affinity
         sql: "{CUBE}.co_purchase_count >= 10"
@@ -108,17 +116,19 @@ cubes:
       - name: cross_category
         sql: "{CUBE}.item_a_category != {CUBE}.item_b_category"
 
-    # Pre-aggregation disabled - self-join on transaction_lines is too expensive
-    # Consider pre-computing cross_sell data as a parquet table instead
-    # pre_aggregations:
-    #   - name: cross_sell_analysis
-    #     measures:
-    #       - pair_count
-    #       - total_co_purchases
-    #       - average_co_purchases
-    #       - max_co_purchases
-    #     dimensions:
-    #       - item_a_category
-    #       - item_b_category
-    #     refresh_key:
-    #       every: 1 hour
+    pre_aggregations:
+      # Cross-sell analysis by category with time partitioning
+      - name: cross_sell_analysis
+        measures:
+          - pair_count
+          - total_co_purchases
+          - average_co_purchases
+          - max_co_purchases
+        dimensions:
+          - item_a_category
+          - item_b_category
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
