@@ -34,10 +34,10 @@ cubes:
         i.baseprice as item_base_price,
         d.name as department_name,
         c.name as classification_name
-      FROM transaction_lines tl
+      FROM (SELECT * FROM transaction_lines WHERE mainline = 'F') tl
       LEFT JOIN transactions t ON tl.transaction = t.id
       LEFT JOIN locations l ON tl.location = l.id
-      LEFT JOIN items i ON tl.item = i.id
+      INNER JOIN items i ON tl.item = i.id
       LEFT JOIN departments d ON tl.department = d.id
       LEFT JOIN classifications c ON tl.class = c.id
     title: Transaction Lines
