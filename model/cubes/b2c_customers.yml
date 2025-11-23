@@ -6,8 +6,8 @@ cubes:
         t.billing_country,
         MIN(t.trandate) as first_order_date,
         MAX(t.trandate) as last_order_date,
-        COUNT(DISTINCT t.id) as order_count,
-        SUM(t.foreigntotal) as lifetime_value
+        CAST(COUNT(DISTINCT t.id) AS BIGINT) as order_count,
+        CAST(SUM(t.foreigntotal) AS DOUBLE) as lifetime_value
       FROM transactions t
       WHERE t.type = 'SalesOrd'
         AND t.custbody_customer_email IS NOT NULL
@@ -34,8 +34,8 @@ cubes:
         description: Average customer lifetime value
 
       - name: total_orders
-        sql: "CAST(SUM({CUBE}.order_count) AS BIGINT)"
-        type: number
+        sql: "{CUBE}.order_count"
+        type: sum
         description: Total number of orders
 
       - name: repeat_customers
