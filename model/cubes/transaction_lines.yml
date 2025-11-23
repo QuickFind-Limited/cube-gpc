@@ -398,6 +398,11 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: channel_category_idx
+            columns:
+              - channel_type
+              - category
         refresh_key:
           every: 1 hour
 
@@ -418,6 +423,14 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: sku_idx
+            columns:
+              - sku
+          - name: category_season_idx
+            columns:
+              - category
+              - season
         refresh_key:
           every: 1 hour
 
@@ -436,6 +449,10 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: location_name_idx
+            columns:
+              - location_name
         refresh_key:
           every: 1 hour
 
@@ -467,6 +484,11 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: channel_category_idx
+            columns:
+              - channel_type
+              - category
         refresh_key:
           every: 1 hour
 
@@ -483,6 +505,14 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: country_idx
+            columns:
+              - billing_country
+              - shipping_country
+          - name: customer_email_idx
+            columns:
+              - customer_email
         refresh_key:
           every: 1 hour
 
@@ -500,6 +530,11 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: collection_range_idx
+            columns:
+              - collection
+              - product_range
         refresh_key:
           every: 1 hour
 

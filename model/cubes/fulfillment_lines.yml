@@ -117,6 +117,10 @@ cubes:
         time_dimension: shipdate
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: location_idx
+            columns:
+              - location
         refresh_key:
           every: 1 hour
 
@@ -131,5 +135,9 @@ cubes:
         time_dimension: shipdate
         granularity: month
         partition_granularity: month
+        indexes:
+          - name: item_idx
+            columns:
+              - item
         refresh_key:
           every: 1 hour
