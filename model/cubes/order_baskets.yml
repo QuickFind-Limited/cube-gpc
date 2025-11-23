@@ -117,22 +117,21 @@ cubes:
       - name: large_basket
         sql: "{CUBE}.line_count >= 4"
 
-    # Pre-aggregation disabled - base SQL aggregation on transaction_lines is expensive
-    # Consider pre-computing order_baskets as a parquet table instead
-    # pre_aggregations:
-    #   - name: basket_analysis
-    #     measures:
-    #       - order_count
-    #       - total_revenue
-    #       - total_units
-    #       - average_order_value
-    #       - total_line_count
-    #     dimensions:
-    #       - billing_country
-    #       - line_count_bucket
-    #       - type
-    #     time_dimension: trandate
-    #     granularity: month
-    #     partition_granularity: month
-    #     refresh_key:
-    #       every: 1 hour
+    pre_aggregations:
+      # Basket analysis by country and bucket
+      - name: basket_analysis
+        measures:
+          - order_count
+          - total_revenue
+          - total_units
+          - average_order_value
+          - total_line_count
+        dimensions:
+          - billing_country
+          - line_count_bucket
+          - type
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 1 hour
