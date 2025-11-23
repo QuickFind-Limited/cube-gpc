@@ -11,12 +11,12 @@ cubes:
         COALESCE(sales.units_sold, 0) as units_sold
       FROM items i
       LEFT JOIN (
-        SELECT item, SUM(calculated_quantity_available) as current_stock
+        SELECT item, CAST(SUM(calculated_quantity_available) AS DOUBLE) as current_stock
         FROM inventory_calculated
         GROUP BY item
       ) inv ON i.id = inv.item
       LEFT JOIN (
-        SELECT tl.item, SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) as units_sold
+        SELECT tl.item, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units_sold
         FROM transaction_lines tl
         JOIN transactions t ON tl.transaction = t.id
         WHERE t.type IN ('CustInvc', 'CashSale')
