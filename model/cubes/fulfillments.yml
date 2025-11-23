@@ -98,3 +98,20 @@ cubes:
 
       - name: picked
         sql: "{CUBE}.status = 'B'"
+
+    pre_aggregations:
+      # Fulfillment status analysis
+      - name: fulfillment_analysis
+        measures:
+          - fulfillment_count
+          - unique_orders
+          - shipped_count
+          - pending_count
+        dimensions:
+          - status
+          - status_name
+          - shipcarrier
+        time_dimension: trandate
+        granularity: month
+        refresh_key:
+          every: 1 hour

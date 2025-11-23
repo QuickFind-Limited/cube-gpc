@@ -144,3 +144,22 @@ cubes:
 
       - name: fulfilled_status
         sql: "{CUBE}.status = 'G'"
+
+    pre_aggregations:
+      # Main rollup for order analysis
+      - name: orders_analysis
+        measures:
+          - order_count
+          - unique_customers
+          - fulfilled_orders
+          - cancelled_orders
+          - average_transaction_total
+        dimensions:
+          - type
+          - status
+          - billing_country
+          - shipping_country
+        time_dimension: trandate
+        granularity: month
+        refresh_key:
+          every: 1 hour
