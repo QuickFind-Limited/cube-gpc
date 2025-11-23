@@ -356,3 +356,94 @@ cubes:
 
       - name: revenue_transactions
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
+
+    pre_aggregations:
+      # Wide rollup covering most sales analysis queries
+      - name: sales_analysis
+        measures:
+          - total_revenue
+          - net_revenue
+          - units_sold
+          - units_returned
+          - gross_margin
+          - total_cost
+          - total_tax
+          - transaction_count
+          - sku_count
+          - line_count
+        dimensions:
+          - channel_type
+          - category
+          - season
+          - department_name
+          - billing_country
+          - shipping_country
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Product-level analysis
+      - name: product_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+          - transaction_count
+        dimensions:
+          - sku
+          - product_name
+          - category
+          - season
+          - size
+          - color
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Location-level analysis
+      - name: location_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin
+        dimensions:
+          - location_name
+          - channel_type
+          - department_name
+          - classification_name
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 hour
+
+      # Daily granularity for recent trends
+      - name: daily_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 hour
+
+      # Discount analysis
+      - name: discount_analysis
+        measures:
+          - total_revenue
+          - total_discount
+          - discounted_units
+          - units_sold
+        dimensions:
+          - channel_type
+          - category
+          - season
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 hour
