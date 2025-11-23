@@ -83,14 +83,14 @@ cubes:
 
       # Tax Measures
       - name: total_tax
-        sql: "CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END AS DOUBLE)"
         type: sum
         format: currency
         description: Total tax amount (CustInvc + CashSale only)
 
       # Discount Measures (calculated from baseprice vs rate)
       - name: total_discount
-        sql: "CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END AS DOUBLE)"
         type: sum
         format: currency
         description: Total discount amount (baseprice - rate) for DM001
@@ -146,7 +146,7 @@ cubes:
 
       # Margin Measures for MM001
       - name: total_cost
-        sql: "CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END AS DOUBLE)"
         type: sum
         format: currency
         description: Total cost estimate
