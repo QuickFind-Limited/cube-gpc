@@ -139,7 +139,7 @@ cubes:
 
       # Margin Measures for MM001
       - name: total_cost
-        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate ELSE 0 END"
+        sql: "CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END"
         type: sum
         format: currency
         description: Total cost estimate
@@ -148,8 +148,8 @@ cubes:
         sql: >
           CASE WHEN {transactions.type} IN ('CustInvc', 'CashSale') THEN
             CASE
-              WHEN {transactions.currency} = 4 THEN ({CUBE}.amount * -1 * 1.13528) - COALESCE({CUBE}.costestimate, 0)
-              ELSE ({CUBE}.amount * -1) - COALESCE({CUBE}.costestimate, 0)
+              WHEN {transactions.currency} = 4 THEN ({CUBE}.amount * -1 * 1.13528) - (COALESCE({CUBE}.costestimate, 0) * -1)
+              ELSE ({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)
             END
           ELSE 0 END
         type: sum
