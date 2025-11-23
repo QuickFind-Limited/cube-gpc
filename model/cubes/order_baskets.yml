@@ -51,6 +51,11 @@ cubes:
         format: currency
         description: Average order value
 
+      - name: total_line_count
+        sql: "{CUBE}.line_count"
+        type: sum
+        description: Total line count across all orders
+
     dimensions:
       - name: order_id
         sql: "{CUBE}.order_id"
@@ -120,6 +125,7 @@ cubes:
           - total_revenue
           - total_units
           - average_order_value
+          - total_line_count
         dimensions:
           - billing_country
           - line_count_bucket
