@@ -168,8 +168,18 @@ cubes:
         type: number
         description: Gross margin percentage
 
+      - name: min_transaction_date
+        sql: "{CUBE}.transaction_date"
+        type: min
+        description: Earliest transaction date in result set
+
+      - name: max_transaction_date
+        sql: "{CUBE}.transaction_date"
+        type: max
+        description: Latest transaction date in result set
+
       - name: units_per_week
-        sql: "1.0 * {units_sold} / NULLIF(DATE_DIFF('week', MIN({CUBE}.transaction_date), MAX({CUBE}.transaction_date)) + 1, 0)"
+        sql: "1.0 * {units_sold} / NULLIF(DATE_DIFF('week', {min_transaction_date}, {max_transaction_date}) + 1, 0)"
         type: number
         description: Sales velocity - units sold per week (LIFE004)
 
@@ -371,6 +381,8 @@ cubes:
           - transaction_count
           - sku_count
           - line_count
+          - min_transaction_date
+          - max_transaction_date
         dimensions:
           - channel_type
           - category
