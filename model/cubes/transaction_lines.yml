@@ -184,7 +184,7 @@ cubes:
         description: Latest transaction date in result set
 
       - name: units_per_week
-        sql: "1.0 * {units_sold} / NULLIF(DATE_DIFF('week', CAST({min_transaction_date} AS DATE), CAST({max_transaction_date} AS DATE)) + 1, 0)"
+        sql: "1.0 * {units_sold} / NULLIF((CAST({max_transaction_date} AS DATE) - CAST({min_transaction_date} AS DATE)) / 7 + 1, 0)"
         type: number
         description: Sales velocity - units sold per week (LIFE004)
 
