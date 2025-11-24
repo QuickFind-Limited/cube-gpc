@@ -207,7 +207,7 @@ cubes:
           ELSE 0 END
         type: sum
         format: currency
-        description: Revenue from prior year in EUR for YoY comparison (RM003)
+        description: Prior year revenue in EUR for YoY comparison (RM003)
 
     dimensions:
       - name: id
