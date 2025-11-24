@@ -233,4 +233,5 @@ cubes:
           - subsidiary
           - currency
         refresh_key:
-          every: 1 hour
+          every: 24 hour
+          sql: "SELECT 1"
