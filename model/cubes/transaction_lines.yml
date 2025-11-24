@@ -184,7 +184,12 @@ cubes:
         description: Latest transaction date in result set
 
       - name: units_per_week
-        sql: "1.0 * {units_sold} / NULLIF((CAST({max_transaction_date} AS DATE) - CAST({min_transaction_date} AS DATE)) / 7.0 + 1, 0)"
+        sql: >
+          1.0 * SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END) /
+          NULLIF(
+            (MAX(CAST({CUBE}.transaction_date AS DATE)) - MIN(CAST({CUBE}.transaction_date AS DATE))) / 7.0 + 1,
+            0
+          )
         type: number
         description: Sales velocity - units sold per week (LIFE004)
 
