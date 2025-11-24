@@ -198,7 +198,7 @@ cubes:
       - name: prior_year_revenue
         sql: >
           CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale')
-            AND {CUBE}.transaction_date >= DATE_ADD(DATE_TRUNC('year', CURRENT_DATE), INTERVAL -1 YEAR)
+            AND {CUBE}.transaction_date >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1' YEAR
             AND {CUBE}.transaction_date < DATE_TRUNC('year', CURRENT_DATE) THEN
             CASE
               WHEN {CUBE}.transaction_currency = 4 THEN {CUBE}.amount * -1 * 1.13528
@@ -604,5 +604,23 @@ cubes:
           - billing_country
         time_dimension: transaction_date
         granularity: year
+        refresh_key:
+          every: 1 hour
+
+      # Product range analysis for LIFE004 (units_per_week)
+      - name: product_range_analysis
+        measures:
+          - units_sold
+          - min_transaction_date
+          - max_transaction_date
+          - total_revenue
+          - total_discount
+        dimensions:
+          - product_range
+          - category
+          - season
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 hour
