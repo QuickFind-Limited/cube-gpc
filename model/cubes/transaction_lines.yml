@@ -198,8 +198,8 @@ cubes:
       - name: prior_year_revenue
         sql: >
           CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale')
-            AND {transaction_date} >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1' YEAR
-            AND {transaction_date} < DATE_TRUNC('year', CURRENT_DATE) THEN
+            AND CAST({CUBE}.transaction_date AS TIMESTAMP) >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1' YEAR
+            AND CAST({CUBE}.transaction_date AS TIMESTAMP) < DATE_TRUNC('year', CURRENT_DATE) THEN
             CASE
               WHEN {CUBE}.transaction_currency = 4 THEN {CUBE}.amount * -1 * 1.13528
               ELSE {CUBE}.amount * -1
