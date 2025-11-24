@@ -116,20 +116,21 @@ cubes:
       - name: cross_category
         sql: "{CUBE}.item_a_category != {CUBE}.item_b_category"
 
-    # Pre-aggregation disabled - self-join on transaction_lines causes timeout/OOM
-    # Consider pre-computing cross_sell pairs as a parquet table instead
-    # pre_aggregations:
-    #   - name: cross_sell_analysis
-    #     measures:
-    #       - pair_count
-    #       - total_co_purchases
-    #       - average_co_purchases
-    #       - max_co_purchases
-    #     dimensions:
-    #       - item_a_category
-    #       - item_b_category
-    #     time_dimension: trandate
-    #     granularity: month
-    #     partition_granularity: month
-    #     refresh_key:
-    #       every: 1 hour
+    # Pre-aggregation enabled for BASK002
+    # Note: self-join on transaction_lines may cause slow build times
+    pre_aggregations:
+      - name: cross_sell_analysis
+        measures:
+          - pair_count
+          - total_co_purchases
+          - average_co_purchases
+          - max_co_purchases
+        dimensions:
+          - item_a_category
+          - item_b_category
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        refresh_key:
+          every: 24 hour
+          sql: "SELECT 1"

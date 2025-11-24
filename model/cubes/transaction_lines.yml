@@ -394,6 +394,7 @@ cubes:
           - line_count
           - min_transaction_date
           - max_transaction_date
+          - prior_year_revenue
         dimensions:
           - channel_type
           - category
@@ -487,6 +488,7 @@ cubes:
           - total_discount
           - discounted_units
           - units_sold
+          - discount_rate
         dimensions:
           - channel_type
           - category
@@ -534,6 +536,8 @@ cubes:
           - total_revenue
           - units_sold
           - gross_margin
+          - min_transaction_date
+          - max_transaction_date
         dimensions:
           - product_range
           - collection
