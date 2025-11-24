@@ -123,7 +123,6 @@ cubes:
               - location
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Item-level fulfillment tracking
       - name: item_fulfillment_analysis
@@ -142,4 +141,3 @@ cubes:
               - item
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"

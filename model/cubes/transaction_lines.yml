@@ -401,7 +401,6 @@ cubes:
               - category
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Product-level analysis
       - name: product_analysis
@@ -430,7 +429,6 @@ cubes:
               - season
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Location-level analysis
       - name: location_analysis
@@ -453,7 +451,6 @@ cubes:
               - location_name
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Daily granularity for recent trends
       - name: daily_metrics
@@ -468,7 +465,6 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Discount analysis
       - name: discount_analysis
@@ -492,7 +488,6 @@ cubes:
               - category
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Customer geography analysis
       - name: customer_geography
@@ -517,7 +512,6 @@ cubes:
               - customer_email
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Product range/collection analysis
       - name: product_range_analysis
@@ -543,7 +537,6 @@ cubes:
               - product_range
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Size/color by geography
       - name: size_geography
@@ -560,7 +553,6 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Transaction type breakdown
       - name: transaction_type_analysis
@@ -577,7 +569,6 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Weekly trends
       - name: weekly_metrics
@@ -593,7 +584,6 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Yearly metrics for YoY comparisons
       - name: yearly_metrics
@@ -610,7 +600,6 @@ cubes:
         granularity: year
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
 
       # Product range analysis for LIFE004 (units_per_week)
       - name: product_range_analysis
@@ -629,4 +618,3 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"

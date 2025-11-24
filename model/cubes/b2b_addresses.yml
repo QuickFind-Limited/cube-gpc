@@ -74,4 +74,3 @@ cubes:
           - city
         refresh_key:
           every: 24 hour
-          sql: "SELECT 1"
