@@ -199,21 +199,6 @@ cubes:
         type: number
         description: Return rate percentage (RET001)
 
-      # YoY Comparison for RM003
-      - name: prior_year_revenue
-        sql: >
-          CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale')
-            AND CAST({CUBE}.transaction_date AS TIMESTAMP) >= DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1' YEAR
-            AND CAST({CUBE}.transaction_date AS TIMESTAMP) < DATE_TRUNC('year', CURRENT_DATE) THEN
-            CASE
-              WHEN {CUBE}.transaction_currency = 4 THEN {CUBE}.amount * -1 * 1.13528
-              ELSE {CUBE}.amount * -1
-            END
-          ELSE 0 END
-        type: sum
-        format: currency
-        description: Prior year revenue in EUR for YoY comparison (RM003)
-
     dimensions:
       - name: id
         sql: "{CUBE}.id"
@@ -399,7 +384,6 @@ cubes:
           - line_count
           - min_transaction_date
           - max_transaction_date
-          - prior_year_revenue
         dimensions:
           - channel_type
           - category
@@ -543,6 +527,7 @@ cubes:
           - gross_margin
           - min_transaction_date
           - max_transaction_date
+          - units_per_week
         dimensions:
           - product_range
           - collection
