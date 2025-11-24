@@ -90,5 +90,4 @@ cubes:
           - category
           - season
         refresh_key:
-          every: 24 hour
-          sql: "SELECT 1"
+          every: 1 week

@@ -135,8 +135,7 @@ cubes:
           - location
           - stock_status
         refresh_key:
-          every: 24 hour
-          sql: "SELECT 1"
+          every: 1 week
 
       # Item-level inventory (for SKU lookups)
       - name: item_inventory
@@ -150,5 +149,4 @@ cubes:
           - itemid
           - location
         refresh_key:
-          every: 24 hour
-          sql: "SELECT 1"
+          every: 1 week

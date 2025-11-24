@@ -134,5 +134,4 @@ cubes:
         granularity: month
         partition_granularity: month
         refresh_key:
-          every: 24 hour
-          sql: "SELECT 1"
+          every: 1 week
