@@ -85,6 +85,7 @@ cubes:
         measures:
           - total_units_sold
           - total_current_stock
+          - sell_through_rate
           - item_count
         dimensions:
           - category

@@ -131,6 +131,7 @@ cubes:
           - average_ltv
           - total_orders
           - repeat_customers
+          - repeat_rate
         dimensions:
           - billing_country
           - customer_tier
