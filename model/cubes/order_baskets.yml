@@ -61,10 +61,11 @@ cubes:
         type: number
         primary_key: true
 
+      # Parameterized Time Dimension - Default: "Last 12 months"
       - name: trandate
         sql: "{CUBE}.trandate"
         type: time
-        description: Order date
+        description: "Order date - PARAMETERIZED: Use timeDimensions with dateRange (default: 'last 12 months')"
 
       - name: month
         sql: "DATE_TRUNC('month', CAST({CUBE}.trandate AS TIMESTAMP))"

@@ -143,5 +143,6 @@ cubes:
           - customer_tier
           - recency_bucket
           - purchase_frequency_bucket
+          - transaction_type  # Added for filter compatibility (SKILL defaults)
         refresh_key:
           every: 24 hour

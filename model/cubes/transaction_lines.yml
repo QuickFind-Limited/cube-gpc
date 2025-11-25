@@ -34,8 +34,8 @@ cubes:
         i.baseprice as item_base_price,
         d.name as department_name,
         c.name as classification_name
-      FROM transaction_lines tl
-      LEFT JOIN transactions t ON tl.transaction = t.id
+      FROM transaction_lines_clean tl
+      LEFT JOIN transactions_clean t ON tl.transaction = t.id
       LEFT JOIN locations l ON tl.location = l.id
       LEFT JOIN items i ON tl.item = i.id
       LEFT JOIN departments d ON tl.department = d.id
@@ -130,13 +130,13 @@ cubes:
 
       - name: transaction_count
         sql: "{CUBE}.transaction"
-        type: count_distinct
-        description: Number of unique transactions
+        type: count_distinct_approx
+        description: Number of unique transactions (approximate)
 
       - name: sku_count
         sql: "{CUBE}.item"
-        type: count_distinct
-        description: Number of unique SKUs
+        type: count_distinct_approx
+        description: Number of unique SKUs (approximate)
 
       # Calculated Measures
       - name: average_order_value
@@ -268,10 +268,13 @@ cubes:
         type: string
         description: "Transaction type: SalesOrd, CustInvc, CashSale"
 
+      # Parameterized Time Dimension - Default: "Last 12 months"
+      # Queries should include timeDimensions with dateRange parameter
+      # Override by specifying different dateRange in query
       - name: transaction_date
         sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
-        description: Transaction date
+        description: "Transaction date - PARAMETERIZED: Use timeDimensions with dateRange (default: 'last 12 months')"
 
       - name: month
         sql: "DATE_TRUNC('month', CAST({CUBE}.transaction_date AS TIMESTAMP))"

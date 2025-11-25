@@ -67,9 +67,41 @@ def driver_factory(ctx: dict) -> dict:
 
         CREATE TABLE IF NOT EXISTS b2b_customer_addresses AS
         SELECT * FROM read_parquet('{bucket}/b2b_customer_addresses.parquet');
+
+        -- Create filtered views with AUDIT filters applied
+        CREATE VIEW IF NOT EXISTS transaction_lines_clean AS
+        SELECT * FROM transaction_lines
+        WHERE mainline = 'F'
+          AND COALESCE(taxline, 'F') = 'F'
+          AND COALESCE(iscogs, 'F') = 'F'
+          AND COALESCE(transactiondiscount, 'F') = 'F';
+
+        CREATE VIEW IF NOT EXISTS transactions_clean AS
+        SELECT * FROM transactions
+        WHERE COALESCE(posting, 'F') = 'T'
+          AND COALESCE(voided, 'F') = 'F'
+          AND type IN ('CustInvc', 'CashSale', 'CustCred', 'CashRfnd');
     """
 
-    return {
+    # BigQuery configuration
+    bigquery_config = {
+        'type': 'bigquery',
+        'projectId': os.environ.get('BIGQUERY_PROJECT_ID', 'gym-plus-coffee'),
+        'location': os.environ.get('BIGQUERY_LOCATION', 'US'),
+        # Optional: specify dataset
+        # 'datasetName': 'analytics',
+    }
+
+    # DuckDB configuration (current - for local development with GCS parquet)
+    duckdb_config = {
         'type': 'duckdb',
         'initSql': init_sql,
     }
+
+    # Return BigQuery or DuckDB based on environment variable
+    use_bigquery = os.environ.get('USE_BIGQUERY', 'false').lower() == 'true'
+
+    if use_bigquery:
+        return bigquery_config
+    else:
+        return duckdb_config

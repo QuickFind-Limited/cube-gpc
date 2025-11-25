@@ -1,6 +1,6 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM transactions
+    sql: SELECT * FROM transactions_clean
     title: Transactions
     description: Transaction headers including orders, invoices, and cash sales
 
@@ -20,8 +20,8 @@ cubes:
 
       - name: unique_customers
         sql: "{CUBE}.custbody_customer_email"
-        type: count_distinct
-        description: Number of unique customers by email
+        type: count_distinct_approx
+        description: Number of unique customers by email (approximate)
 
       - name: fulfilled_orders
         type: count

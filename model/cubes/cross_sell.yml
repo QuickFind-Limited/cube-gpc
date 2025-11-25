@@ -106,10 +106,11 @@ cubes:
         type: number
         description: Number of times purchased together
 
+      # Parameterized Time Dimension - Default: "Last 12 months"
       - name: trandate
         sql: "{CUBE}.trandate"
         type: time
-        description: Transaction date for time-based analysis
+        description: "Transaction date - PARAMETERIZED: Use timeDimensions with dateRange (default: 'last 12 months')"
 
     segments:
       - name: high_affinity
@@ -133,6 +134,7 @@ cubes:
         dimensions:
           - item_a_category
           - item_b_category
+          - transaction_type  # Added for filter compatibility (SKILL defaults)
         time_dimension: trandate
         granularity: month
         partition_granularity: month
