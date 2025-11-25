@@ -161,6 +161,5 @@ cubes:
           - shipping_country
           - currency
         time_dimension: trandate
-        granularity: month
         refresh_key:
           every: 24 hour
