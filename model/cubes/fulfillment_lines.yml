@@ -9,6 +9,10 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.transaction = {fulfillments.id}"
 
+      - name: transactions
+        relationship: many_to_one
+        sql: "{fulfillments}.entity = {transactions.id}"
+
       - name: items
         relationship: many_to_one
         sql: "{CUBE}.item = {items.id}"
@@ -43,7 +47,7 @@ cubes:
         description: Number of shipping locations
 
       - name: total_fulfillment_days
-        sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({fulfillments.trandate} AS DATE), DAY) AS FLOAT64)"
+        sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
         type: sum
         description: Total days from order to ship (for averaging)
 
