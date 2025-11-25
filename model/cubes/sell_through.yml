@@ -18,12 +18,12 @@ cubes:
       ) inv ON i.id = inv.item
       LEFT JOIN (
         SELECT tl.item, t.type as transaction_type, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS FLOAT64) as units_sold
-        FROM gpc.transaction_lines tl
-        JOIN gpc.transactions t ON tl.transaction = t.id
+        FROM gpc.transaction_lines_clean tl
+        JOIN gpc.transactions_clean t ON tl.transaction = t.id
         GROUP BY tl.item, t.type
       ) sales ON i.id = sales.item
     title: Sell Through Analysis
-    description: Product sell-through rates combining sales and inventory (STR001/PP058)
+    description: Product sell-through rates combining sales and inventory (STR001/PP058). Uses transaction_lines_clean and transactions_clean for consistent filtering with other revenue cubes.
 
     measures:
       - name: total_units_sold
