@@ -9,7 +9,7 @@ cubes:
         MAX(t.trandate) as last_order_date,
         CAST(COUNT(DISTINCT t.id) AS INT64) as order_count,
         CAST(SUM(t.foreigntotal) AS FLOAT64) as lifetime_value
-      FROM gpc.transactions t
+      FROM gpc.transactions_clean t
       WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
       GROUP BY t.custbody_customer_email, t.billing_country, t.type
