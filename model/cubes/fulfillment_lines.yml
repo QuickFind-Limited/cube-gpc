@@ -112,7 +112,7 @@ cubes:
           - sku_count
           - location_count
           - total_fulfillment_days
-          - average_fulfillment_days
+          # Removed: average_fulfillment_days (calculated - references count_distinct_approx)
         dimensions:
           - location
           - locations.name
