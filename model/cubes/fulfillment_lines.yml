@@ -29,7 +29,7 @@ cubes:
 
       - name: fulfillment_count
         sql: "{CUBE}.transaction"
-        type: count_distinct
+        type: count_distinct_approx
         description: Number of unique fulfillments
 
       - name: sku_count
@@ -141,5 +141,17 @@ cubes:
           - name: item_idx
             columns:
               - item
+        refresh_key:
+          every: 24 hour
+
+      # Snapshot pre-agg for location-based queries without time filtering
+      - name: location_snapshot
+        measures:
+          - fulfillment_count
+          - line_count
+          - units_shipped
+        dimensions:
+          - location
+          - locations.name
         refresh_key:
           every: 24 hour
