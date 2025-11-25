@@ -542,7 +542,7 @@ cubes:
         refresh_key:
           every: 24 hour
 
-      # Product range/collection analysis
+      # Product range/collection analysis for LIFE004 and other product metrics
       - name: product_range_analysis
         measures:
           - total_revenue
@@ -550,14 +550,14 @@ cubes:
           - gross_margin
           - min_transaction_date
           - max_transaction_date
-          - units_per_week
+          - total_discount
         dimensions:
           - product_range
           - collection
           - category
           - season
         time_dimension: transaction_date
-        granularity: day
+        granularity: month
         partition_granularity: month
         indexes:
           - name: collection_range_idx
@@ -626,24 +626,6 @@ cubes:
           - category
           - billing_country
         time_dimension: transaction_date
-        granularity: day
-        refresh_key:
-          every: 24 hour
-
-      # Product range analysis for LIFE004 (units_per_week)
-      - name: product_range_analysis
-        measures:
-          - units_sold
-          - min_transaction_date
-          - max_transaction_date
-          - total_revenue
-          - total_discount
-        dimensions:
-          - product_range
-          - category
-          - season
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: month
+        granularity: year
         refresh_key:
           every: 24 hour
