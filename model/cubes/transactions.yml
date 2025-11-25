@@ -20,8 +20,8 @@ cubes:
 
       - name: unique_customers
         sql: "{CUBE}.custbody_customer_email"
-        type: count_distinct_approx
-        description: Number of unique customers by email (approximate)
+        type: count_distinct
+        description: Number of unique customers by email
 
       - name: fulfilled_orders
         type: count

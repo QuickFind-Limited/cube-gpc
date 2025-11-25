@@ -16,7 +16,7 @@ cubes:
 
       - name: unique_orders
         sql: "{CUBE}.entity"
-        type: count_distinct_approx
+        type: count_distinct
         description: Number of unique orders fulfilled
 
       - name: shipped_count
