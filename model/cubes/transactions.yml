@@ -1,6 +1,6 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM transactions_clean
+    sql: SELECT * FROM gpc.transactions_clean
     title: Transactions
     description: Transaction headers including orders, invoices, and cash sales
 

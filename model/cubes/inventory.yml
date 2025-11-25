@@ -1,6 +1,6 @@
 cubes:
   - name: inventory
-    sql: SELECT * FROM inventory_calculated
+    sql: SELECT * FROM gpc.inventory_calculated
     title: Inventory
     description: Current inventory positions from inventory_calculated table (Rule 6)
 

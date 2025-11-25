@@ -34,12 +34,12 @@ cubes:
         i.baseprice as item_base_price,
         d.name as department_name,
         c.name as classification_name
-      FROM transaction_lines_clean tl
-      LEFT JOIN transactions_clean t ON tl.transaction = t.id
-      LEFT JOIN locations l ON tl.location = l.id
-      LEFT JOIN items i ON tl.item = i.id
-      LEFT JOIN departments d ON tl.department = d.id
-      LEFT JOIN classifications c ON tl.class = c.id
+      FROM gpc.transaction_lines_clean tl
+      LEFT JOIN gpc.transactions_clean t ON tl.transaction = t.id
+      LEFT JOIN gpc.locations l ON tl.location = l.id
+      LEFT JOIN gpc.items i ON tl.item = i.id
+      LEFT JOIN gpc.departments d ON tl.department = d.id
+      LEFT JOIN gpc.classifications c ON tl.class = c.id
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
