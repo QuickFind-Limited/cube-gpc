@@ -115,9 +115,6 @@ cubes:
           - average_fulfillment_days
         dimensions:
           - location
-        joins:
-          - locations
-        join_dimensions:
           - locations.name
         time_dimension: shipdate
         granularity: month

@@ -134,10 +134,6 @@ cubes:
         dimensions:
           - location
           - stock_status
-        joins:
-          - items
-          - locations
-        join_dimensions:
           - items.category
           - items.season
           - items.size
