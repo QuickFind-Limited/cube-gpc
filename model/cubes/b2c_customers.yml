@@ -128,10 +128,11 @@ cubes:
         measures:
           - customer_count
           - total_lifetime_value
-          - average_ltv
           - total_orders
           - repeat_customers
-          - repeat_rate
+          # Removed calculated/non-additive measures:
+          # - average_ltv (type: avg - use total_lifetime_value + customer_count instead)
+          # - repeat_rate (calculated - use repeat_customers + customer_count instead)
         dimensions:
           - billing_country
           - customer_tier

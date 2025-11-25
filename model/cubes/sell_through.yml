@@ -85,8 +85,9 @@ cubes:
         measures:
           - total_units_sold
           - total_current_stock
-          - sell_through_rate
           - item_count
+          # Removed calculated measure:
+          # - sell_through_rate (use component measures instead)
         dimensions:
           - category
           - season

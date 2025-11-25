@@ -100,10 +100,23 @@ cubes:
         format: currency
         description: Total discount amount (baseprice - rate) for DM001
 
+      # Component measures for discount_rate calculation (DM002)
+      - name: total_discount_amount
+        sql: "SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > 0 AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END)"
+        type: sum
+        format: currency
+        description: Total discount amount for discount_rate calculation (additive component for DM002)
+
+      - name: total_base_price_for_discount
+        sql: "SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {CUBE}.item_base_price * ABS({CUBE}.quantity) ELSE 0 END)"
+        type: sum
+        format: currency
+        description: Total base price for discount_rate calculation (additive component for DM002)
+
       - name: discount_rate
-        sql: "100.0 * SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > 0 AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END) / NULLIF(SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {CUBE}.item_base_price * ABS({CUBE}.quantity) ELSE 0 END), 0)"
+        sql: "100.0 * {total_discount_amount} / NULLIF({total_base_price_for_discount}, 0)"
         type: number
-        description: Average discount rate percentage for DM002
+        description: Average discount rate percentage for DM002 (calculated from components - NOT for use in pre-aggs)
 
       - name: discounted_units
         sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS DOUBLE)"
@@ -379,14 +392,18 @@ cubes:
           - gross_margin
           - total_cost
           - total_tax
-          - transaction_count
-          - sku_count
           - line_count
           - min_transaction_date
           - max_transaction_date
-          - average_salesord_value
-          - average_order_value
-          - average_items_per_order
+          - total_discount_amount
+          - total_base_price_for_discount
+          # Removed calculated/non-additive measures:
+          # - transaction_count (count_distinct - doesn't work with dimensions)
+          # - sku_count (count_distinct - doesn't work with dimensions)
+          # - average_salesord_value (calculated - makes pre-agg non-additive)
+          # - average_order_value (calculated - makes pre-agg non-additive)
+          # - average_items_per_order (calculated - makes pre-agg non-additive)
+          # - discount_rate (calculated - now use component measures instead)
         dimensions:
           - channel_type
           - category
@@ -395,6 +412,7 @@ cubes:
           - billing_country
           - shipping_country
           - classification_name
+          - transactions.currency
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
@@ -477,7 +495,10 @@ cubes:
           - total_discount
           - discounted_units
           - units_sold
-          - discount_rate
+          - total_discount_amount
+          - total_base_price_for_discount
+          # Removed calculated measure:
+          # - discount_rate (use component measures instead)
         dimensions:
           - channel_type
           - category
