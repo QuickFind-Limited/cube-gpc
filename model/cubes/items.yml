@@ -43,20 +43,10 @@ cubes:
         type: string
         description: Product category
 
-      - name: category_with_default
-        sql: "COALESCE({CUBE}.custitem_gpc_category, 'Uncategorized')"
-        type: string
-        description: Product category with default for missing values
-
       - name: season
         sql: "{CUBE}.custitem_gpc_season"
         type: string
         description: Product season (e.g., AW25, SS24)
-
-      - name: season_with_default
-        sql: "COALESCE({CUBE}.custitem_gpc_season, 'No Season')"
-        type: string
-        description: Product season with default for missing values
 
       - name: size
         sql: "{CUBE}.custitem_gpc_size"

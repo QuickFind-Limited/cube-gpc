@@ -347,6 +347,33 @@ dimensions:
 
 ## Change Log
 
+### November 25, 2025 - Remove Anti-Pattern Dimensions
+
+**Changes:**
+1. Removed `category_with_default` dimension from items cube
+2. Removed `season_with_default` dimension from items cube
+
+**Reasoning:**
+- These dimensions used COALESCE to replace NULL with fake values ('Uncategorized', 'No Season')
+- This hides data quality issues and makes missing data invisible
+- Users should see NULL values to understand data completeness
+- NULL handling should be at query/reporting layer, not baked into dimensions
+
+**Files Modified:**
+- `model/cubes/items.yml`
+
+**Impact:**
+- No queries were using these dimensions (verified via grep)
+- No breaking changes
+- Improved data quality visibility
+
+**Migration:**
+- Use `items.category` instead of `items.category_with_default`
+- Use `items.season` instead of `items.season_with_default`
+- Handle NULLs at query time if needed with COALESCE in client code
+
+---
+
 ### November 25, 2025 - Transaction Type Parameterization
 
 **Changes:**
