@@ -385,6 +385,8 @@ cubes:
           - min_transaction_date
           - max_transaction_date
           - average_salesord_value
+          - average_order_value
+          - average_items_per_order
         dimensions:
           - channel_type
           - category
@@ -392,6 +394,7 @@ cubes:
           - department_name
           - billing_country
           - shipping_country
+          - classification_name
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month

@@ -107,6 +107,7 @@ cubes:
           - unique_orders
           - shipped_count
           - pending_count
+          - fulfillments_per_order
         dimensions:
           - status
           - status_name

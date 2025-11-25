@@ -112,8 +112,13 @@ cubes:
           - sku_count
           - location_count
           - total_fulfillment_days
+          - average_fulfillment_days
         dimensions:
           - location
+        joins:
+          - locations
+        join_dimensions:
+          - locations.name
         time_dimension: shipdate
         granularity: month
         partition_granularity: month
