@@ -417,6 +417,7 @@ cubes:
           - classification_name
           - transactions.currency
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: channel_category_idx
@@ -441,6 +442,7 @@ cubes:
           - size
           - color
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: sku_idx
@@ -466,6 +468,7 @@ cubes:
           - department_name
           - classification_name
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: location_name_idx
@@ -483,6 +486,7 @@ cubes:
         dimensions:
           - channel_type
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         refresh_key:
           every: 24 hour
@@ -503,6 +507,7 @@ cubes:
           - category
           - season
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: channel_category_idx
@@ -523,6 +528,7 @@ cubes:
           - billing_country
           - shipping_country
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: country_idx
@@ -550,6 +556,7 @@ cubes:
           - category
           - season
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         indexes:
           - name: collection_range_idx
@@ -570,6 +577,7 @@ cubes:
           - billing_country
           - category
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         refresh_key:
           every: 24 hour
@@ -585,6 +593,7 @@ cubes:
           - channel_type
           - billing_country
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         refresh_key:
           every: 24 hour
@@ -599,6 +608,7 @@ cubes:
           - channel_type
           - category
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         refresh_key:
           every: 24 hour
@@ -615,6 +625,7 @@ cubes:
           - category
           - billing_country
         time_dimension: transaction_date
+        granularity: day
         refresh_key:
           every: 24 hour
 
@@ -631,6 +642,7 @@ cubes:
           - category
           - season
         time_dimension: transaction_date
+        granularity: day
         partition_granularity: month
         refresh_key:
           every: 24 hour

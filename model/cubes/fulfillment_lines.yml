@@ -117,6 +117,7 @@ cubes:
           - location
           - locations.name
         time_dimension: shipdate
+        granularity: day
         partition_granularity: month
         indexes:
           - name: location_idx
@@ -134,6 +135,7 @@ cubes:
           - item
           - location
         time_dimension: shipdate
+        granularity: day
         partition_granularity: month
         indexes:
           - name: item_idx
