@@ -16,8 +16,8 @@ cubes:
           WHEN COUNT(*) = 3 THEN '3 items'
           ELSE '4+ items'
         END as line_count_bucket
-      FROM transaction_lines tl
-      JOIN transactions t ON tl.transaction = t.id
+      FROM gpc.transaction_lines tl
+      JOIN gpc.transactions t ON tl.transaction = t.id
       WHERE tl.mainline = 'F'
       GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country
     title: Order Baskets
