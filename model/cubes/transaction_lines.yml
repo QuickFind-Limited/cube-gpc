@@ -135,7 +135,7 @@ cubes:
 
       - name: sku_count
         sql: "{CUBE}.item"
-        type: count_distinct
+        type: count_distinct_approx
         description: Number of unique SKUs
 
       # Calculated Measures
@@ -434,6 +434,7 @@ cubes:
           - units_sold
           - gross_margin
           - transaction_count
+          - sku_count
         dimensions:
           - sku
           - product_name
