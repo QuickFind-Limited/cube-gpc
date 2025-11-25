@@ -10,6 +10,7 @@ cubes:
         i2.displayname as item_b_name,
         i1.custitem_gpc_category as item_a_category,
         i2.custitem_gpc_category as item_b_category,
+        t.type as transaction_type,
         CAST(t.trandate AS TIMESTAMP) as trandate,
         CAST(COUNT(DISTINCT tl1.transaction) AS BIGINT) as co_purchase_count
       FROM transaction_lines tl1
@@ -17,13 +18,12 @@ cubes:
       JOIN transactions t ON tl1.transaction = t.id
       JOIN items i1 ON tl1.item = i1.id
       JOIN items i2 ON tl2.item = i2.id
-      WHERE t.type IN ('CustInvc', 'CashSale')
-        AND tl1.quantity < 0
+      WHERE tl1.quantity < 0
         AND tl2.quantity < 0
         AND tl1.mainline = 'F'
         AND tl2.mainline = 'F'
       GROUP BY tl1.item, tl2.item, i1.itemid, i2.itemid, i1.displayname, i2.displayname,
-               i1.custitem_gpc_category, i2.custitem_gpc_category, CAST(t.trandate AS TIMESTAMP)
+               i1.custitem_gpc_category, i2.custitem_gpc_category, t.type, CAST(t.trandate AS TIMESTAMP)
     title: Cross-Sell Analysis
     description: >
       Product affinity pairs by transaction date showing items purchased together (BASK002).
@@ -95,6 +95,11 @@ cubes:
         sql: "{CUBE}.item_b_category"
         type: string
         description: Second item category
+
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: "Transaction type: SalesOrd, CustInvc, CashSale. Previously hardcoded to CustInvc/CashSale only. Now parameterized for flexible filtering."
 
       - name: co_purchase_count
         sql: "{CUBE}.co_purchase_count"

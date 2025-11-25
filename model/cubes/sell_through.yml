@@ -8,7 +8,8 @@ cubes:
         i.custitem_gpc_category as category,
         i.custitem_gpc_season as season,
         COALESCE(inv.current_stock, 0) as current_stock,
-        COALESCE(sales.units_sold, 0) as units_sold
+        COALESCE(sales.units_sold, 0) as units_sold,
+        sales.transaction_type
       FROM items i
       LEFT JOIN (
         SELECT item, CAST(SUM(calculated_quantity_available) AS DOUBLE) as current_stock
@@ -16,11 +17,10 @@ cubes:
         GROUP BY item
       ) inv ON i.id = inv.item
       LEFT JOIN (
-        SELECT tl.item, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units_sold
+        SELECT tl.item, t.type as transaction_type, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units_sold
         FROM transaction_lines tl
         JOIN transactions t ON tl.transaction = t.id
-        WHERE t.type IN ('CustInvc', 'CashSale')
-        GROUP BY tl.item
+        GROUP BY tl.item, t.type
       ) sales ON i.id = sales.item
     title: Sell Through Analysis
     description: Product sell-through rates combining sales and inventory (STR001/PP058)
@@ -71,6 +71,11 @@ cubes:
         sql: "{CUBE}.season"
         type: string
         description: Product season
+
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: "Transaction type: SalesOrd, CustInvc, CashSale. Previously hardcoded to CustInvc/CashSale only. Now parameterized for flexible filtering."
 
     segments:
       - name: has_sales

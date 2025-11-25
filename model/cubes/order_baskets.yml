@@ -19,7 +19,6 @@ cubes:
       FROM transaction_lines tl
       JOIN transactions t ON tl.transaction = t.id
       WHERE tl.mainline = 'F'
-        AND t.type IN ('CustInvc', 'CashSale')
       GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country
     title: Order Baskets
     description: Order-level basket analysis with line count buckets (BASK003)
@@ -75,7 +74,7 @@ cubes:
       - name: type
         sql: "{CUBE}.type"
         type: string
-        description: Transaction type
+        description: "Transaction type: SalesOrd, CustInvc, CashSale. Previously hardcoded to CustInvc/CashSale only. Now parameterized for flexible filtering."
 
       - name: customer_email
         sql: "{CUBE}.customer_email"

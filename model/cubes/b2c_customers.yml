@@ -4,15 +4,15 @@ cubes:
       SELECT
         t.custbody_customer_email as email,
         t.billing_country,
+        t.type as transaction_type,
         MIN(t.trandate) as first_order_date,
         MAX(t.trandate) as last_order_date,
         CAST(COUNT(DISTINCT t.id) AS BIGINT) as order_count,
         CAST(SUM(t.foreigntotal) AS DOUBLE) as lifetime_value
       FROM transactions t
-      WHERE t.type = 'SalesOrd'
-        AND t.custbody_customer_email IS NOT NULL
+      WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
-      GROUP BY t.custbody_customer_email, t.billing_country
+      GROUP BY t.custbody_customer_email, t.billing_country, t.type
     title: B2C Customers
     description: Virtual cube for B2C customer metrics aggregated from SalesOrd
 
@@ -61,6 +61,11 @@ cubes:
         sql: "{CUBE}.billing_country"
         type: string
         description: Customer billing country
+
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: "Transaction type: SalesOrd, CustInvc, CashSale. Previously hardcoded to SalesOrd only. Now parameterized for flexible filtering."
 
       - name: first_order_date
         sql: "CAST({CUBE}.first_order_date AS TIMESTAMP)"
