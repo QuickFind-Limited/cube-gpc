@@ -58,7 +58,7 @@ cubes:
               WHEN {CUBE}.transaction_currency = 4 THEN {CUBE}.amount * -1 * 1.13528
               ELSE {CUBE}.amount * -1
             END
-          ELSE 0 END AS DOUBLE)
+          ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
         description: Total gross revenue in EUR (CustInvc + CashSale only, GBP converted)
@@ -70,32 +70,32 @@ cubes:
               WHEN {CUBE}.transaction_currency = 4 THEN ({CUBE}.amount * -1 * 1.13528) - COALESCE({CUBE}.taxamount, 0)
               ELSE ({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)
             END
-          ELSE 0 END AS DOUBLE)
+          ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
         description: Net revenue in EUR (gross revenue minus tax, GBP converted)
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
-        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS FLOAT64)"
         type: sum
         description: Total units sold (uses CASE per Rule 2)
 
       - name: units_returned
-        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS FLOAT64)"
         type: sum
         description: Total units returned
 
       # Tax Measures
       - name: total_tax
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
         description: Total tax amount (CustInvc + CashSale only)
 
       # Discount Measures (calculated from baseprice vs rate)
       - name: total_discount
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ({CUBE}.item_base_price - {CUBE}.rate) * ABS({CUBE}.quantity) ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
         description: Total discount amount (baseprice - rate) for DM001
@@ -119,7 +119,7 @@ cubes:
         description: Average discount rate percentage for DM002 (calculated from components - NOT for use in pre-aggs)
 
       - name: discounted_units
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.item_base_price > {CUBE}.rate AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS FLOAT64)"
         type: sum
         description: Units sold at discount for DM058
 
@@ -164,7 +164,7 @@ cubes:
 
       # Margin Measures for MM001
       - name: total_cost
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END AS DOUBLE)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
         description: Total cost estimate
@@ -176,7 +176,7 @@ cubes:
               WHEN {CUBE}.transaction_currency = 4 THEN ({CUBE}.amount * -1 * 1.13528) - (COALESCE({CUBE}.costestimate, 0) * -1)
               ELSE ({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)
             END
-          ELSE 0 END AS DOUBLE)
+          ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
         description: Gross margin in EUR (revenue - cost, GBP converted)

@@ -7,8 +7,8 @@ cubes:
         t.type as transaction_type,
         MIN(t.trandate) as first_order_date,
         MAX(t.trandate) as last_order_date,
-        CAST(COUNT(DISTINCT t.id) AS BIGINT) as order_count,
-        CAST(SUM(t.foreigntotal) AS DOUBLE) as lifetime_value
+        CAST(COUNT(DISTINCT t.id) AS INT64) as order_count,
+        CAST(SUM(t.foreigntotal) AS FLOAT64) as lifetime_value
       FROM gpc.transactions t
       WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
@@ -22,7 +22,7 @@ cubes:
         description: Total number of unique customers
 
       - name: total_lifetime_value
-        sql: "CAST({CUBE}.lifetime_value AS DOUBLE)"
+        sql: "CAST({CUBE}.lifetime_value AS FLOAT64)"
         type: sum
         format: currency
         description: Total lifetime value across all customers
@@ -34,7 +34,7 @@ cubes:
         description: Average customer lifetime value
 
       - name: total_orders
-        sql: "CAST({CUBE}.order_count AS DOUBLE)"
+        sql: "CAST({CUBE}.order_count AS FLOAT64)"
         type: sum
         description: Total number of orders
 

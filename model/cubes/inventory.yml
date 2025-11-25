@@ -15,19 +15,19 @@ cubes:
 
     measures:
       - name: total_stock
-        sql: "CAST({CUBE}.calculated_quantity_available AS DOUBLE)"
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
         type: sum
         description: Total stock (can be negative for backorders)
 
       - name: available_stock
-        sql: "CAST({CUBE}.calculated_quantity_available AS DOUBLE)"
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
         type: sum
         filters:
           - sql: "{CUBE}.calculated_quantity_available > 0"
         description: Available stock (positive only)
 
       - name: backorder_units
-        sql: "CAST(ABS({CUBE}.calculated_quantity_available) AS DOUBLE)"
+        sql: "CAST(ABS({CUBE}.calculated_quantity_available) AS FLOAT64)"
         type: sum
         filters:
           - sql: "{CUBE}.calculated_quantity_available < 0"
@@ -71,7 +71,7 @@ cubes:
 
     dimensions:
       - name: id
-        sql: "CONCAT(CAST({CUBE}.item AS VARCHAR), '-', CAST({CUBE}.location AS VARCHAR))"
+        sql: "CONCAT(CAST({CUBE}.item AS STRING), '-', CAST({CUBE}.location AS STRING))"
         type: string
         primary_key: true
 

@@ -12,12 +12,12 @@ cubes:
         sales.transaction_type
       FROM gpc.items i
       LEFT JOIN (
-        SELECT item, CAST(SUM(calculated_quantity_available) AS DOUBLE) as current_stock
+        SELECT item, CAST(SUM(calculated_quantity_available) AS FLOAT64) as current_stock
         FROM gpc.inventory_calculated
         GROUP BY item
       ) inv ON i.id = inv.item
       LEFT JOIN (
-        SELECT tl.item, t.type as transaction_type, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units_sold
+        SELECT tl.item, t.type as transaction_type, CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS FLOAT64) as units_sold
         FROM gpc.transaction_lines tl
         JOIN gpc.transactions t ON tl.transaction = t.id
         GROUP BY tl.item, t.type

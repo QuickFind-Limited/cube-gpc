@@ -7,9 +7,9 @@ cubes:
         t.type,
         t.custbody_customer_email as customer_email,
         t.billing_country,
-        CAST(COUNT(*) AS DOUBLE) as line_count,
-        CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS DOUBLE) as units,
-        CAST(SUM(tl.amount * -1) AS DOUBLE) as order_total,
+        CAST(COUNT(*) AS FLOAT64) as line_count,
+        CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS FLOAT64) as units,
+        CAST(SUM(tl.amount * -1) AS FLOAT64) as order_total,
         CASE
           WHEN COUNT(*) = 1 THEN '1 item'
           WHEN COUNT(*) = 2 THEN '2 items'
@@ -51,7 +51,7 @@ cubes:
         description: Average order value
 
       - name: total_line_count
-        sql: "CAST({CUBE}.line_count AS DOUBLE)"
+        sql: "CAST({CUBE}.line_count AS FLOAT64)"
         type: sum
         description: Total line count across all orders
 

@@ -12,17 +12,17 @@ cubes:
       - name: active_customer_count
         type: count
         filters:
-          - sql: "{CUBE}.isInactive = 'False'"
+          - sql: "CAST({CUBE}.isInactive AS STRING) = 'False'"
         description: Number of active B2B customers
 
       - name: total_balance
-        sql: "CAST({CUBE}.balance AS DOUBLE)"
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
         type: sum
         format: currency
         description: Total outstanding balance
 
       - name: total_overdue
-        sql: "CAST({CUBE}.overdueBalance AS DOUBLE)"
+        sql: "CAST({CUBE}.overdueBalance AS FLOAT64)"
         type: sum
         format: currency
         description: Total overdue balance
@@ -204,7 +204,7 @@ cubes:
 
     segments:
       - name: active_customers
-        sql: "{CUBE}.isInactive = 'False'"
+        sql: "{CUBE}.CAST(isInactive AS STRING) = 'False'"
 
       - name: with_balance
         sql: "{CUBE}.balance != 0"
