@@ -277,22 +277,22 @@ cubes:
         description: "Transaction date - PARAMETERIZED: Use timeDimensions with dateRange (default: 'last 12 months')"
 
       - name: month
-        sql: "DATE_TRUNC('month', CAST({CUBE}.transaction_date AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.transaction_date AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "DATE_TRUNC('quarter', CAST({CUBE}.transaction_date AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.transaction_date AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "DATE_TRUNC('year', CAST({CUBE}.transaction_date AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.transaction_date AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "DATE_TRUNC('week', CAST({CUBE}.transaction_date AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.transaction_date AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 

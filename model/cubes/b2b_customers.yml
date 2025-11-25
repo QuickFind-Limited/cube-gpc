@@ -204,7 +204,7 @@ cubes:
 
     segments:
       - name: active_customers
-        sql: "{CUBE}.CAST(isInactive AS STRING) = 'False'"
+        sql: "CAST({CUBE}.isInactive AS STRING) = 'False'"
 
       - name: with_balance
         sql: "{CUBE}.balance != 0"

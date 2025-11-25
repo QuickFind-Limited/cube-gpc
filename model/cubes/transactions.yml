@@ -63,22 +63,22 @@ cubes:
         description: Transaction date
 
       - name: month
-        sql: "DATE_TRUNC('month', CAST({CUBE}.trandate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "DATE_TRUNC('quarter', CAST({CUBE}.trandate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "DATE_TRUNC('year', CAST({CUBE}.trandate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "DATE_TRUNC('week', CAST({CUBE}.trandate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 

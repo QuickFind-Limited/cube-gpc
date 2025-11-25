@@ -59,7 +59,7 @@ cubes:
         description: Fulfillment date
 
       - name: month
-        sql: "DATE_TRUNC('month', CAST({CUBE}.trandate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
         type: time
         description: Fulfillment month
 

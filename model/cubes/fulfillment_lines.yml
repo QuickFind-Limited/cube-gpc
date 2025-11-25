@@ -43,7 +43,7 @@ cubes:
         description: Number of shipping locations
 
       - name: total_fulfillment_days
-        sql: "CAST(DATE_DIFF('day', CAST({fulfillments.trandate} AS TIMESTAMP), CAST({CUBE}.shipdate AS TIMESTAMP)) AS FLOAT64)"
+        sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({fulfillments.trandate} AS DATE), DAY) AS FLOAT64)"
         type: sum
         description: Total days from order to ship (for averaging)
 
@@ -94,7 +94,7 @@ cubes:
         description: Ship date
 
       - name: month
-        sql: "DATE_TRUNC('month', CAST({CUBE}.shipdate AS TIMESTAMP))"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.shipdate AS TIMESTAMP), MONTH)"
         type: time
         description: Ship month
 
