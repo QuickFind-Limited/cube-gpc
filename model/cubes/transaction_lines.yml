@@ -145,11 +145,25 @@ cubes:
         format: currency
         description: Average order value (AOV) - revenue transactions only
 
+      # Component measures for OM003 (SalesOrd AOV calculation)
+      - name: salesord_revenue
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total revenue from SalesOrd transactions only (component for OM003)
+
+      - name: salesord_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type = 'SalesOrd'"
+        description: Count of unique SalesOrd transactions (component for OM003)
+
       - name: average_salesord_value
         sql: "1.0 * SUM(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END) / NULLIF(COUNT(DISTINCT CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.transaction END), 0)"
         type: number
         format: currency
-        description: Average order value from SalesOrd (OM003 - order intent)
+        description: Average order value from SalesOrd (OM003 - calculated measure, not in pre-agg)
 
       - name: average_items_per_order
         sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
@@ -401,9 +415,11 @@ cubes:
           - total_discount_amount
           - total_base_price_for_discount
           - transaction_count
+          - salesord_revenue
+          - salesord_count
           # Removed calculated/non-additive measures:
           # - sku_count (count_distinct - doesn't work with dimensions)
-          # - average_salesord_value (calculated - makes pre-agg non-additive)
+          # - average_salesord_value (calculated - makes pre-agg non-additive, use components instead)
           # - average_order_value (calculated - makes pre-agg non-additive)
           # - average_items_per_order (calculated - makes pre-agg non-additive)
           # - discount_rate (calculated - now use component measures instead)
