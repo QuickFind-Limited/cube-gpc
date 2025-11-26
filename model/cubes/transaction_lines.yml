@@ -432,6 +432,7 @@ cubes:
           - shipping_country
           - classification_name
           - transactions.currency
+          - transaction_type
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
