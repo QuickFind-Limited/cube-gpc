@@ -43,11 +43,6 @@ cubes:
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
-    joins:
-      - name: transactions
-        relationship: many_to_one
-        sql: "{CUBE}.transaction = {transactions.id}"
-
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
       # Currency conversion: GBP (currency=4) converted to EUR at 1.13528
@@ -282,6 +277,11 @@ cubes:
         type: string
         description: "Transaction type: SalesOrd, CustInvc, CashSale"
 
+      - name: transaction_currency
+        sql: "{CUBE}.transaction_currency"
+        type: number
+        description: "Transaction currency ID (denormalized from transactions table)"
+
       # Parameterized Time Dimension - Default: "Last 12 months"
       # Queries should include timeDimensions with dateRange parameter
       # Override by specifying different dateRange in query
@@ -431,7 +431,7 @@ cubes:
           - billing_country
           - shipping_country
           - classification_name
-          - transactions.currency
+          - transaction_currency
           - transaction_type
         time_dimension: transaction_date
         granularity: day
