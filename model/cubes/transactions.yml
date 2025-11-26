@@ -55,7 +55,24 @@ cubes:
       - name: status
         sql: "{CUBE}.status"
         type: string
-        description: Transaction status code
+        description: "Transaction status code: A (Pending Approval), B (Pending Fulfillment), C (Cancelled), G (Billed), Y (Pending)"
+
+      - name: status_name
+        sql: >
+          CASE
+            WHEN {CUBE}.status = 'A' THEN 'Pending Approval'
+            WHEN {CUBE}.status = 'B' THEN 'Pending Fulfillment'
+            WHEN {CUBE}.status = 'C' THEN 'Cancelled'
+            WHEN {CUBE}.status = 'D' THEN 'Partially Fulfilled'
+            WHEN {CUBE}.status = 'E' THEN 'Pending Billing'
+            WHEN {CUBE}.status = 'F' THEN 'Pending Billing'
+            WHEN {CUBE}.status = 'G' THEN 'Billed'
+            WHEN {CUBE}.status = 'H' THEN 'Closed'
+            WHEN {CUBE}.status = 'Y' THEN 'Pending'
+            ELSE {CUBE}.status
+          END
+        type: string
+        description: Human-readable transaction status
 
       - name: trandate
         sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
