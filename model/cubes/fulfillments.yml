@@ -16,7 +16,7 @@ cubes:
 
       - name: unique_orders
         sql: "{CUBE}.entity"
-        type: count_distinct
+        type: count_distinct_approx
         description: Number of unique orders fulfilled
 
       - name: shipped_count
@@ -107,7 +107,8 @@ cubes:
           - unique_orders
           - shipped_count
           - pending_count
-          - fulfillments_per_order
+          # Removed calculated measure:
+          # - fulfillments_per_order (calculated - makes pre-agg non-additive)
         dimensions:
           - status
           - status_name

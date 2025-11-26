@@ -400,8 +400,8 @@ cubes:
           - max_transaction_date
           - total_discount_amount
           - total_base_price_for_discount
+          - transaction_count
           # Removed calculated/non-additive measures:
-          # - transaction_count (count_distinct - doesn't work with dimensions)
           # - sku_count (count_distinct - doesn't work with dimensions)
           # - average_salesord_value (calculated - makes pre-agg non-additive)
           # - average_order_value (calculated - makes pre-agg non-additive)
