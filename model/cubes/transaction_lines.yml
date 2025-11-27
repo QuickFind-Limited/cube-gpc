@@ -35,7 +35,7 @@ cubes:
         d.name as department_name,
         c.name as classification_name
       FROM gpc.transaction_lines_clean tl
-      LEFT JOIN gpc.transactions_clean t ON tl.transaction = t.id
+      LEFT JOIN gpc.transactions_analysis t ON tl.transaction = t.id
       LEFT JOIN gpc.locations l ON tl.location = l.id
       LEFT JOIN gpc.items i ON tl.item = i.id
       LEFT JOIN gpc.departments d ON tl.department = d.id
