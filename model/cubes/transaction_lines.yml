@@ -32,7 +32,8 @@ cubes:
         i.custitem_gpc_collection as collection,
         i.custitem_gpc_child_colour as color,
         i.baseprice as item_base_price,
-        curr.exchangerate as currency_exchange_rate,
+        t.exchangerate as transaction_exchange_rate,
+        curr.name as currency_name,
         d.name as department_name,
         c.name as classification_name
       FROM gpc.transaction_lines_clean tl
@@ -52,24 +53,24 @@ cubes:
 
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
-      # Currency conversion: ALL currencies converted to EUR using exchange rates
+      # Currency conversion: ALL currencies converted to EUR using transaction-date exchange rates
       - name: total_revenue
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            ({CUBE}.amount * -1 * COALESCE({CUBE}.currency_exchange_rate, 1.0))
+            ({CUBE}.amount * -1 * COALESCE({CUBE}.transaction_exchange_rate, 1.0))
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
-        description: Total gross revenue in EUR (CustInvc + CashSale only, all currencies converted using exchange rates)
+        description: Total gross revenue in EUR (CustInvc + CashSale only, all currencies converted using transaction-date exchange rates)
 
       - name: net_revenue
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            (({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)) * COALESCE({CUBE}.currency_exchange_rate, 1.0)
+            (({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
-        description: Net revenue in EUR (gross revenue minus tax, all currencies converted using exchange rates)
+        description: Net revenue in EUR (gross revenue minus tax, all currencies converted using transaction-date exchange rates)
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
@@ -182,11 +183,11 @@ cubes:
       - name: gross_margin
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            (({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)) * COALESCE({CUBE}.currency_exchange_rate, 1.0)
+            (({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
-        description: Gross margin in EUR (revenue - cost, all currencies converted using exchange rates)
+        description: Gross margin in EUR (revenue - cost, all currencies converted using transaction-date exchange rates)
 
       - name: gross_margin_percent
         sql: "100.0 * (({total_revenue}) - ({total_cost})) / NULLIF({total_revenue}, 0)"
@@ -281,7 +282,7 @@ cubes:
         description: "Transaction currency ID (denormalized from transactions table)"
 
       - name: currency_name
-        sql: "{transactions.currency_name}"
+        sql: "{CUBE}.currency_name"
         type: string
         description: "Currency code (EUR, GBP, USD, AUD, etc.) - use this for currency breakdowns"
 
