@@ -26,8 +26,8 @@ cubes:
       - name: fulfilled_orders
         type: count
         filters:
-          - sql: "{CUBE}.status = 'G'"
-        description: Number of fulfilled/billed orders
+          - sql: "{CUBE}.status IN ('B', 'G')"
+        description: Number of fulfilled/billed orders (status B for CustInvc/CashSale, G for SalesOrd)
 
       - name: cancelled_orders
         type: count
