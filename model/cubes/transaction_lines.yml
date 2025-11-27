@@ -446,6 +446,7 @@ cubes:
           - classification_name
           - transaction_currency
           - transaction_type
+          - pricing_type
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -537,6 +538,7 @@ cubes:
           - channel_type
           - category
           - season
+          - pricing_type
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
