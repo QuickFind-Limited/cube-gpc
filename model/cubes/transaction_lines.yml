@@ -393,6 +393,15 @@ cubes:
         type: string
         description: Classification name
 
+      - name: pricing_type
+        sql: >
+          CASE
+            WHEN {CUBE}.discount > 0 THEN 'RP'
+            ELSE 'FP'
+          END
+        type: string
+        description: "Pricing type: FP (Full Price) when no discount, RP (Reduced Price) when discounted"
+
     segments:
       - name: sales_lines
         sql: "{CUBE}.quantity < 0"
