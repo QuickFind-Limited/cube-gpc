@@ -124,6 +124,11 @@ cubes:
         type: number
         description: Currency ID
 
+      - name: currency_name
+        sql: "{currencies.name}"
+        type: string
+        description: Currency code (EUR, GBP, USD, AUD, etc.)
+
       - name: subsidiary
         sql: "{CUBE}.subsidiary"
         type: number
