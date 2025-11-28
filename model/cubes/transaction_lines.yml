@@ -450,6 +450,7 @@ cubes:
           - shipping_country
           - classification_name
           - transaction_currency
+          - currency_name
           - transaction_type
           - pricing_type
         time_dimension: transaction_date

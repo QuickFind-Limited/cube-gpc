@@ -192,6 +192,8 @@ cubes:
           - unique_customers
           - fulfilled_orders
           - cancelled_orders
+          - return_authorizations
+          - customer_credits
           - average_transaction_total
         dimensions:
           - type
