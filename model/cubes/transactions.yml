@@ -33,7 +33,24 @@ cubes:
         type: count
         filters:
           - sql: "{CUBE}.status = 'C'"
-        description: Number of cancelled orders
+        description: Number of cancelled orders (NOTE - primarily Shopify placeholders pre-March 2025, see documentation)
+
+      - name: return_authorizations
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'RtnAuth'"
+        description: Number of return authorizations (actual customer returns, available from Feb 2025 onwards)
+
+      - name: customer_credits
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'CustCred'"
+        description: Number of customer credit transactions (returns, refunds, adjustments)
+
+      - name: return_rate
+        sql: "100.0 * COUNT(CASE WHEN {CUBE}.type = 'RtnAuth' THEN 1 END) / NULLIF(COUNT(CASE WHEN {CUBE}.type IN ('CustInvc', 'CashSale') THEN 1 END), 0)"
+        type: number
+        description: Return rate percentage (RtnAuth / revenue transactions) - use for March 2025 onwards
 
       - name: average_transaction_total
         sql: "{CUBE}.foreigntotal"
