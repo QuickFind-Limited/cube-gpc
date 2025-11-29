@@ -1,8 +1,8 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM gpc.transactions_clean
+    sql: SELECT * FROM gpc.transactions_analysis
     title: Transactions
-    description: Transaction headers including orders, invoices, and cash sales
+    description: Transaction headers including orders, invoices, cash sales, and returns (uses transactions_analysis view to include RtnAuth)
 
     joins:
       - name: currencies
