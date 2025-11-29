@@ -67,17 +67,23 @@ cubes:
       - name: region
         sql: >
           CASE
-            WHEN {CUBE}.name IN (
-              'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
-              'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
-              'GPC HQ'
-            ) THEN 'IRELAND'
-            WHEN {CUBE}.name IN ('Westfield London', 'Manchester', 'Belfast', 'Liverpool') THEN 'UK'
-            WHEN {CUBE}.name LIKE 'Bleckmann%' THEN 'EU'
+            WHEN {CUBE}.subsidiary = 2
+              AND {CUBE}.name NOT LIKE 'Bleckmann%'
+              AND {CUBE}.name NOT LIKE 'PCH China%'
+            THEN 'IRELAND'
+            WHEN {CUBE}.subsidiary = 6
+              AND {CUBE}.name NOT LIKE 'Bleckmann Australia%'
+              AND {CUBE}.name NOT LIKE 'Bleckmann Aussie%'
+              AND {CUBE}.name NOT LIKE 'Bleckmann USA%'
+            THEN 'UK'
+            WHEN {CUBE}.name LIKE 'Bleckmann BE%' THEN 'EU'
+            WHEN {CUBE}.name = 'Bleckmann UK' THEN 'UK'
+            WHEN {CUBE}.name LIKE 'Bleckmann UK%' THEN 'UK'
+            WHEN {CUBE}.name = 'Bleckmann Swindon' THEN 'UK'
             ELSE 'GLOBAL'
           END
         type: string
-        description: "Location region: IRELAND, UK, EU, GLOBAL"
+        description: "Location region: IRELAND (sub 2), UK (sub 6), EU (Bleckmann BE), GLOBAL (overseas warehouses)"
 
     pre_aggregations:
       - name: location_analysis
