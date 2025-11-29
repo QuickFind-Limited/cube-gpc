@@ -38,12 +38,6 @@ cubes:
           - sql: "{CUBE}.status = 'C'"
         description: Number of cancelled orders (NOTE - primarily Shopify placeholders pre-March 2025, see documentation)
 
-      - name: return_authorizations
-        type: count
-        filters:
-          - sql: "{CUBE}.type = 'RtnAuth'"
-        description: Number of return authorizations (actual customer returns, available from Feb 2025 onwards)
-
       - name: customer_credits
         type: count
         filters:
@@ -56,13 +50,8 @@ cubes:
           - sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
         description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
-      # Time-aligned component measures (Feb 2025+) for accurate RET004/RET005 calculations
-      - name: return_authorizations_aligned
-        type: count
-        filters:
-          - sql: "{CUBE}.type = 'RtnAuth' AND {CUBE}.trandate >= '2025-02-01'"
-        description: Return authorizations from Feb 2025 onwards (time-aligned for accurate return rate calculation)
-
+      # Time-aligned component measures (Feb 2025+) for accurate RET005 calculations
+      # Note: return_authorizations measures removed - RtnAuth transaction type not used in D2C workflow
       - name: customer_credits_aligned
         type: count
         filters:
@@ -215,10 +204,8 @@ cubes:
           - unique_customers
           - fulfilled_orders
           - cancelled_orders
-          - return_authorizations
           - customer_credits
           - revenue_transaction_count
-          - return_authorizations_aligned
           - customer_credits_aligned
           - revenue_transaction_count_aligned
           - average_transaction_total
