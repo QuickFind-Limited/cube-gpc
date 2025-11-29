@@ -53,6 +53,25 @@ cubes:
           - sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
         description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
+      # Time-aligned component measures (Feb 2025+) for accurate RET004/RET005 calculations
+      - name: return_authorizations_aligned
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'RtnAuth' AND {CUBE}.trandate >= '2025-02-01'"
+        description: Return authorizations from Feb 2025 onwards (time-aligned for accurate return rate calculation)
+
+      - name: customer_credits_aligned
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= '2025-02-01'"
+        description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
+
+      - name: revenue_transaction_count_aligned
+        type: count
+        filters:
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= '2025-02-01'"
+        description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
+
       - name: average_transaction_total
         sql: "{CUBE}.foreigntotal"
         type: avg
@@ -196,6 +215,9 @@ cubes:
           - return_authorizations
           - customer_credits
           - revenue_transaction_count
+          - return_authorizations_aligned
+          - customer_credits_aligned
+          - revenue_transaction_count_aligned
           - average_transaction_total
         dimensions:
           - type
