@@ -140,6 +140,9 @@ cubes:
           - items.range
           - items.markdown
           - locations.name
+          - locations.region         # ← ADDED: Enable filtering by region (IRELAND, UK, EU, GLOBAL)
+          - locations.channel_type   # ← ADDED: Enable filtering by channel (D2C, RETAIL, B2B_WHOLESALE, etc.)
+          - locations.location_type  # ← ADDED: Enable filtering by type (RETAIL, FULFILLMENT, etc.)
         refresh_key:
           every: 24 hour
 
