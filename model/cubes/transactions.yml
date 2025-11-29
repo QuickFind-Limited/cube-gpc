@@ -1,8 +1,11 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM gpc.transactions_analysis
+    sql: >
+      SELECT * FROM gpc.transactions_analysis
+      WHERE posting = 'T'
+        AND voided = 'F'
     title: Transactions
-    description: Transaction headers including orders, invoices, cash sales, and returns (uses transactions_analysis view to include RtnAuth)
+    description: Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns)
 
     joins:
       - name: currencies
