@@ -50,7 +50,12 @@ cubes:
       - name: return_rate
         sql: "100.0 * COUNT(CASE WHEN {CUBE}.type = 'RtnAuth' THEN 1 END) / NULLIF(COUNT(CASE WHEN {CUBE}.type IN ('CustInvc', 'CashSale') THEN 1 END), 0)"
         type: number
-        description: Return rate percentage (RtnAuth / revenue transactions) - use for March 2025 onwards
+        description: Return rate percentage based on RtnAuth only (RtnAuth / revenue transactions) - use for March 2025 onwards. NOTE - Use total_return_rate for comprehensive metric.
+
+      - name: total_return_rate
+        sql: "100.0 * COUNT(CASE WHEN {CUBE}.type IN ('RtnAuth', 'CustCred') THEN 1 END) / NULLIF(COUNT(CASE WHEN {CUBE}.type IN ('CustInvc', 'CashSale') THEN 1 END), 0)"
+        type: number
+        description: Comprehensive return rate including both RtnAuth and CustCred (all return types / revenue transactions) - recommended metric for total returns analysis
 
       - name: average_transaction_total
         sql: "{CUBE}.foreigntotal"
