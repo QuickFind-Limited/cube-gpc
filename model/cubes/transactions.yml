@@ -47,11 +47,11 @@ cubes:
           - sql: "{CUBE}.type = 'CustCred'"
         description: Number of customer credit transactions (returns, refunds, adjustments)
 
-      - name: revenue_transactions
+      - name: revenue_transaction_count
         type: count
         filters:
           - sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
-        description: Number of revenue transactions (CustInvc + CashSale) - component measure for return rate calculations
+        description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
       - name: average_transaction_total
         sql: "{CUBE}.foreigntotal"
@@ -195,7 +195,7 @@ cubes:
           - cancelled_orders
           - return_authorizations
           - customer_credits
-          - revenue_transactions
+          - revenue_transaction_count
           - average_transaction_total
         dimensions:
           - type
