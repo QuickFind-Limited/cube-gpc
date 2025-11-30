@@ -33,11 +33,7 @@ cubes:
       LEFT JOIN gpc.items i ON tl.item = i.id
       LEFT JOIN gpc.departments d ON tl.department = d.id
       LEFT JOIN gpc.classifications c ON tl.class = c.id
-      WHERE tl.mainline = 'F'
-        AND tl.taxline = 'F'
-        AND tl.iscogs = 'F'
-        AND tl.transactiondiscount = 'F'
-        AND tl.item != 25442
+      WHERE tl.item != 25442
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
