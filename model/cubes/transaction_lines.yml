@@ -211,6 +211,31 @@ cubes:
         type: number
         description: Gross margin percentage
 
+      # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
+      - name: total_landed_costs
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'ItemRcpt' AND {CUBE}.blandedcost = 'T' THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "Total landed costs (freight + duties) from Item Receipts. Uses blandedcost='T' flag. LAND001 metric."
+
+      - name: itemrcpt_line_count
+        type: count
+        filters:
+          - sql: "{CUBE}.transaction_type = 'ItemRcpt'"
+        description: "Count of Item Receipt lines (inventory + landed costs)"
+
+      - name: total_itemrcpt_amount
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'ItemRcpt' THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "Total Item Receipt amounts (inventory value + landed costs combined)"
+
+      - name: avg_landed_cost_per_receipt
+        sql: "{total_landed_costs} / NULLIF({itemrcpt_line_count}, 0)"
+        type: number
+        format: currency
+        description: "Average landed cost per Item Receipt line"
+
       - name: min_transaction_date
         sql: "{CUBE}.transaction_date"
         type: min
@@ -418,6 +443,47 @@ cubes:
           END
         type: string
         description: "Pricing type: FP (Full Price) when no discount, RP (Reduced Price) when item sold below base price"
+
+      # NEW: ItemRcpt / Inventory Receipt Fields (8 fields added 2025-11-30)
+      - name: landedcostperline
+        sql: "{CUBE}.landedcostperline"
+        type: string
+        description: "Landed cost line flag from NetSuite (always 'T' for ItemRcpt transactions)"
+
+      - name: blandedcost
+        sql: "{CUBE}.blandedcost"
+        type: string
+        description: "ACTUAL landed cost indicator: 'T' = freight/duty line, 'F' = inventory receipt line. Use for LAND001 metric."
+
+      - name: estgrossprofit
+        sql: "CAST({CUBE}.estgrossprofit AS FLOAT64)"
+        type: number
+        description: "Estimated gross profit from NetSuite (for ItemRcpt lines)"
+
+      - name: estgrossprofitpercent
+        sql: "CAST({CUBE}.estgrossprofitpercent AS FLOAT64)"
+        type: number
+        description: "Estimated gross profit percentage from NetSuite"
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: "Amount in foreign currency before conversion (ItemRcpt lines)"
+
+      - name: quantitybilled
+        sql: "CAST({CUBE}.quantitybilled AS INT64)"
+        type: number
+        description: "Quantity billed on this line (ItemRcpt tracking)"
+
+      - name: quantitypacked
+        sql: "CAST({CUBE}.quantitypacked AS INT64)"
+        type: number
+        description: "Quantity packed/fulfilled on this line (ItemRcpt tracking)"
+
+      - name: subsidiary
+        sql: "CAST({CUBE}.subsidiary AS INT64)"
+        type: number
+        description: "Subsidiary ID (denormalized from transaction_lines for ItemRcpt analysis)"
 
     segments:
       - name: sales_lines
