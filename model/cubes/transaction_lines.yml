@@ -12,17 +12,7 @@ cubes:
         t.billing_country,
         t.shipping_country,
         l.name as location_name,
-        CASE
-          WHEN l.name IS NULL THEN 'D2C'
-          WHEN l.name LIKE 'Bleckmann%' AND l.name NOT LIKE '%Quarantine%' AND l.name NOT LIKE '%Miscellaneous%' THEN 'D2C'
-          WHEN l.name IN ('Meteor Space', '2Flow') THEN 'D2C'
-          WHEN l.name IN ('Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley', 'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre', 'Westfield London', 'Manchester', 'Belfast', 'Liverpool') THEN 'RETAIL'
-          WHEN l.name LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
-          WHEN l.name LIKE 'Lifestyle Sports%' AND l.name NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
-          WHEN l.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
-          WHEN l.name LIKE 'Events%' THEN 'EVENTS'
-          ELSE 'OTHER'
-        END as channel_type,
+        -- P5 FIX: Removed inline CASE statement - now using locations.channel_type via join
         i.itemid as sku,
         i.displayname as product_name,
         i.custitem_gpc_category as category,
@@ -61,6 +51,12 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.item = {inventory.item}"
         description: "Join to current inventory. Note: Inventory is point-in-time (current stock levels)."
+
+      # NEW P5: Join to locations for centralized channel_type logic
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location_name = {locations.name}"
+        description: "Join to locations cube for centralized channel type classification (P5 fix)"
 
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
@@ -346,10 +342,11 @@ cubes:
         type: string
         description: Location name
 
+      # P5 FIX: Centralized channel_type logic - now using locations cube via join
       - name: channel_type
-        sql: "{CUBE}.channel_type"
+        sql: "{locations.channel_type}"
         type: string
-        description: "Channel type: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER"
+        description: "Channel type: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER (via locations cube - single source of truth)"
 
       # Denormalized dimensions from items
       - name: sku
@@ -655,6 +652,79 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
+        refresh_key:
+          every: 24 hour
+
+      # NEW P3: Product geography - for "product X in geography Y" queries
+      - name: product_geography
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+          - transaction_count
+        dimensions:
+          - sku
+          - product_name
+          - category
+          - season
+          - billing_country
+          - billing_city
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        indexes:
+          - name: sku_country_idx
+            columns:
+              - sku
+              - billing_country
+        refresh_key:
+          every: 24 hour
+
+      # NEW P3: Channel product - for D2C vs Retail performance comparisons
+      - name: channel_product
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+          - transaction_count
+        dimensions:
+          - channel_type
+          - category
+          - season
+          - size
+          - sku
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        indexes:
+          - name: channel_sku_idx
+            columns:
+              - channel_type
+              - sku
+        refresh_key:
+          every: 24 hour
+
+      # NEW P3: Size/color analysis - for fashion retail "size S in color Blue" queries
+      - name: size_color_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+        dimensions:
+          - size
+          - color
+          - category
+          - season
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        indexes:
+          - name: size_color_idx
+            columns:
+              - size
+              - color
+              - category
         refresh_key:
           every: 24 hour
 
