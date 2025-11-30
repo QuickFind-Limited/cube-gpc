@@ -25,6 +25,7 @@ cubes:
         -- Current inventory (aggregated from inventory_calculated)
         COALESCE(MAX(inv.current_stock), 0) as current_stock
       FROM gpc.transaction_lines_clean tl
+      LEFT JOIN gpc.transactions_analysis t ON tl.transaction = t.id
       INNER JOIN gpc.items i ON tl.item = i.id
       LEFT JOIN (
         SELECT
@@ -34,9 +35,9 @@ cubes:
         WHERE calculated_quantity_available > 0
         GROUP BY item
       ) inv ON tl.item = inv.item
-      WHERE tl.transaction_type IN ('CustInvc', 'CashSale')
-        AND tl.posting = 'T'
-        AND tl.voided = 'F'
+      WHERE t.type IN ('CustInvc', 'CashSale')
+        AND COALESCE(t.posting, 'F') = 'T'
+        AND COALESCE(t.voided, 'F') = 'F'
       GROUP BY
         tl.item,
         i.itemid,
