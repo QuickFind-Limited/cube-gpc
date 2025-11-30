@@ -19,7 +19,7 @@ cubes:
         SUM(CASE
           WHEN i.custitem_gpc_season IS NOT NULL
             AND i.custitem_gpc_season != ''
-          THEN tl.total_revenue
+          THEN CAST(tl.amount AS FLOAT64)
           ELSE 0
         END) as revenue_in_season,
         -- Current inventory (aggregated from inventory_calculated)
