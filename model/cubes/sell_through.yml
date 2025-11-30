@@ -1,3 +1,8 @@
+# DEPRECATED: This cube has a design flaw - it mixes all-time sales with point-in-time inventory
+# Result: Meaningless ratios like "all sales ever / today's stock"
+# REPLACEMENT: Use sell_through_seasonal.yml for accurate season-based sell-through analysis
+# TODO: Remove this cube after migrating all dashboards to sell_through_seasonal
+
 cubes:
   - name: sell_through
     sql: >

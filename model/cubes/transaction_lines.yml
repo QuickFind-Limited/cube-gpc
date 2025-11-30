@@ -56,6 +56,12 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.transaction = {transactions.id}"
 
+      # NEW: Enable sales vs stock analysis (e.g. "high sales, low stock" reorder alerts)
+      - name: inventory
+        relationship: many_to_one
+        sql: "{CUBE}.item = {inventory.item}"
+        description: "Join to current inventory. Note: Inventory is point-in-time (current stock levels)."
+
     measures:
       # Revenue Measures - Rule 5: CustInvc + CashSale only
       # Currency conversion: ALL currencies converted to EUR using transaction-date exchange rates
