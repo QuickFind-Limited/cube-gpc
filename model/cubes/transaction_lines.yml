@@ -744,7 +744,6 @@ cubes:
           - category
           - season
           - billing_country
-          - billing_city
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
