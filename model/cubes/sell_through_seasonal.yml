@@ -8,7 +8,7 @@ cubes:
         i.custitem_gpc_season as season,
         i.custitem_gpc_category as category,
         i.custitem_gpc_size as size,
-        i.custitem_gpc_color as color,
+        i.custitem_gpc_child_colour as color,
         -- Sales within the item's season only
         SUM(CASE
           WHEN i.custitem_gpc_season IS NOT NULL
