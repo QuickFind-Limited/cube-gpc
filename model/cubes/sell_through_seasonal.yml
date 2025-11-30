@@ -45,7 +45,7 @@ cubes:
         i.custitem_gpc_season,
         i.custitem_gpc_category,
         i.custitem_gpc_size,
-        i.custitem_gpc_color
+        i.custitem_gpc_child_colour
     title: Sell Through (Seasonal)
     description: >
       Season-based sell-through analysis for fashion retail.
