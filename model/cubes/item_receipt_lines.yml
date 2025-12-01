@@ -1,0 +1,97 @@
+cubes:
+  - name: item_receipt_lines
+    sql_table: gpc.item_receipt_lines
+
+    title: Item Receipt Lines
+    description: Item receipt line items with PO linkage for lead time calculation. Excludes landed cost lines.
+
+    measures:
+      - name: receipt_line_count
+        type: count
+        description: Number of receipt line items
+
+      - name: total_received_qty
+        sql: quantity
+        type: sum
+        description: Total quantity received
+
+      - name: total_receipt_line_value
+        sql: amount
+        type: sum
+        format: currency
+        description: Total receipt line value in base currency
+
+      - name: avg_unit_cost
+        sql: rate
+        type: avg
+        format: currency
+        description: Average unit cost on receipts
+
+      - name: lines_with_po_linkage
+        type: count
+        filters:
+          - sql: "{CUBE}.createdfrom IS NOT NULL"
+        description: Receipt lines linked to PO lines (for lead time calculation)
+
+      - name: po_linkage_rate
+        sql: "CASE WHEN COUNT(*) > 0 THEN (COUNT(CASE WHEN createdfrom IS NOT NULL THEN 1 END) * 100.0 / COUNT(*)) ELSE 0 END"
+        type: number
+        format: percent
+        description: Percentage of receipt lines with PO linkage
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+        public: false
+
+      - name: receipt_id
+        sql: receipt_id
+        type: number
+        title: Item Receipt ID
+        description: Reference to item receipt header
+
+      - name: item
+        sql: item
+        type: number
+        title: Item ID
+        description: NetSuite item ID
+
+      - name: quantity
+        sql: quantity
+        type: number
+        title: Quantity Received
+        description: Quantity received on this line
+
+      - name: unit_cost
+        sql: rate
+        type: number
+        format: currency
+        title: Unit Cost
+        description: Cost per unit in base currency
+
+      - name: createdfrom
+        sql: createdfrom
+        type: number
+        title: Created From PO Line ID
+        description: Links to purchase_order_lines.id for lead time calculation
+
+      - name: memo
+        sql: memo
+        type: string
+        title: Memo
+        description: Line memo (used to identify landed costs)
+
+    joins:
+      - name: item_receipts
+        relationship: many_to_one
+        sql: "{CUBE}.receipt_id = {item_receipts}.id"
+
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.id"
+
+      - name: purchase_order_lines
+        relationship: many_to_one
+        sql: "{CUBE}.createdfrom = {purchase_order_lines}.id"

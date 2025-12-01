@@ -1,0 +1,128 @@
+cubes:
+  - name: purchase_order_lines
+    sql_table: gpc.purchase_order_lines
+
+    title: Purchase Order Lines
+    description: Purchase order line items with quantity, cost, and receipt tracking
+
+    measures:
+      - name: line_count
+        type: count
+        description: Number of PO line items
+
+      - name: total_ordered_qty
+        sql: quantity
+        type: sum
+        description: Total quantity ordered
+
+      - name: total_received_qty
+        sql: quantityshiprecv
+        type: sum
+        description: Total quantity received
+
+      - name: total_outstanding_qty
+        sql: "quantity - COALESCE(quantityshiprecv, 0)"
+        type: sum
+        description: Outstanding quantity not yet received
+
+      - name: total_po_line_value
+        sql: amount
+        type: sum
+        format: currency
+        description: Total PO line value in base currency
+
+      - name: on_order_value
+        sql: "(quantity - COALESCE(quantityshiprecv, 0)) * rate"
+        type: sum
+        format: currency
+        description: Value of outstanding orders (qty outstanding * unit cost)
+
+      - name: avg_unit_cost
+        sql: rate
+        type: avg
+        format: currency
+        description: Average unit cost
+
+      - name: fulfillment_rate
+        sql: "CASE WHEN quantity > 0 THEN (COALESCE(quantityshiprecv, 0) / quantity) * 100 ELSE 0 END"
+        type: avg
+        format: percent
+        description: Average fulfillment rate (received / ordered * 100)
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+        public: false
+
+      - name: po_id
+        sql: po_id
+        type: number
+        title: Purchase Order ID
+        description: Reference to purchase order header
+
+      - name: item
+        sql: item
+        type: number
+        title: Item ID
+        description: NetSuite item ID
+
+      - name: quantity
+        sql: quantity
+        type: number
+        title: Quantity Ordered
+        description: Quantity ordered on PO line
+
+      - name: quantityshiprecv
+        sql: quantityshiprecv
+        type: number
+        title: Quantity Received
+        description: Quantity shipped/received
+
+      - name: quantitybilled
+        sql: quantitybilled
+        type: number
+        title: Quantity Billed
+        description: Quantity billed
+
+      - name: qty_outstanding
+        sql: "quantity - COALESCE(quantityshiprecv, 0)"
+        type: number
+        title: Quantity Outstanding
+        description: Quantity not yet received
+
+      - name: unit_cost
+        sql: rate
+        type: number
+        format: currency
+        title: Unit Cost
+        description: Cost per unit in base currency
+
+      - name: expectedreceiptdate
+        sql: expectedreceiptdate
+        type: time
+        title: Expected Receipt Date
+        description: Expected date of receipt
+
+    joins:
+      - name: purchase_orders
+        relationship: many_to_one
+        sql: "{CUBE}.po_id = {purchase_orders}.id"
+
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.id"
+
+    pre_aggregations:
+      - name: on_order_summary
+        measures:
+          - total_outstanding_qty
+          - on_order_value
+          - line_count
+        dimensions:
+          - item
+        time_dimension: expectedreceiptdate
+        granularity: day
+        refresh_key:
+          every: 1 hour

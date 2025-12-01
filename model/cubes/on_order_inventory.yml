@@ -1,0 +1,92 @@
+cubes:
+  - name: on_order_inventory
+    sql: >
+      SELECT
+        pol.item,
+        i.itemid,
+        i.displayname,
+        SUM(pol.quantity - COALESCE(pol.quantityshiprecv, 0)) as total_on_order,
+        MIN(pol.expectedreceiptdate) as earliest_expected_date,
+        MAX(pol.expectedreceiptdate) as latest_expected_date,
+        COUNT(DISTINCT pol.po_id) as open_po_count,
+        SUM((pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.rate) as on_order_value
+      FROM gpc.purchase_order_lines pol
+      LEFT JOIN gpc.purchase_orders po ON pol.po_id = po.id
+      LEFT JOIN gpc.items i ON pol.item = i.id
+      WHERE po.status IN ('B', 'D', 'E')
+        AND (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) > 0
+      GROUP BY pol.item, i.itemid, i.displayname
+
+    title: On-Order Inventory
+    description: Real-time outstanding PO quantities by item (calculated from open POs)
+
+    measures:
+      - name: total_on_order_units
+        sql: total_on_order
+        type: sum
+        description: Total units on order across all open POs
+
+      - name: on_order_value
+        sql: on_order_value
+        type: sum
+        format: currency
+        description: Total value of on-order inventory
+
+      - name: avg_on_order_per_item
+        sql: total_on_order
+        type: avg
+        description: Average units on order per item
+
+      - name: open_po_count
+        sql: open_po_count
+        type: sum
+        description: Total number of open POs
+
+      - name: item_count
+        type: count
+        description: Number of unique items with on-order inventory
+
+      - name: avg_pos_per_item
+        sql: open_po_count
+        type: avg
+        description: Average number of open POs per item
+
+    dimensions:
+      - name: item
+        sql: item
+        type: number
+        primary_key: true
+        public: false
+
+      - name: itemid
+        sql: itemid
+        type: string
+        title: SKU
+        description: Item SKU/ID
+
+      - name: displayname
+        sql: displayname
+        type: string
+        title: Product Name
+        description: Item display name
+
+      - name: earliest_expected_date
+        sql: earliest_expected_date
+        type: time
+        title: Earliest Expected Receipt
+        description: Earliest expected receipt date across all open POs for this item
+
+      - name: latest_expected_date
+        sql: latest_expected_date
+        type: time
+        title: Latest Expected Receipt
+        description: Latest expected receipt date across all open POs for this item
+
+      - name: total_on_order
+        sql: total_on_order
+        type: number
+        title: Units On Order
+        description: Total units on order for this item
+
+    refresh_key:
+      every: 1 hour

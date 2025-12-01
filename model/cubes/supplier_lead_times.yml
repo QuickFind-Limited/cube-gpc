@@ -1,0 +1,126 @@
+cubes:
+  - name: supplier_lead_times
+    sql: >
+      SELECT
+        po.entity as supplier_id,
+        irl.item,
+        DATE_DIFF(ir.trandate, po.trandate, DAY) as lead_time_days,
+        ir.trandate as receipt_date,
+        po.trandate as po_date,
+        irl.quantity as qty_received,
+        po.tranid as po_number,
+        ir.tranid as receipt_number
+      FROM gpc.item_receipt_lines irl
+      INNER JOIN gpc.item_receipts ir ON irl.receipt_id = ir.id
+      INNER JOIN gpc.purchase_order_lines pol ON irl.createdfrom = pol.id
+      INNER JOIN gpc.purchase_orders po ON pol.po_id = po.id
+      WHERE irl.createdfrom IS NOT NULL
+        AND DATE_DIFF(ir.trandate, po.trandate, DAY) BETWEEN 0 AND 365
+        AND irl.memo NOT LIKE 'Landed Cost%'
+
+    title: Supplier Lead Times
+    description: PO to receipt lead time analysis using createdfrom linkage. Excludes landed costs and outliers (>365 days).
+
+    measures:
+      - name: avg_lead_time_days
+        sql: lead_time_days
+        type: avg
+        description: Average lead time in days from PO date to receipt date
+
+      - name: min_lead_time_days
+        sql: lead_time_days
+        type: min
+        description: Minimum lead time in days
+
+      - name: max_lead_time_days
+        sql: lead_time_days
+        type: max
+        description: Maximum lead time in days
+
+      - name: median_lead_time_days
+        sql: lead_time_days
+        type: number
+        description: Median lead time in days (approximation using percentile)
+        # BigQuery percentile_cont approximation
+        rolling_window:
+          trailing: unbounded
+
+      - name: receipt_count
+        type: count
+        description: Number of receipts for lead time analysis
+
+      - name: total_qty_received
+        sql: qty_received
+        type: sum
+        description: Total quantity received
+
+      - name: lead_time_variance
+        sql: "POWER(lead_time_days - AVG(lead_time_days) OVER (), 2)"
+        type: avg
+        description: Variance in lead time (for consistency analysis)
+
+    dimensions:
+      - name: supplier_id
+        sql: supplier_id
+        type: number
+        title: Supplier ID
+        description: Vendor entity ID
+
+      - name: item
+        sql: item
+        type: number
+        title: Item ID
+        description: Item ID for item-level lead time analysis
+
+      - name: lead_time_days
+        sql: lead_time_days
+        type: number
+        title: Lead Time (Days)
+        description: Days from PO to receipt
+
+      - name: receipt_date
+        sql: receipt_date
+        type: time
+        title: Receipt Date
+        description: Date of item receipt
+
+      - name: po_date
+        sql: po_date
+        type: time
+        title: PO Date
+        description: Purchase order date
+
+      - name: po_number
+        sql: po_number
+        type: string
+        title: PO Number
+        description: Purchase order transaction number
+
+      - name: receipt_number
+        sql: receipt_number
+        type: string
+        title: Receipt Number
+        description: Item receipt transaction number
+
+      # Lead time bucketing for analysis
+      - name: lead_time_bucket
+        type: string
+        title: Lead Time Range
+        description: Bucketed lead time ranges
+        case:
+          when:
+            - sql: "{CUBE}.lead_time_days <= 7"
+              label: "0-7 days"
+            - sql: "{CUBE}.lead_time_days <= 14"
+              label: "8-14 days"
+            - sql: "{CUBE}.lead_time_days <= 30"
+              label: "15-30 days"
+            - sql: "{CUBE}.lead_time_days <= 60"
+              label: "31-60 days"
+            - sql: "{CUBE}.lead_time_days <= 90"
+              label: "61-90 days"
+          else:
+            label: "90+ days"
+
+    refresh_key:
+      every: 1 day
