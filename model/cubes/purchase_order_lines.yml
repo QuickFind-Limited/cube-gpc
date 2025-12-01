@@ -26,19 +26,19 @@ cubes:
         description: Outstanding quantity not yet received
 
       - name: total_po_line_value
-        sql: amount
+        sql: line_total
         type: sum
         format: currency
         description: Total PO line value in base currency
 
       - name: on_order_value
-        sql: "(quantity - COALESCE(quantityshiprecv, 0)) * rate"
+        sql: "(quantity - COALESCE(quantityshiprecv, 0)) * unit_cost"
         type: sum
         format: currency
         description: Value of outstanding orders (qty outstanding * unit cost)
 
       - name: avg_unit_cost
-        sql: rate
+        sql: unit_cost
         type: avg
         format: currency
         description: Average unit cost
@@ -93,7 +93,7 @@ cubes:
         description: Quantity not yet received
 
       - name: unit_cost
-        sql: rate
+        sql: unit_cost
         type: number
         format: currency
         title: Unit Cost
