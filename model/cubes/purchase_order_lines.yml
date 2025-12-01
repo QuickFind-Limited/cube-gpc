@@ -99,12 +99,6 @@ cubes:
         title: Unit Cost
         description: Cost per unit in base currency
 
-      - name: expectedreceiptdate
-        sql: expectedreceiptdate
-        type: time
-        title: Expected Receipt Date
-        description: Expected date of receipt
-
     joins:
       - name: purchase_orders
         relationship: many_to_one
@@ -122,7 +116,5 @@ cubes:
           - line_count
         dimensions:
           - item
-        time_dimension: expectedreceiptdate
-        granularity: day
         refresh_key:
           every: 1 hour

@@ -6,14 +6,12 @@ cubes:
         i.itemid,
         i.displayname,
         SUM(pol.quantity - COALESCE(pol.quantityshiprecv, 0)) as total_on_order,
-        MIN(pol.expectedreceiptdate) as earliest_expected_date,
-        MAX(pol.expectedreceiptdate) as latest_expected_date,
         COUNT(DISTINCT pol.po_id) as open_po_count,
-        SUM((pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.rate) as on_order_value
+        SUM((pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.unit_cost) as on_order_value
       FROM gpc.purchase_order_lines pol
       LEFT JOIN gpc.purchase_orders po ON pol.po_id = po.id
       LEFT JOIN gpc.items i ON pol.item = i.id
-      WHERE po.status IN ('B', 'D', 'E')
+      WHERE po.po_status IN ('B', 'D', 'E')
         AND (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) > 0
       GROUP BY pol.item, i.itemid, i.displayname
 
@@ -69,18 +67,6 @@ cubes:
         type: string
         title: Product Name
         description: Item display name
-
-      - name: earliest_expected_date
-        sql: earliest_expected_date
-        type: time
-        title: Earliest Expected Receipt
-        description: Earliest expected receipt date across all open POs for this item
-
-      - name: latest_expected_date
-        sql: latest_expected_date
-        type: time
-        title: Latest Expected Receipt
-        description: Latest expected receipt date across all open POs for this item
 
       - name: total_on_order
         sql: total_on_order
