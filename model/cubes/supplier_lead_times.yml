@@ -76,7 +76,7 @@ cubes:
         description: Days from PO to receipt
 
       - name: receipt_date
-        sql: receipt_date
+        sql: "CAST({CUBE}.receipt_date AS TIMESTAMP)"
         type: time
         title: Receipt Date
         description: Date of item receipt
