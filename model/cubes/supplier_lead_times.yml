@@ -134,6 +134,7 @@ cubes:
           - max_lead_time_days
         dimensions:
           - item
+          - supplier_id
         time_dimension: receipt_date
         granularity: day
         build_range_start:
