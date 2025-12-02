@@ -11,12 +11,12 @@ cubes:
         po.tranid as po_number,
         ir.tranid as receipt_number
       FROM gpc.item_receipt_lines irl
-      INNER JOIN gpc.item_receipts ir ON irl.receipt_id = ir.id
+      INNER JOIN gpc.item_receipts ir ON irl.transaction = ir.id
       INNER JOIN gpc.purchase_order_lines pol ON irl.createdfrom = pol.id
       INNER JOIN gpc.purchase_orders po ON pol.po_id = po.id
       WHERE irl.createdfrom IS NOT NULL
         AND DATE_DIFF(ir.trandate, po.trandate, DAY) BETWEEN 0 AND 365
-        AND irl.memo NOT LIKE 'Landed Cost%'
+        AND irl.landedcostperline = 'F'
 
     title: Supplier Lead Times
     description: PO to receipt lead time analysis using createdfrom linkage. Excludes landed costs and outliers (>365 days).
