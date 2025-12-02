@@ -120,7 +120,3 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 hour
-        build_range_start:
-          sql: SELECT TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH))
-        build_range_end:
-          sql: SELECT CURRENT_TIMESTAMP()
