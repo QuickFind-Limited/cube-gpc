@@ -139,6 +139,8 @@ cubes:
         time_dimension: receipt_date
         granularity: day
         partition_granularity: month
+        build_range_start: '2022-01-01'
+        build_range_end: '2025-10-31'
         refresh_key:
           every: 1 day
 
