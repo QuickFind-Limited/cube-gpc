@@ -138,7 +138,6 @@ cubes:
           - lead_time_bucket
         time_dimension: receipt_date
         granularity: day
-        partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
         build_range_end:
