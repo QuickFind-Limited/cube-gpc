@@ -124,5 +124,7 @@ cubes:
           - total_received_qty
         dimensions:
           - item
+        time_dimension: trandate
+        granularity: day
         refresh_key:
           every: 1 hour
