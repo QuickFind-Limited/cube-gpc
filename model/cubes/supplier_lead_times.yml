@@ -138,6 +138,7 @@ cubes:
         #   # - lead_time_bucket  # TEMPORARILY REMOVED - testing if CASE dimension blocks pre-agg matching
         time_dimension: receipt_date
         granularity: day
+        partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
         build_range_end:
