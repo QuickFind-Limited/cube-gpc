@@ -123,6 +123,10 @@ cubes:
         time_dimension: shipdate
         granularity: day
         partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        build_range_end:
+          sql: SELECT '2025-10-31'
         indexes:
           - name: location_idx
             columns:
@@ -141,6 +145,10 @@ cubes:
         time_dimension: shipdate
         granularity: day
         partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        build_range_end:
+          sql: SELECT '2025-10-31'
         indexes:
           - name: item_idx
             columns:
