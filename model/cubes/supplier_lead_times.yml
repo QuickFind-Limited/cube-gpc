@@ -135,7 +135,7 @@ cubes:
         dimensions:
           - supplier_id
           - item
-          - lead_time_bucket
+          # - lead_time_bucket  # TEMPORARILY REMOVED - testing if CASE dimension blocks pre-agg matching
         time_dimension: receipt_date
         granularity: day
         build_range_start:
