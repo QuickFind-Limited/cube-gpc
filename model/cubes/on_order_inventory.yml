@@ -104,7 +104,7 @@ cubes:
         sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
-      - name: on_order_rollup
+      - name: on_order_rollup_disabled_temp
         measures:
           - total_on_order_units
           - on_order_value
