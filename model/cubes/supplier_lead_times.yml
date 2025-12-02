@@ -119,10 +119,10 @@ cubes:
           else:
             label: "90+ days"
 
-    joins:
-      - name: items
-        relationship: many_to_one
-        sql: "{CUBE}.item = {items}.id"
+    # joins:
+    #   - name: items
+    #     relationship: many_to_one
+    #     sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
       - name: lead_time_rollup
