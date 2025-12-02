@@ -144,7 +144,7 @@ cubes:
         refresh_key:
           every: 1 day
 
-      # Rollup without dimensions for total queries
+      # Rollup for time-series queries (requires 2+ dimensions for month rollup)
       - name: lead_time_totals
         measures:
           - receipt_count
@@ -152,6 +152,9 @@ cubes:
           - avg_lead_time_days
           - min_lead_time_days
           - max_lead_time_days
+        dimensions:
+          - item
+          - supplier_id
         time_dimension: receipt_date
         granularity: day
         build_range_start:
