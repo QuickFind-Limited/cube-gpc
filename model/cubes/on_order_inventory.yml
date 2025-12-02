@@ -118,6 +118,7 @@ cubes:
         time_dimension: po_date
         granularity: day
         partition_granularity: month
+        allow_non_strict_date_range_match: true
         build_range_start:
           sql: SELECT '2022-01-01'
         build_range_end:
