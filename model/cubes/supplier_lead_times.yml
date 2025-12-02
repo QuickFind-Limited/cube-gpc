@@ -135,7 +135,6 @@ cubes:
         dimensions:
           - supplier_id
           - item
-          - lead_time_bucket
         time_dimension: receipt_date
         granularity: month
         partition_granularity: month

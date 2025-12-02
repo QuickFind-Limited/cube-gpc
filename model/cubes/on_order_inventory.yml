@@ -112,8 +112,6 @@ cubes:
           - item_count
         dimensions:
           - item
-          - itemid
-          - displayname
           - po_status
         time_dimension: po_date
         granularity: month
