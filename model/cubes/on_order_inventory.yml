@@ -116,7 +116,7 @@ cubes:
           - displayname
           - po_status
         time_dimension: po_date
-        granularity: day
+        granularity: month
         partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
