@@ -2,8 +2,6 @@ cubes:
   - name: transactions
     sql: >
       SELECT * FROM gpc.transactions_analysis
-      WHERE posting = 'T'
-        AND voided = 'F'
     title: Transactions
     description: Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns)
 
