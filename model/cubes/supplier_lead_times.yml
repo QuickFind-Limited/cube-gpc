@@ -8,9 +8,9 @@ cubes:
         irl.item,
         irl.quantity,
         irl.mainline,
-        ir.trandate as receipt_date,
+        CAST(ir.trandate AS TIMESTAMP) as receipt_date,
         ir.tranid as receipt_number,
-        po.trandate as po_date,
+        CAST(po.trandate AS TIMESTAMP) as po_date,
         po.tranid as po_number,
         po.entity as supplier_id,
         DATE_DIFF(CAST(ir.trandate AS DATE), CAST(po.trandate AS DATE), DAY) as lead_time_days
@@ -141,7 +141,3 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 day
-        build_range_start:
-          sql: SELECT DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH)
-        build_range_end:
-          sql: SELECT CURRENT_DATE()

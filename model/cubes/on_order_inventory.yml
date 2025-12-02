@@ -11,7 +11,7 @@ cubes:
         (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) as qty_on_order,
         (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.unit_cost as line_on_order_value,
         po.status as po_status,
-        po.trandate as po_date,
+        CAST(po.trandate AS TIMESTAMP) as po_date,
         i.itemid,
         i.displayname
       FROM gpc.purchase_order_lines pol
@@ -120,7 +120,3 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 hour
-        build_range_start:
-          sql: SELECT DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
-        build_range_end:
-          sql: SELECT CURRENT_DATE()
