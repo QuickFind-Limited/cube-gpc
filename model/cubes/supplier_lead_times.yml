@@ -141,3 +141,14 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 day
+
+      # Rollup without dimensions for total queries
+      - name: lead_time_totals
+        measures:
+          - receipt_count
+          - total_qty_received
+          - avg_lead_time_days
+          - min_lead_time_days
+          - max_lead_time_days
+        refresh_key:
+          every: 1 day

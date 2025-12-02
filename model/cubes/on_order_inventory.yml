@@ -120,3 +120,13 @@ cubes:
         partition_granularity: month
         refresh_key:
           every: 1 hour
+
+      # Rollup without dimensions for total queries
+      - name: on_order_totals
+        measures:
+          - total_on_order_units
+          - on_order_value
+          - open_po_count
+          - item_count
+        refresh_key:
+          every: 1 hour
