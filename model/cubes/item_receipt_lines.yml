@@ -95,7 +95,3 @@ cubes:
       - name: purchase_order_lines
         relationship: many_to_one
         sql: "{CUBE}.createdfrom = {purchase_order_lines}.id"
-
-      - name: source_purchase_orders
-        relationship: many_to_one
-        sql: "CAST({CUBE}.createdfrom AS INT64) = CAST({source_purchase_orders}.id AS INT64)"

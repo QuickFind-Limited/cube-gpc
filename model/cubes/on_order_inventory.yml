@@ -68,18 +68,6 @@ cubes:
         title: Item ID
         description: NetSuite item ID
 
-      - name: itemid
-        sql: "{items}.itemid"
-        type: string
-        title: SKU
-        description: Item SKU/ID
-
-      - name: displayname
-        sql: "{items}.displayname"
-        type: string
-        title: Product Name
-        description: Item display name
-
       - name: qty_on_order
         sql: "quantity - COALESCE(quantityshiprecv, 0)"
         type: number
@@ -104,8 +92,8 @@ cubes:
           - item_count
         dimensions:
           - item
-          - itemid
-          - displayname
+          - items.itemid
+          - items.displayname
           - purchase_orders.status
         time_dimension: purchase_orders.trandate
         granularity: day
