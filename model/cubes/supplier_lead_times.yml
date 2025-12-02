@@ -143,23 +143,3 @@ cubes:
           sql: SELECT '2025-10-31'
         refresh_key:
           every: 1 day
-
-      # Rollup for time-series queries (requires 2+ dimensions for month rollup)
-      - name: lead_time_totals
-        measures:
-          - receipt_count
-          - total_qty_received
-          - avg_lead_time_days
-          - min_lead_time_days
-          - max_lead_time_days
-        dimensions:
-          - item
-          - supplier_id
-        time_dimension: receipt_date
-        granularity: day
-        build_range_start:
-          sql: SELECT '2022-01-01'
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        refresh_key:
-          every: 1 day
