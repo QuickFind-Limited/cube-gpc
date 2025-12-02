@@ -92,6 +92,12 @@ cubes:
         title: PO Status
         description: Purchase order status
 
+      - name: po_date
+        sql: po_date
+        type: time
+        title: PO Date
+        description: Purchase order date
+
     joins:
       - name: items
         relationship: many_to_one
