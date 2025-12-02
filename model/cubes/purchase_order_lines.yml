@@ -99,6 +99,12 @@ cubes:
         title: Unit Cost
         description: Cost per unit in base currency
 
+      - name: trandate
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
+        type: time
+        title: PO Date
+        description: Purchase order transaction date (from header via denormalization)
+
     joins:
       - name: purchase_orders
         relationship: many_to_one
