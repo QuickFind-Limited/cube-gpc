@@ -106,3 +106,19 @@ cubes:
       - name: purchase_order_lines
         relationship: one_to_many
         sql: "{CUBE}.id = {purchase_order_lines}.po_id"
+
+    pre_aggregations:
+      - name: po_summary
+        measures:
+          - po_count
+          - total_po_value
+          - avg_po_value
+          - pending_receipt_count
+          - partially_received_count
+          - pending_billing_count
+          - open_po_count
+        dimensions:
+          - status
+          - supplier
+        refresh_key:
+          every: 1 hour
