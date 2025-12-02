@@ -107,10 +107,11 @@ cubes:
           - itemid
           - displayname
           - purchase_orders.status
+        time_dimension: purchase_orders.trandate
+        granularity: day
+        partition_granularity: month
         refresh_key:
           every: 1 hour
-        partition_granularity: month
-        time_dimension: purchase_orders.trandate
         build_range_start:
           sql: SELECT DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
         build_range_end:

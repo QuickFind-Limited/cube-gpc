@@ -149,10 +149,11 @@ cubes:
           - supplier_id
           - item
           - lead_time_bucket
+        time_dimension: receipt_date
+        granularity: day
+        partition_granularity: month
         refresh_key:
           every: 1 day
-        partition_granularity: month
-        time_dimension: receipt_date
         build_range_start:
           sql: SELECT DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH)
         build_range_end:
