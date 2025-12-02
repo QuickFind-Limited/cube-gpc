@@ -93,7 +93,7 @@ cubes:
         description: Purchase order status
 
       - name: po_date
-        sql: po_date
+        sql: "CAST({CUBE}.po_date AS TIMESTAMP)"
         type: time
         title: PO Date
         description: Purchase order date
