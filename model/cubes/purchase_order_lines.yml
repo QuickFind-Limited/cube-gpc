@@ -120,6 +120,8 @@ cubes:
           - total_outstanding_qty
           - on_order_value
           - line_count
+          - total_ordered_qty
+          - total_received_qty
         dimensions:
           - item
         refresh_key:
