@@ -1,59 +1,54 @@
 cubes:
   - name: supplier_lead_times
-    sql_table: gpc.item_receipt_lines
+    sql: >
+      SELECT
+        irl.id,
+        irl.transaction as receipt_id,
+        irl.createdfrom as po_id,
+        irl.item,
+        irl.quantity,
+        irl.mainline,
+        ir.trandate as receipt_date,
+        ir.tranid as receipt_number,
+        po.trandate as po_date,
+        po.tranid as po_number,
+        po.entity as supplier_id,
+        DATE_DIFF(CAST(ir.trandate AS DATE), CAST(po.trandate AS DATE), DAY) as lead_time_days
+      FROM gpc.item_receipt_lines irl
+      INNER JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
+      INNER JOIN gpc.purchase_orders po ON CAST(irl.createdfrom AS INT64) = CAST(po.id AS INT64)
+      WHERE irl.createdfrom IS NOT NULL
+        AND irl.mainline = 'F'
+        AND irl.item IS NOT NULL
+        AND DATE_DIFF(CAST(ir.trandate AS DATE), CAST(po.trandate AS DATE), DAY) BETWEEN 0 AND 365
 
     title: Supplier Lead Times
     description: PO to receipt lead time analysis using createdfrom linkage. Excludes landed costs and outliers (>365 days).
 
     measures:
       - name: avg_lead_time_days
-        sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY)"
+        sql: lead_time_days
         type: avg
         description: Average lead time in days from PO date to receipt date
-        filters:
-          - sql: "{CUBE}.createdfrom IS NOT NULL"
-          - sql: "{CUBE}.mainline = 'F'"
-          - sql: "{CUBE}.item IS NOT NULL"
-          - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) BETWEEN 0 AND 365"
 
       - name: min_lead_time_days
-        sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY)"
+        sql: lead_time_days
         type: min
         description: Minimum lead time in days
-        filters:
-          - sql: "{CUBE}.createdfrom IS NOT NULL"
-          - sql: "{CUBE}.mainline = 'F'"
-          - sql: "{CUBE}.item IS NOT NULL"
-          - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) BETWEEN 0 AND 365"
 
       - name: max_lead_time_days
-        sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY)"
+        sql: lead_time_days
         type: max
         description: Maximum lead time in days
-        filters:
-          - sql: "{CUBE}.createdfrom IS NOT NULL"
-          - sql: "{CUBE}.mainline = 'F'"
-          - sql: "{CUBE}.item IS NOT NULL"
-          - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) BETWEEN 0 AND 365"
 
       - name: receipt_count
         type: count
         description: Number of receipts for lead time analysis
-        filters:
-          - sql: "{CUBE}.createdfrom IS NOT NULL"
-          - sql: "{CUBE}.mainline = 'F'"
-          - sql: "{CUBE}.item IS NOT NULL"
-          - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({source_purchase_orders}.trandate AS DATE), DAY) BETWEEN 0 AND 365"
 
       - name: total_qty_received
         sql: quantity
         type: sum
         description: Total quantity received
-        filters:
-          - sql: "{CUBE}.createdfrom IS NOT NULL"
-          - sql: "{CUBE}.mainline = 'F'"
-          - sql: "{CUBE}.item IS NOT NULL"
-          - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({source_purchase_orders}.trandate AS DATE), DAY) BETWEEN 0 AND 365"
 
     dimensions:
       - name: id
@@ -63,7 +58,7 @@ cubes:
         public: false
 
       - name: supplier_id
-        sql: "{purchase_orders}.entity"
+        sql: supplier_id
         type: number
         title: Supplier ID
         description: Vendor entity ID
@@ -75,31 +70,31 @@ cubes:
         description: Item ID for item-level lead time analysis
 
       - name: lead_time_days
-        sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY)"
+        sql: lead_time_days
         type: number
         title: Lead Time (Days)
         description: Days from PO to receipt
 
       - name: receipt_date
-        sql: "{item_receipts}.trandate"
+        sql: receipt_date
         type: time
         title: Receipt Date
         description: Date of item receipt
 
       - name: po_date
-        sql: "{purchase_orders}.trandate"
+        sql: po_date
         type: time
         title: PO Date
         description: Purchase order date
 
       - name: po_number
-        sql: "{purchase_orders}.tranid"
+        sql: po_number
         type: string
         title: PO Number
         description: Purchase order transaction number
 
       - name: receipt_number
-        sql: "{item_receipts}.tranid"
+        sql: receipt_number
         type: string
         title: Receipt Number
         description: Item receipt transaction number
@@ -111,28 +106,20 @@ cubes:
         description: Bucketed lead time ranges
         case:
           when:
-            - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) <= 7"
+            - sql: "{CUBE}.lead_time_days <= 7"
               label: "0-7 days"
-            - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) <= 14"
+            - sql: "{CUBE}.lead_time_days <= 14"
               label: "8-14 days"
-            - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) <= 30"
+            - sql: "{CUBE}.lead_time_days <= 30"
               label: "15-30 days"
-            - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) <= 60"
+            - sql: "{CUBE}.lead_time_days <= 60"
               label: "31-60 days"
-            - sql: "DATE_DIFF(CAST({item_receipts}.trandate AS DATE), CAST({purchase_orders}.trandate AS DATE), DAY) <= 90"
+            - sql: "{CUBE}.lead_time_days <= 90"
               label: "61-90 days"
           else:
             label: "90+ days"
 
     joins:
-      - name: item_receipts
-        relationship: many_to_one
-        sql: "CAST({CUBE}.transaction AS INT64) = CAST({item_receipts}.id AS INT64)"
-
-      - name: purchase_orders
-        relationship: many_to_one
-        sql: "CAST({CUBE}.createdfrom AS INT64) = CAST({purchase_orders}.id AS INT64)"
-
       - name: items
         relationship: many_to_one
         sql: "{CUBE}.item = {items}.id"
@@ -146,10 +133,10 @@ cubes:
           - min_lead_time_days
           - max_lead_time_days
         dimensions:
-          - purchase_orders.entity
+          - supplier_id
           - item
           - lead_time_bucket
-        time_dimension: item_receipts.trandate
+        time_dimension: receipt_date
         granularity: day
         partition_granularity: month
         refresh_key:
