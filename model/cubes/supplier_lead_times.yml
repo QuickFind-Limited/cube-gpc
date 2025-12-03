@@ -26,21 +26,7 @@ cubes:
     description: PO to receipt lead time analysis using createdfrom linkage. Excludes landed costs and outliers (>365 days).
 
     measures:
-      - name: avg_lead_time_days
-        sql: lead_time_days
-        type: avg
-        description: Average lead time in days from PO date to receipt date
-
-      - name: min_lead_time_days
-        sql: lead_time_days
-        type: min
-        description: Minimum lead time in days
-
-      - name: max_lead_time_days
-        sql: lead_time_days
-        type: max
-        description: Maximum lead time in days
-
+      # ADDITIVE COMPONENTS (stored in pre-aggregations)
       - name: receipt_count
         type: count
         description: Number of receipts for lead time analysis
@@ -49,6 +35,48 @@ cubes:
         sql: quantity
         type: sum
         description: Total quantity received
+
+      - name: sum_lead_time_days
+        sql: lead_time_days
+        type: sum
+        description: Total lead time days (component for calculating averages)
+
+      - name: sum_lead_time_days_squared
+        sql: "POWER(lead_time_days, 2)"
+        type: sum
+        description: Sum of squared lead times (component for variance calculation)
+
+      # CALCULATED MEASURES (computed from pre-aggregation components)
+      - name: avg_lead_time_days
+        sql: "CAST({sum_lead_time_days} AS FLOAT64) / NULLIF({receipt_count}, 0)"
+        type: number
+        description: Average lead time in days (SLT001 - calculated from sum/count)
+
+      - name: lead_time_variance
+        sql: >
+          CASE
+            WHEN {receipt_count} > 0
+            THEN ({sum_lead_time_days_squared} - POWER({sum_lead_time_days}, 2) / {receipt_count}) / {receipt_count}
+            ELSE 0
+          END
+        type: number
+        description: Variance in lead time days (SLT002 - measures delivery consistency, lower is better)
+
+      - name: lead_time_std_dev
+        sql: "SQRT(GREATEST({lead_time_variance}, 0))"
+        type: number
+        description: Standard deviation of lead time in days (more intuitive than variance)
+
+      # RAW DATA MEASURES (query raw data, not pre-aggregated)
+      - name: min_lead_time_days
+        sql: lead_time_days
+        type: min
+        description: Minimum lead time in days (queries raw data)
+
+      - name: max_lead_time_days
+        sql: lead_time_days
+        type: max
+        description: Maximum lead time in days (queries raw data)
 
     dimensions:
       - name: id
@@ -125,10 +153,11 @@ cubes:
     #     sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
-      # Minimal test pre-agg - exact OOI pattern
+      # Minimal test pre-agg
       - name: lead_time_simple
         measures:
           - receipt_count
+          - sum_lead_time_days
         dimensions:
           - item
         time_dimension: receipt_date
@@ -140,14 +169,13 @@ cubes:
         refresh_key:
           every: 1 hour
 
-      # Original pre-agg (currently not matching)
+      # Full pre-agg with all additive components
       - name: lead_time_rollup
         measures:
           - receipt_count
           - total_qty_received
-          - avg_lead_time_days
-          - min_lead_time_days
-          - max_lead_time_days
+          - sum_lead_time_days
+          - sum_lead_time_days_squared
         dimensions:
           - item
           - supplier_id
