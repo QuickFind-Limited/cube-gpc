@@ -153,23 +153,6 @@ cubes:
     #     sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
-      # Minimal test pre-agg
-      - name: lead_time_simple
-        measures:
-          - receipt_count
-          - sum_lead_time_days
-        dimensions:
-          - item
-        time_dimension: receipt_date
-        granularity: day
-        build_range_start:
-          sql: SELECT '2022-01-01'
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        refresh_key:
-          every: 1 hour
-
-      # Full pre-agg with all additive components
       - name: lead_time_rollup
         measures:
           - receipt_count
