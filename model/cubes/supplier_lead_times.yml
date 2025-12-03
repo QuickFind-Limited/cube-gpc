@@ -42,13 +42,13 @@ cubes:
         description: Total lead time days (component for calculating averages)
 
       - name: sum_lead_time_days_squared
-        sql: "POWER(lead_time_days, 2)"
+        sql: "POW(lead_time_days, 2)"
         type: sum
         description: Sum of squared lead times (component for variance calculation)
 
       # CALCULATED MEASURES (computed from pre-aggregation components)
       - name: avg_lead_time_days
-        sql: "CAST({sum_lead_time_days} AS FLOAT64) / NULLIF({receipt_count}, 0)"
+        sql: "SAFE_DIVIDE(CAST({sum_lead_time_days} AS FLOAT64), {receipt_count})"
         type: number
         description: Average lead time in days (SLT001 - calculated from sum/count)
 
@@ -56,7 +56,7 @@ cubes:
         sql: >
           CASE
             WHEN {receipt_count} > 0
-            THEN ({sum_lead_time_days_squared} - POWER({sum_lead_time_days}, 2) / {receipt_count}) / {receipt_count}
+            THEN ({sum_lead_time_days_squared} - POW({sum_lead_time_days}, 2) / {receipt_count}) / {receipt_count}
             ELSE 0
           END
         type: number
