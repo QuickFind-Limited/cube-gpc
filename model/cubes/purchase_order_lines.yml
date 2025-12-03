@@ -124,6 +124,7 @@ cubes:
           - total_received_qty
         dimensions:
           - item
+          - purchase_orders.supplier
         time_dimension: trandate
         granularity: day
         refresh_key:
