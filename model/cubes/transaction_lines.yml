@@ -16,6 +16,7 @@ cubes:
         i.itemid as sku,
         i.displayname as product_name,
         i.custitem_gpc_category as category,
+        i.custitem_gpc_sections as section,
         i.custitem_gpc_season as season,
         i.custitem_gpc_size as size,
         i.custitem_gpc_range as product_range,
@@ -395,6 +396,11 @@ cubes:
         type: string
         description: Product category
 
+      - name: section
+        sql: "{CUBE}.section"
+        type: string
+        description: Product section (e.g., Hoodies, Fleeces, Sweatshirts, Leggings)
+
       - name: season
         sql: "{CUBE}.season"
         type: string
@@ -519,6 +525,7 @@ cubes:
         dimensions:
           - channel_type
           - category
+          - section
           - season
           - department_name
           - billing_country
@@ -555,6 +562,7 @@ cubes:
           - sku
           - product_name
           - category
+          - section
           - season
           - size
           - color
@@ -634,6 +642,7 @@ cubes:
         dimensions:
           - channel_type
           - category
+          - section
           - season
           - pricing_type
         time_dimension: transaction_date
@@ -692,6 +701,7 @@ cubes:
           - product_range
           - collection
           - category
+          - section
           - season
         time_dimension: transaction_date
         granularity: month
@@ -718,6 +728,7 @@ cubes:
           - color
           - billing_country
           - category
+          - section
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -757,6 +768,7 @@ cubes:
         dimensions:
           - channel_type
           - category
+          - section
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -778,6 +790,7 @@ cubes:
           - sku
           - product_name
           - category
+          - section
           - season
           - billing_country
         time_dimension: transaction_date
@@ -805,6 +818,7 @@ cubes:
         dimensions:
           - channel_type
           - category
+          - section
           - season
           - size
           - sku
@@ -833,6 +847,7 @@ cubes:
           - size
           - color
           - category
+          - section
           - season
           - channel_type
         time_dimension: transaction_date
@@ -861,6 +876,7 @@ cubes:
         dimensions:
           - channel_type
           - category
+          - section
           - billing_country
         time_dimension: transaction_date
         granularity: year
@@ -871,7 +887,7 @@ cubes:
       # Storage: 438K rows (2024 data) ~0.08 GB, Cost: $0.002/month
       # Accuracy: 100% exact counts vs 10-30% overcount with HyperLogLog
       # Use for: Financial KPIs, AOV calculations, executive reporting
-      # Limitation: Can only query with these 4 dimensions (channel, category, country, date)
+      # Limitation: Can only query with these 5 dimensions (channel, category, section, country, date)
       - name: transaction_grain_aov
         measures:
           - total_revenue
@@ -881,6 +897,7 @@ cubes:
           - transaction          # Primary key - one row per transaction
           - channel_type         # D2C vs Retail
           - category             # Product category
+          - section              # Product section
           - billing_country      # Geography
         time_dimension: transaction_date
         granularity: day

@@ -11,6 +11,7 @@ cubes:
         i.itemid,
         i.displayname,
         i.custitem_gpc_category as category,
+        i.custitem_gpc_sections as section,
         i.custitem_gpc_season as season,
         COALESCE(inv.current_stock, 0) as current_stock,
         COALESCE(sales.units_sold, 0) as units_sold,
@@ -72,6 +73,11 @@ cubes:
         type: string
         description: Product category
 
+      - name: section
+        sql: "{CUBE}.section"
+        type: string
+        description: Product section (e.g., Hoodies, Fleeces, Sweatshirts, Leggings)
+
       - name: season
         sql: "{CUBE}.season"
         type: string
@@ -100,6 +106,7 @@ cubes:
           # - sell_through_rate (use component measures instead)
         dimensions:
           - category
+          - section
           - season
         refresh_key:
           every: 24 hour

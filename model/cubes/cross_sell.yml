@@ -10,6 +10,8 @@ cubes:
         i2.displayname as item_b_name,
         i1.custitem_gpc_category as item_a_category,
         i2.custitem_gpc_category as item_b_category,
+        i1.custitem_gpc_sections as item_a_section,
+        i2.custitem_gpc_sections as item_b_section,
         t.type as transaction_type,
         CAST(t.trandate AS TIMESTAMP) as trandate,
         CAST(COUNT(DISTINCT tl1.transaction) AS INT64) as co_purchase_count
@@ -21,7 +23,9 @@ cubes:
       WHERE tl1.quantity < 0
         AND tl2.quantity < 0
       GROUP BY tl1.item, tl2.item, i1.itemid, i2.itemid, i1.displayname, i2.displayname,
-               i1.custitem_gpc_category, i2.custitem_gpc_category, t.type, CAST(t.trandate AS TIMESTAMP)
+               i1.custitem_gpc_category, i2.custitem_gpc_category,
+               i1.custitem_gpc_sections, i2.custitem_gpc_sections,
+               t.type, CAST(t.trandate AS TIMESTAMP)
     title: Cross-Sell Analysis
     description: >
       Product affinity pairs by transaction date showing items purchased together (BASK002).
@@ -94,6 +98,16 @@ cubes:
         type: string
         description: Second item category
 
+      - name: item_a_section
+        sql: "{CUBE}.item_a_section"
+        type: string
+        description: First item section
+
+      - name: item_b_section
+        sql: "{CUBE}.item_b_section"
+        type: string
+        description: Second item section
+
       - name: transaction_type
         sql: "{CUBE}.transaction_type"
         type: string
@@ -132,6 +146,8 @@ cubes:
         dimensions:
           - item_a_category
           - item_b_category
+          - item_a_section
+          - item_b_section
           - transaction_type  # Added for filter compatibility (SKILL defaults)
         time_dimension: trandate
         granularity: month

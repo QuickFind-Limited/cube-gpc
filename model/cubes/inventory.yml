@@ -135,6 +135,7 @@ cubes:
           - location
           - stock_status
           - items.category
+          - items.section
           - items.season
           - items.size
           - items.range

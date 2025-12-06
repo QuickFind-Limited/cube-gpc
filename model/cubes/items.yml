@@ -43,6 +43,11 @@ cubes:
         type: string
         description: Product category
 
+      - name: section
+        sql: "{CUBE}.custitem_gpc_sections"
+        type: string
+        description: Product section (e.g., Hoodies, Fleeces, Sweatshirts, Leggings)
+
       - name: season
         sql: "{CUBE}.custitem_gpc_season"
         type: string
@@ -135,6 +140,7 @@ cubes:
           - active_item_count
         dimensions:
           - category
+          - section
           - season
           - size
           - color
