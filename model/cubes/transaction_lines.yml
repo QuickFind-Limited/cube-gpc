@@ -168,7 +168,13 @@ cubes:
         type: count_distinct_approx
         filters:
           - sql: "{CUBE}.transaction_type = 'SalesOrd'"
-        description: Count of unique SalesOrd transactions (component for OM003)
+        description: "Count of unique SalesOrd transactions (approximate - 10-20% error possible due to HyperLogLog rollup). For exact counts, use salesord_count_exact with limited dimensions."
+
+      - name: salesord_count_exact
+        type: count
+        filters:
+          - sql: "{CUBE}.transaction_type = 'SalesOrd'"
+        description: "EXACT SalesOrd transaction count for financial KPIs and OM003 calculations. Uses transaction_grain_aov pre-agg. Only works with dimensions: channel_type, category, section, billing_country, transaction_date. For other dimensions, use salesord_count (approx)."
 
       - name: average_salesord_value
         sql: "1.0 * SUM(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END) / NULLIF(COUNT(DISTINCT CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.transaction END), 0)"
