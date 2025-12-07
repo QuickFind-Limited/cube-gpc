@@ -873,6 +873,36 @@ cubes:
         refresh_key:
           every: 24 hour
 
+      # NEW: Size/location analysis - for retail "size curve for location X" queries
+      - name: size_location_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin
+        dimensions:
+          - size
+          - location_name
+          - classification_name
+          - category
+          - section
+          - season
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2021-01-01'
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: size_location_idx
+            columns:
+              - size
+              - location_name
+              - category
+        refresh_key:
+          every: 24 hour
+
       # Yearly metrics for YoY comparisons
       - name: yearly_metrics
         measures:
