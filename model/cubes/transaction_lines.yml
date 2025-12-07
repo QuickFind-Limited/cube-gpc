@@ -79,9 +79,9 @@ cubes:
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
-        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS FLOAT64)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS FLOAT64)"
         type: sum
-        description: Total units sold (uses CASE per Rule 2)
+        description: Total units sold (uses CASE per Rule 2, CustInvc + CashSale only to match total_revenue filter)
 
       - name: units_returned
         sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS FLOAT64)"
