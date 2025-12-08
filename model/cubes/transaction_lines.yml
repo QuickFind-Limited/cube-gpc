@@ -533,6 +533,8 @@ cubes:
           - category
           - section
           - season
+          - product_range
+          - collection
           - department_name
           - billing_country
           - shipping_country
@@ -572,6 +574,7 @@ cubes:
           - season
           - size
           - color
+          - product_range
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
