@@ -1,6 +1,11 @@
 cubes:
   - name: item_receipt_lines
-    sql_table: gpc.item_receipt_lines
+    sql: >
+      SELECT
+        irl.*,
+        CAST(ir.trandate AS TIMESTAMP) as receipt_date
+      FROM gpc.item_receipt_lines irl
+      LEFT JOIN gpc.item_receipts ir ON irl.receipt_id = ir.id
 
     title: Item Receipt Lines
     description: Item receipt line items with PO linkage for lead time calculation. Excludes landed cost lines.
@@ -64,6 +69,12 @@ cubes:
         title: Item Receipt ID
         description: Reference to item receipt header
 
+      - name: receipt_date
+        sql: receipt_date
+        type: time
+        title: Receipt Date
+        description: Date of item receipt (denormalized from item_receipts.trandate)
+
       - name: item
         sql: item
         type: number
@@ -110,7 +121,8 @@ cubes:
 
     pre_aggregations:
       # DC intake analysis for GMROI calculations and intake vs sales comparisons
-      # Note: Uses measures-only rollup. Dimensions (category, section, etc.) can be added at query time via items join.
+      # Note: Uses measures-only rollup with denormalized receipt_date dimension.
+      # Item dimensions (category, section, etc.) can be added at query time via items join.
       - name: dc_intake_analysis
         measures:
           - total_received_qty
@@ -119,7 +131,7 @@ cubes:
           - dc_intake_value_at_cost
           - receipt_line_count
           - avg_unit_cost
-        time_dimension: item_receipts.trandate
+        time_dimension: receipt_date
         granularity: day
         partition_granularity: month
         build_range_start:
