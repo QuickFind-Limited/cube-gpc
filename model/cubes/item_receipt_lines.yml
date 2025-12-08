@@ -5,7 +5,7 @@ cubes:
         irl.*,
         CAST(ir.trandate AS TIMESTAMP) as receipt_date
       FROM gpc.item_receipt_lines irl
-      LEFT JOIN gpc.item_receipts ir ON irl.receipt_id = ir.id
+      LEFT JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
 
     title: Item Receipt Lines
     description: Item receipt line items with PO linkage for lead time calculation. Excludes landed cost lines.
@@ -64,10 +64,10 @@ cubes:
         public: false
 
       - name: receipt_id
-        sql: receipt_id
+        sql: transaction
         type: number
         title: Item Receipt ID
-        description: Reference to item receipt header
+        description: Reference to item receipt header (transaction field in source table)
 
       - name: receipt_date
         sql: receipt_date
@@ -137,6 +137,6 @@ cubes:
         build_range_start:
           sql: SELECT '2020-01-01'
         build_range_end:
-          sql: SELECT DATE_ADD(CURRENT_DATE(), INTERVAL 1 MONTH)
+          sql: SELECT '2025-10-31'
         refresh_key:
           every: 24 hour
