@@ -39,6 +39,18 @@ cubes:
         format: percent
         description: Percentage of receipt lines with PO linkage
 
+      # Business-friendly alias for DC intake analysis
+      - name: dc_intake_units
+        sql: quantity
+        type: sum
+        description: "DC Intake Units (alias for total_received_qty) - Physical units received into distribution center. Use this for intake vs sales comparisons."
+
+      - name: dc_intake_value_at_cost
+        sql: amount
+        type: sum
+        format: currency
+        description: "DC Intake Value at cost (alias for total_receipt_line_value) - Total value of goods received at purchase cost."
+
     dimensions:
       - name: id
         sql: id
@@ -95,3 +107,29 @@ cubes:
       - name: purchase_order_lines
         relationship: many_to_one
         sql: "{CUBE}.createdfrom = {purchase_order_lines}.id"
+
+    pre_aggregations:
+      # DC intake analysis for GMROI calculations and intake vs sales comparisons
+      - name: dc_intake_analysis
+        measures:
+          - total_received_qty
+          - dc_intake_units
+          - total_receipt_line_value
+          - dc_intake_value_at_cost
+          - receipt_line_count
+          - avg_unit_cost
+        dimensions:
+          - items.category
+          - items.section
+          - items.season
+          - items.size
+          - items.range
+        time_dimension: item_receipts.receipt_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2020-01-01'
+        build_range_end:
+          sql: SELECT DATE_ADD(CURRENT_DATE(), INTERVAL 1 MONTH)
+        refresh_key:
+          every: 24 hour

@@ -64,6 +64,16 @@ cubes:
         type: number
         description: Average stock per position
 
+      # GMROI Component Measures
+      - name: inventory_value_at_cost
+        sql: >
+          CAST({CUBE}.calculated_quantity_available *
+          COALESCE((SELECT MAX(rate) FROM gpc.item_receipt_lines irl
+                    WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
+        type: sum
+        format: currency
+        description: "Inventory value at latest receipt cost (for GMROI denominator). Uses most recent item receipt line cost per item."
+
       # Sell-through approximation for STR001/PP058
       # Note: Requires joining with transaction_lines for units_sold
       # Formula: Units Sold / (Units Sold + Current Stock)
@@ -131,6 +141,7 @@ cubes:
           - location_count
           - zero_stock_positions
           - negative_stock_positions
+          - inventory_value_at_cost
         dimensions:
           - location
           - stock_status

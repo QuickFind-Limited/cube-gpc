@@ -214,6 +214,23 @@ cubes:
         type: number
         description: Gross margin percentage
 
+      # Alias for business-friendly naming
+      - name: gross_profit
+        sql: "{gross_margin}"
+        type: number
+        format: currency
+        description: "Gross Profit (alias for gross_margin) - Revenue minus COGS. Same as gross_margin measure, provided for clarity in AI queries."
+
+      # GMROI Component Measure
+      # Note: Full GMROI calculation requires joining with inventory.inventory_value_at_cost
+      # GMROI = gross_margin (YTD) / average inventory_value_at_cost
+      # This should be calculated client-side by querying both measures separately
+      - name: gmroi_numerator
+        sql: "{gross_margin}"
+        type: number
+        format: currency
+        description: "GMROI numerator component - use gross_margin for specified time period (e.g., YTD). Divide by inventory.inventory_value_at_cost to get GMROI ratio."
+
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
         sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'ItemRcpt' AND {CUBE}.blandedcost = 'T' THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
