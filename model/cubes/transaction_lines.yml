@@ -35,7 +35,6 @@ cubes:
       LEFT JOIN gpc.departments d ON tl.department = d.id
       LEFT JOIN gpc.classifications c ON tl.class = c.id
       WHERE tl.item != 25442
-        AND i.itemtype = 'InvtPart'
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
