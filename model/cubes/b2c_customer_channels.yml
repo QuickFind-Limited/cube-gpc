@@ -122,6 +122,12 @@ cubes:
         description: "Revenue from SalesOrd transactions"
 
     dimensions:
+      - name: customer_channel_id
+        sql: "CONCAT({CUBE}.email, '|', COALESCE({CUBE}.billing_country, 'UNKNOWN'), '|', COALESCE({CUBE}.channel_type, 'UNKNOWN'))"
+        type: string
+        primary_key: true
+        description: Composite primary key for email + country + channel
+
       - name: email
         sql: "{CUBE}.email"
         type: string
