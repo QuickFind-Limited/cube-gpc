@@ -4,7 +4,22 @@ cubes:
       SELECT
         t.custbody_customer_email as email,
         t.billing_country,
-        l.channel_type,
+        -- Channel type logic (inline from locations cube)
+        CASE
+          WHEN l.name IS NULL THEN 'D2C'
+          WHEN l.name LIKE 'Bleckmann%' AND l.name NOT LIKE '%Quarantine%' AND l.name NOT LIKE '%Miscellaneous%' THEN 'D2C'
+          WHEN l.name IN ('Meteor Space', '2Flow') THEN 'D2C'
+          WHEN l.name IN (
+            'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+            'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+            'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
+          ) THEN 'RETAIL'
+          WHEN l.name LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
+          WHEN l.name LIKE 'Lifestyle Sports%' AND l.name NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
+          WHEN l.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+          WHEN l.name LIKE 'Events%' THEN 'EVENTS'
+          ELSE 'OTHER'
+        END as channel_type,
         -- Aggregate by customer + country + channel
         MIN(CASE
           WHEN t.type IN ('CustInvc', 'CashSale', 'SalesOrd')
@@ -35,7 +50,10 @@ cubes:
       LEFT JOIN gpc.locations l ON tl.location = l.id
       WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
-      GROUP BY t.custbody_customer_email, t.billing_country, l.channel_type
+      GROUP BY
+        t.custbody_customer_email,
+        t.billing_country,
+        channel_type
     title: B2C Customer Channel Analytics
     description: Customer metrics broken down by channel - tracks customer behavior per channel (email + country + channel grain)
 
