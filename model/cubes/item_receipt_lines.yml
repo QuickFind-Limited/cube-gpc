@@ -69,6 +69,13 @@ cubes:
         title: Item Receipt ID
         description: Reference to item receipt header (transaction field in source table)
 
+      - name: transaction
+        sql: transaction
+        type: number
+        title: Transaction ID
+        description: Transaction field (FK to item_receipts) - used internally for joins
+        public: false
+
       - name: receipt_date
         sql: receipt_date
         type: time
@@ -109,7 +116,7 @@ cubes:
     joins:
       - name: item_receipts
         relationship: many_to_one
-        sql: "{CUBE}.receipt_id = {item_receipts}.id"
+        sql: "CAST({CUBE}.transaction AS INT64) = CAST({item_receipts}.id AS INT64)"
 
       - name: items
         relationship: many_to_one
