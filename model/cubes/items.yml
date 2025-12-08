@@ -12,7 +12,7 @@ cubes:
       - name: active_item_count
         type: count
         filters:
-          - sql: "{CUBE}.isinactive = 'F'"
+          - sql: "{CUBE}.isinactive = FALSE"
         description: Number of active items
 
     dimensions:
@@ -128,7 +128,7 @@ cubes:
         sql: "{CUBE}.custitem_gpc_category IS NOT NULL"
 
       - name: active_products
-        sql: "{CUBE}.isinactive = 'F'"
+        sql: "{CUBE}.isinactive = FALSE"
 
       - name: with_season
         sql: "{CUBE}.custitem_gpc_season IS NOT NULL"

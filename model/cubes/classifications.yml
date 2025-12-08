@@ -12,7 +12,7 @@ cubes:
       - name: active_count
         type: count
         filters:
-          - sql: "{CUBE}.isinactive = 'F'"
+          - sql: "{CUBE}.isinactive = FALSE"
         description: Number of active classifications
 
     dimensions:
@@ -38,7 +38,7 @@ cubes:
 
     segments:
       - name: active
-        sql: "{CUBE}.isinactive = 'F'"
+        sql: "{CUBE}.isinactive = FALSE"
 
     pre_aggregations:
       - name: classification_analysis
