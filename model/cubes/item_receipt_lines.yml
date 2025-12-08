@@ -124,7 +124,7 @@ cubes:
           - items.season
           - items.size
           - items.range
-        time_dimension: item_receipts.receipt_date
+        time_dimension: item_receipts.trandate
         granularity: day
         partition_granularity: month
         build_range_start:
