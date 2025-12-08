@@ -110,6 +110,7 @@ cubes:
 
     pre_aggregations:
       # DC intake analysis for GMROI calculations and intake vs sales comparisons
+      # Note: Uses measures-only rollup. Dimensions (category, section, etc.) can be added at query time via items join.
       - name: dc_intake_analysis
         measures:
           - total_received_qty
@@ -118,12 +119,6 @@ cubes:
           - dc_intake_value_at_cost
           - receipt_line_count
           - avg_unit_cost
-        dimensions:
-          - items.category
-          - items.section
-          - items.season
-          - items.size
-          - items.range
         time_dimension: item_receipts.trandate
         granularity: day
         partition_granularity: month
