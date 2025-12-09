@@ -166,12 +166,13 @@ cubes:
 
       # Item-level receiving analysis for "most common items received" queries
       # Uses denormalized item names for product-level receiving reports
+      # NOTE: avg_unit_cost removed - type:avg measures don't work in dimensional rollups
+      # Users can calculate avg at query time: total_receipt_line_value / total_received_qty
       - name: item_receiving_analysis
         measures:
           - total_received_qty
           - total_receipt_line_value
           - receipt_line_count
-          - avg_unit_cost
         dimensions:
           - item
           - item_displayname
