@@ -3,9 +3,12 @@ cubes:
     sql: >
       SELECT
         irl.*,
-        CAST(ir.trandate AS TIMESTAMP) as receipt_date
+        CAST(ir.trandate AS TIMESTAMP) as receipt_date,
+        i.displayname as item_displayname,
+        i.itemid as item_sku
       FROM gpc.item_receipt_lines irl
       LEFT JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
+      LEFT JOIN gpc.items i ON irl.item = i.id
       WHERE irl.mainline = 'F'
 
     title: Item Receipt Lines
@@ -89,6 +92,18 @@ cubes:
         title: Item ID
         description: NetSuite item ID
 
+      - name: item_displayname
+        sql: item_displayname
+        type: string
+        title: Item Name
+        description: Product display name (denormalized from items table)
+
+      - name: item_sku
+        sql: item_sku
+        type: string
+        title: SKU
+        description: Item SKU code (denormalized from items table)
+
       - name: quantity
         sql: quantity
         type: number
@@ -141,6 +156,28 @@ cubes:
           - avg_unit_cost
         time_dimension: receipt_date
         granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2020-01-01'
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 24 hour
+
+      # Item-level receiving analysis for "most common items received" queries
+      # Uses denormalized item names for product-level receiving reports
+      - name: item_receiving_analysis
+        measures:
+          - total_received_qty
+          - total_receipt_line_value
+          - receipt_line_count
+          - avg_unit_cost
+        dimensions:
+          - item
+          - item_displayname
+          - item_sku
+        time_dimension: receipt_date
+        granularity: month
         partition_granularity: month
         build_range_start:
           sql: SELECT '2020-01-01'
