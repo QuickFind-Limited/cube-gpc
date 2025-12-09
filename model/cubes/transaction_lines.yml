@@ -469,6 +469,13 @@ cubes:
         type: string
         description: "Pricing type: FP (Full Price) when no discount, RP (Reduced Price) when item sold below base price"
 
+      # B2B/Wholesale Customer Segmentation (NEW v57)
+      - name: customer_type
+        sql: "{transactions.customer_type}"
+        type: string
+        title: Customer Type
+        description: "Customer segmentation: B2B/Wholesale (848 customers) vs Retail/D2C. CRITICAL for pricing analysis - ALWAYS segment by this dimension when analyzing pricing, discounts, margins, or AOV to avoid mixing two fundamentally different business models. B2B customers pay 10-30% of retail (wholesale bulk pricing), Retail/D2C customers pay 70-100% of retail (normal pricing). See SKILL v57 Golden Rule #14 and Known Limitation #10."
+
       # NEW: ItemRcpt / Inventory Receipt Fields (8 fields added 2025-11-30)
       - name: landedcostperline
         sql: "{CUBE}.landedcostperline"
@@ -806,6 +813,7 @@ cubes:
           every: 24 hour
 
       # NEW P3: Product geography - for "product X in geography Y" queries
+      # V57: Added customer_type for B2B vs Retail analysis
       - name: product_geography
         measures:
           - total_revenue
@@ -819,6 +827,7 @@ cubes:
           - section
           - season
           - billing_country
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -835,6 +844,7 @@ cubes:
           every: 24 hour
 
       # NEW P3: Channel product - for D2C vs Retail performance comparisons
+      # V57: Added customer_type for B2B vs Retail analysis
       - name: channel_product
         measures:
           - total_revenue
@@ -848,6 +858,7 @@ cubes:
           - season
           - size
           - sku
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -864,6 +875,7 @@ cubes:
           every: 24 hour
 
       # NEW P3: Size/color analysis - for fashion retail "size S in color Blue" queries
+      # V57: Added customer_type for B2B vs Retail analysis
       - name: size_color_analysis
         measures:
           - total_revenue
@@ -876,6 +888,7 @@ cubes:
           - section
           - season
           - channel_type
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -893,6 +906,7 @@ cubes:
           every: 24 hour
 
       # NEW: Size/location analysis - for retail "size curve for location X" queries
+      # V57: Added customer_type for B2B vs Retail analysis
       - name: size_location_analysis
         measures:
           - total_revenue
@@ -906,6 +920,7 @@ cubes:
           - section
           - season
           - channel_type
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -943,7 +958,8 @@ cubes:
       # Storage: 438K rows (2024 data) ~0.08 GB, Cost: $0.002/month
       # Accuracy: 100% exact counts vs 10-30% overcount with HyperLogLog
       # Use for: Financial KPIs, AOV calculations, executive reporting
-      # Limitation: Can only query with these 5 dimensions (channel, category, section, country, date)
+      # Limitation: Can only query with these 6 dimensions (channel, category, section, country, customer_type, date)
+      # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
       - name: transaction_grain_aov
         measures:
           - total_revenue
@@ -955,6 +971,7 @@ cubes:
           - category             # Product category
           - section              # Product section
           - billing_country      # Geography
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month

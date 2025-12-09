@@ -15,10 +15,15 @@ cubes:
           WHEN COUNT(*) = 2 THEN '2 items'
           WHEN COUNT(*) = 3 THEN '3 items'
           ELSE '4+ items'
-        END as line_count_bucket
+        END as line_count_bucket,
+        CASE
+          WHEN b2b.id IS NOT NULL THEN 'B2B/Wholesale'
+          ELSE 'Retail/D2C'
+        END as customer_type
       FROM gpc.transaction_lines_clean tl
       JOIN gpc.transactions_clean t ON tl.transaction = t.id
-      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country
+      LEFT JOIN gpc.b2b_customers b2b ON t.entity = b2b.id
+      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country, customer_type
     title: Order Baskets
     description: Order-level basket analysis with line count buckets (BASK003)
 
@@ -106,6 +111,13 @@ cubes:
         type: number
         description: Order total amount
 
+      # NEW v57: B2B/Wholesale Customer Segmentation
+      - name: customer_type
+        sql: "{CUBE}.customer_type"
+        type: string
+        title: Customer Type
+        description: "Customer segmentation: B2B/Wholesale vs Retail/D2C. CRITICAL for basket size analysis - B2B customers have different order patterns than Retail/D2C customers. See SKILL v57 Golden Rule #14."
+
     segments:
       - name: single_item
         sql: "{CUBE}.line_count = 1"
@@ -118,6 +130,7 @@ cubes:
 
     pre_aggregations:
       # Basket analysis by country and bucket
+      # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
       - name: basket_analysis
         measures:
           - order_count
@@ -129,6 +142,7 @@ cubes:
           - billing_country
           - line_count_bucket
           - type
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: trandate
         granularity: month
         partition_granularity: month

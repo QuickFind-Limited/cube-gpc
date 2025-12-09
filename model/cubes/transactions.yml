@@ -14,6 +14,11 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.subsidiary = {subsidiaries.id}"
 
+      # NEW v57: B2B/Wholesale Customer Segmentation
+      - name: b2b_customers
+        relationship: many_to_one
+        sql: "{CUBE}.entity = {b2b_customers.id}"
+
     measures:
       - name: order_count
         type: count
@@ -181,6 +186,18 @@ cubes:
         type: string
         description: Transaction memo/notes
 
+      # NEW v57: B2B/Wholesale Customer Segmentation
+      - name: customer_type
+        type: string
+        case:
+          when:
+            - sql: "{b2b_customers.id} IS NOT NULL"
+              label: "B2B/Wholesale"
+          else:
+            label: "Retail/D2C"
+        title: Customer Type
+        description: "Customer segmentation: B2B/Wholesale (848 customers from b2b_customers table) vs Retail/D2C (all other transactions). CRITICAL for pricing analysis - B2B customers receive wholesale bulk pricing (10-30% of retail base price), while Retail/D2C customers pay near full price (70-100% of base price). ALWAYS segment by customer_type when analyzing pricing, discounts, or margins to avoid mixing two completely different business models. See SKILL v57 Golden Rule #14 and Known Limitation #10."
+
     segments:
       - name: revenue_transactions
         sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
@@ -196,6 +213,7 @@ cubes:
 
     pre_aggregations:
       # Main rollup for order analysis
+      # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
       - name: orders_analysis
         measures:
           - order_count
@@ -214,6 +232,7 @@ cubes:
           - billing_country
           - shipping_country
           - currency
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: trandate
         granularity: day
         refresh_key:
