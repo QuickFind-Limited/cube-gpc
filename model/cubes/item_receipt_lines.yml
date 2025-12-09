@@ -177,7 +177,7 @@ cubes:
           - item_displayname
           - item_sku
         time_dimension: receipt_date
-        granularity: month
+        granularity: day
         partition_granularity: month
         build_range_start:
           sql: SELECT '2020-01-01'
