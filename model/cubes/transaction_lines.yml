@@ -195,15 +195,15 @@ cubes:
 
       # Margin Measures for MM001
       - name: total_cost
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * -1 ELSE 0 END AS FLOAT64)"
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.costestimate * {CUBE}.quantity ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
-        description: Total cost estimate
+        description: Total cost estimate (costestimate × quantity, both negative for sales = positive total cost)
 
       - name: gross_margin
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            (({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * -1)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
+            (({CUBE}.amount * -1) - (COALESCE({CUBE}.costestimate, 0) * {CUBE}.quantity)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
