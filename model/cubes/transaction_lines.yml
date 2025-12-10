@@ -469,12 +469,12 @@ cubes:
         type: string
         description: "Pricing type: FP (Full Price) when no discount, RP (Reduced Price) when item sold below base price"
 
-      # B2B/Wholesale Customer Segmentation (NEW v57)
+      # B2B/Wholesale Customer Segmentation (FIXED v58 - now based on email presence)
       - name: customer_type
         sql: "{transactions.customer_type}"
         type: string
         title: Customer Type
-        description: "Customer segmentation: B2B/Wholesale (848 customers) vs Retail/D2C. CRITICAL for pricing analysis - ALWAYS segment by this dimension when analyzing pricing, discounts, margins, or AOV to avoid mixing two fundamentally different business models. B2B customers pay 10-30% of retail (wholesale bulk pricing), Retail/D2C customers pay 70-100% of retail (normal pricing). See SKILL v57 Golden Rule #14 and Known Limitation #10."
+        description: "Customer segmentation based on email presence: Retail/D2C customers have email addresses (individual consumers, ~66% of transactions), B2B/Wholesale customers do not (POS systems, wholesale accounts, corporate buyers, ~34% of transactions). CRITICAL for pricing analysis - ALWAYS segment by this dimension when analyzing pricing, discounts, margins, or AOV to avoid mixing two fundamentally different business models. B2B customers pay 10-30% of retail (wholesale bulk pricing), Retail/D2C customers pay 70-100% of retail (normal pricing). Note: customer_type = WHO bought, channel_type = WHERE they bought."
 
       # NEW: ItemRcpt / Inventory Receipt Fields (8 fields added 2025-11-30)
       - name: landedcostperline

@@ -14,11 +14,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.subsidiary = {subsidiaries.id}"
 
-      # NEW v57: B2B/Wholesale Customer Segmentation
-      - name: b2b_customers
-        relationship: many_to_one
-        sql: "{CUBE}.entity = {b2b_customers.id}"
-
     measures:
       - name: order_count
         type: count
@@ -186,17 +181,17 @@ cubes:
         type: string
         description: Transaction memo/notes
 
-      # NEW v57: B2B/Wholesale Customer Segmentation
+      # FIXED v58: B2B/Wholesale Customer Segmentation (now based on email presence)
       - name: customer_type
         type: string
         case:
           when:
-            - sql: "{b2b_customers.id} IS NOT NULL"
-              label: "B2B/Wholesale"
+            - sql: "{CUBE}.custbody_customer_email IS NOT NULL AND {CUBE}.custbody_customer_email != ''"
+              label: "Retail/D2C"
           else:
-            label: "Retail/D2C"
+            label: "B2B/Wholesale"
         title: Customer Type
-        description: "Customer segmentation: B2B/Wholesale (848 customers from b2b_customers table) vs Retail/D2C (all other transactions). CRITICAL for pricing analysis - B2B customers receive wholesale bulk pricing (10-30% of retail base price), while Retail/D2C customers pay near full price (70-100% of base price). ALWAYS segment by customer_type when analyzing pricing, discounts, or margins to avoid mixing two completely different business models. See SKILL v57 Golden Rule #14 and Known Limitation #10."
+        description: "Customer segmentation based on email presence: Retail/D2C customers have email addresses (individual consumers, ~66% of transactions), B2B/Wholesale customers do not (POS systems, wholesale accounts, corporate buyers, ~34% of transactions). CRITICAL for pricing analysis - B2B customers receive wholesale bulk pricing (10-30% of retail base price), while Retail/D2C customers pay near full price (70-100% of base price). ALWAYS segment by customer_type when analyzing pricing, discounts, or margins to avoid mixing two completely different business models. Note: customer_type = WHO bought (consumer vs business), channel_type = WHERE they bought (D2C online, RETAIL stores, B2B_WHOLESALE locations)."
 
     segments:
       - name: revenue_transactions
