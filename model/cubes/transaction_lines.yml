@@ -965,6 +965,7 @@ cubes:
           - total_revenue
           - line_count
           - units_sold
+          - transaction_count_exact  # ADDED: For exact AOV calculations
         dimensions:
           - transaction          # Primary key - one row per transaction
           - channel_type         # D2C vs Retail
