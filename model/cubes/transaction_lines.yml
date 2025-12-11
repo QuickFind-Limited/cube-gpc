@@ -135,8 +135,7 @@ cubes:
         description: "Number of unique transactions (approximate - 10-20% error possible due to HyperLogLog rollup). For exact counts, use transaction_count_exact with limited dimensions."
 
       - name: transaction_count_exact
-        sql: "{CUBE}.transaction"
-        type: count_distinct
+        type: count
         description: "EXACT transaction count for financial KPIs and AOV calculations. Uses transaction_grain_aov pre-agg with transaction dimension. Only works with dimensions: channel_type, category, billing_country, transaction_date. For other dimensions, use transaction_count (approx)."
 
       - name: sku_count
