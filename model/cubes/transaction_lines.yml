@@ -135,8 +135,9 @@ cubes:
         description: "Number of unique transactions (approximate - 10-20% error possible due to HyperLogLog rollup). For exact counts, use transaction_count_exact with limited dimensions."
 
       - name: transaction_count_exact
-        type: count
-        description: "EXACT transaction count for financial KPIs and AOV calculations. Uses transaction_grain_aov pre-agg with transaction dimension. Only works with dimensions: channel_type, category, billing_country, transaction_date. For other dimensions, use transaction_count (approx)."
+        sql: "{transactions.order_count}"
+        type: number
+        description: "EXACT transaction count - references transactions.order_count via cross-cube pre-agg. Uses aov_cross_cube. Supports dimensions: channel_type, billing_country, customer_type, transaction_date. For other dimensions, use transaction_count (approx)."
 
       - name: sku_count
         sql: "{CUBE}.item"
@@ -151,10 +152,10 @@ cubes:
         description: "Average order value (AOV) - revenue transactions only (approximate - uses count_distinct_approx). For exact AOV, use average_order_value_exact with limited dimensions."
 
       - name: average_order_value_exact
-        sql: "1.0 * {total_revenue} / NULLIF({transaction_count_exact}, 0)"
+        sql: "1.0 * {total_revenue} / NULLIF({transactions.order_count}, 0)"
         type: number
         format: currency
-        description: "EXACT Average Order Value for financial reporting (OM002). Uses transaction_grain_aov pre-agg. Only works with dimensions: channel_type, category, billing_country, transaction_date. For other dimensions, use average_order_value (approx)."
+        description: "EXACT Average Order Value using cross-cube pre-aggregation. Uses aov_cross_cube pre-agg with transactions.order_count (exact) and total_revenue (exact). Supports dimensions: channel_type, billing_country, customer_type, transaction_date. For other dimensions, use average_order_value (approx)."
 
       # Component measures for OM003 (SalesOrd AOV calculation)
       - name: salesord_revenue
@@ -954,25 +955,23 @@ cubes:
         refresh_key:
           every: 24 hour
 
-      # Transaction-grain pre-agg for EXACT transaction counts (fixes count_distinct_approx accuracy issues)
-      # Storage: 438K rows (2024 data) ~0.08 GB, Cost: $0.002/month
-      # Accuracy: 100% exact counts vs 10-30% overcount with HyperLogLog
-      # Use for: Financial KPIs, AOV calculations, executive reporting
-      # Limitation: Can only query with these 6 dimensions (channel, category, section, country, customer_type, date)
-      # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
-      - name: transaction_grain_aov
+      # CROSS-CUBE PRE-AGGREGATION FOR EXACT AOV
+      # Purpose: 100% accurate transaction counts and AOV calculations
+      # Architecture: Joins transactions cube (transaction grain) with transaction_lines (line-item grain)
+      # How it works:
+      #   - transactions.order_count is type: count at transaction grain = EXACT count
+      #   - transaction_lines.total_revenue is sum at line-item grain (additive)
+      #   - Cube joins them and groups by dimensions below
+      # Use for: Financial KPIs (§RM002 AOV) requiring exact accuracy
+      # Limitation: Only works with dimensions listed below (no category/section/size)
+      - name: aov_cross_cube
         measures:
-          - total_revenue
-          - line_count
-          - units_sold
-          - transaction_count_exact  # ADDED: For exact AOV calculations
+          - total_revenue                  # From transaction_lines (sum at line-item grain)
+          - transactions.order_count       # From transactions cube (count at transaction grain)
         dimensions:
-          - transaction          # Primary key - one row per transaction
-          - channel_type         # D2C vs Retail
-          - category             # Product category
-          - section              # Product section
-          - billing_country      # Geography
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+          - channel_type                   # From transaction_lines → locations
+          - billing_country                # Shared dimension
+          - customer_type                  # Shared dimension
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -980,10 +979,5 @@ cubes:
           sql: SELECT '2020-01-01'
         build_range_end:
           sql: SELECT '2025-10-31'
-        indexes:
-          - name: txn_channel_idx
-            columns:
-              - channel_type
-              - category
         refresh_key:
           every: 24 hour
