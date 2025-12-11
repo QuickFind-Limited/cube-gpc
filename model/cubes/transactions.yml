@@ -14,10 +14,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.subsidiary = {subsidiaries.id}"
 
-      - name: locations
-        relationship: many_to_one
-        sql: "{CUBE}.billing_country = {locations.billing_country}"
-
     measures:
       - name: order_count
         type: count
@@ -140,11 +136,6 @@ cubes:
         type: string
         description: Billing country
 
-      - name: channel_type
-        sql: "{locations.channel_type}"
-        type: string
-        description: "Channel type from locations: D2C, RETAIL, B2B_WHOLESALE"
-
       - name: shipping_country
         sql: "{CUBE}.shipping_country"
         type: string
@@ -234,7 +225,6 @@ cubes:
           - status
           - status_name
           - billing_country
-          - channel_type         # D2C, RETAIL, B2B_WHOLESALE (NEW - for AOV cross-cube)
           - shipping_country
           - currency
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
