@@ -643,6 +643,36 @@ cubes:
         refresh_key:
           every: 24 hour
 
+      # Geographic + Location + Channel analysis (v61 - NEW)
+      # For queries combining billing_country, channel_type, and location_name
+      # Use case: "Revenue and AOV by day, country, channel, and location"
+      - name: geography_location_channel
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin
+        dimensions:
+          - billing_country
+          - shipping_country
+          - location_name
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2020-01-01'
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: country_location_channel_idx
+            columns:
+              - billing_country
+              - location_name
+              - channel_type
+        refresh_key:
+          every: 24 hour
+
       # Daily granularity for recent trends
       - name: daily_metrics
         measures:
