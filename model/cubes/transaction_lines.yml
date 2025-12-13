@@ -564,8 +564,10 @@ cubes:
           - net_revenue
           - units_sold
           - units_returned
-          - gross_margin
-          - total_cost
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - total_cost             # DEPRECATED - kept for backward compatibility
+          - gl_based_cogs          # NEW: Accurate GL-based COGS
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - total_tax
           - line_count
           - min_transaction_date
@@ -616,7 +618,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - transaction_count
           - sku_count
         dimensions:
@@ -652,7 +655,8 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
         dimensions:
           - location_name
           - channel_type
@@ -680,7 +684,8 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
         dimensions:
           - billing_country
           - shipping_country
@@ -785,7 +790,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - min_transaction_date
           - max_transaction_date
           - total_discount
@@ -877,7 +883,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - transaction_count
         dimensions:
           - sku
@@ -908,7 +915,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - transaction_count
         dimensions:
           - channel_type
@@ -939,7 +947,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
         dimensions:
           - size
           - color
@@ -970,7 +979,8 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
         dimensions:
           - size
           - location_name
@@ -1002,7 +1012,8 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
-          - gross_margin
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
         dimensions:
           - channel_type
           - category
