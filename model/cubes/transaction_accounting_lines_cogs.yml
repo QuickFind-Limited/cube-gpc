@@ -10,10 +10,15 @@ cubes:
         sql: "{CUBE}.transaction = {transaction_lines.transaction}"
 
     dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.transactionline AS STRING))"
+        type: string
+        primary_key: true
+        description: Composite primary key (transaction-transactionline)
+
       - name: account_id
         sql: account
         type: number
-        primary_key: false
         description: Account ID (FK to Account table)
 
       - name: account_name
