@@ -19,7 +19,7 @@ cubes:
       - name: account_name
         sql: account_name
         type: string
-        description: Account full name (e.g., "Cost of Goods Sold : Cost of Goods Solds - Purchases")
+        description: "Account full name (e.g., Cost of Goods Sold - Cost of Goods Solds - Purchases)"
 
       - name: account_number
         sql: acctnumber
