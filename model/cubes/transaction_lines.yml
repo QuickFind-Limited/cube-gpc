@@ -563,7 +563,11 @@ cubes:
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
 
     pre_aggregations:
-      # Wide rollup covering most sales analysis queries
+      # Wide rollup covering ALL sales analysis queries (consolidates 14 pre-aggs into 1)
+      # Replaces: product_analysis, location_analysis, geography_location_channel,
+      # daily_metrics, discount_analysis, product_range_analysis, size_geography,
+      # transaction_type_analysis, weekly_metrics, product_geography, channel_product,
+      # size_color_analysis, size_location_analysis, yearly_metrics
       - name: sales_analysis
         measures:
           - total_revenue
@@ -583,6 +587,8 @@ cubes:
           - transaction_count
           - salesord_revenue
           - salesord_count
+          - total_discount         # From discount_analysis
+          - discounted_units       # From discount_analysis
           # Removed calculated/non-additive measures:
           # - sku_count (count_distinct - doesn't work with dimensions)
           # - average_salesord_value (calculated - makes pre-agg non-additive, use components instead)
@@ -590,6 +596,7 @@ cubes:
           # - average_items_per_order (calculated - makes pre-agg non-additive)
           # - discount_rate (calculated - now use component measures instead)
         dimensions:
+          # Core business dimensions (existing 14)
           - channel_type
           - category
           - section
@@ -604,6 +611,19 @@ cubes:
           - currency_name
           - transaction_type
           - pricing_type
+
+          # NEW: Product detail dimensions (from product_analysis, size_*, channel_product)
+          - sku
+          - product_name
+          - size
+          - color
+
+          # NEW: Location dimension (from location_analysis, geography_location_channel, size_location_analysis)
+          - location_name
+
+          # NEW: Customer segmentation (from v57 customer_type addition)
+          - customer_type
+
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -614,6 +634,16 @@ cubes:
             columns:
               - channel_type
               - category
+          - name: sku_idx
+            columns:
+              - sku
+          - name: location_idx
+            columns:
+              - location_name
+          - name: size_color_idx
+            columns:
+              - size
+              - color
         refresh_key:
           every: 365 days
 
