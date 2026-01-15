@@ -95,7 +95,7 @@ cubes:
 
       - name: is_inactive
         sql: "{CUBE}.isinactive"
-        type: string
+        type: boolean
         description: Whether item is inactive
 
       - name: cost
