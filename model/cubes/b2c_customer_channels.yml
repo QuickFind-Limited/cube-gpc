@@ -253,4 +253,4 @@ cubes:
           - recency_bucket
           - purchase_frequency_bucket
         refresh_key:
-          every: 365 days
+          every: 1 day

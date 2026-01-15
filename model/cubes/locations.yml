@@ -94,4 +94,4 @@ cubes:
           - location_type
           - region
         refresh_key:
-          every: 365 days
+          every: 1 day

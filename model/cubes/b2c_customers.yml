@@ -209,4 +209,4 @@ cubes:
           - purchase_frequency_bucket
           # REMOVED: transaction_type (was causing 3x inflation of customer count)
         refresh_key:
-          every: 365 days
+          every: 1 day

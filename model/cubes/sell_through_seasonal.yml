@@ -172,4 +172,4 @@ cubes:
           - size
           - color
         refresh_key:
-          every: 365 days
+          every: 1 day

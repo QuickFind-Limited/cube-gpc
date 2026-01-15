@@ -118,7 +118,7 @@ cubes:
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
-          every: 365 days
+          every: 1 day
 
       # Rollup without dimensions for total queries
       - name: on_order_totals
@@ -128,4 +128,4 @@ cubes:
           - open_po_count
           - item_count
         refresh_key:
-          every: 365 days
+          every: 1 day

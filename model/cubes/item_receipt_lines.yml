@@ -158,7 +158,7 @@ cubes:
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
-          every: 365 days
+          every: 1 day
 
       # Item-level receiving analysis for "most common items received" queries
       # Uses denormalized item names for product-level receiving reports
@@ -178,4 +178,4 @@ cubes:
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
-          every: 365 days
+          every: 1 day
