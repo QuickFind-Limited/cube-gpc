@@ -626,7 +626,7 @@ cubes:
 
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -667,7 +667,7 @@ cubes:
           - product_range
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -696,7 +696,7 @@ cubes:
           - classification_name
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -723,7 +723,7 @@ cubes:
           - channel_type
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -745,7 +745,7 @@ cubes:
           - channel_type
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
@@ -770,7 +770,7 @@ cubes:
           - pricing_type
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -793,7 +793,7 @@ cubes:
           - shipping_country
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -824,8 +824,8 @@ cubes:
           - section
           - season
         time_dimension: transaction_date
-        granularity: week
-        partition_granularity: week
+        granularity: day
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -849,7 +849,7 @@ cubes:
           - section
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
@@ -867,7 +867,7 @@ cubes:
           - billing_country
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
@@ -885,7 +885,7 @@ cubes:
           - section
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
@@ -910,7 +910,7 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -940,7 +940,7 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -969,7 +969,7 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -1000,7 +1000,7 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: week
+        partition_granularity: day
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
