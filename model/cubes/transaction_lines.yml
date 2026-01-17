@@ -535,40 +535,26 @@ cubes:
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
 
     pre_aggregations:
-      # Wide rollup covering ALL sales analysis queries (consolidates 14 pre-aggs into 1)
-      # Replaces: product_analysis, location_analysis, geography_location_channel,
-      # daily_metrics, discount_analysis, product_range_analysis, size_geography,
-      # transaction_type_analysis, weekly_metrics, product_geography, channel_product,
-      # size_color_analysis, size_location_analysis, yearly_metrics
-      - name: sales_analysis
+      # Main revenue pre-agg - Based on cube-demo's revenue_analysis
+      # NO COST MEASURES (no gl_based_cogs, no gl_based_gross_margin, no gross_margin, no total_cost)
+      # to avoid JOIN-based cartesian product explosion
+      - name: revenue_analysis
+        scheduled_refresh: true
         measures:
           - total_revenue
           - net_revenue
           - units_sold
           - units_returned
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - total_cost             # DEPRECATED - kept for backward compatibility
-          - gl_based_cogs          # NEW: Accurate GL-based COGS
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - total_tax
           - line_count
-          - min_transaction_date
-          - max_transaction_date
+          - transaction_count
           - total_discount_amount
           - total_base_price_for_discount
-          - transaction_count
           - salesord_revenue
           - salesord_count
-          - total_discount         # From discount_analysis
-          - discounted_units       # From discount_analysis
-          # Removed calculated/non-additive measures:
-          # - sku_count (count_distinct - doesn't work with dimensions)
-          # - average_salesord_value (calculated - makes pre-agg non-additive, use components instead)
-          # - average_order_value (calculated - makes pre-agg non-additive)
-          # - average_items_per_order (calculated - makes pre-agg non-additive)
-          # - discount_rate (calculated - now use component measures instead)
+          - min_transaction_date
+          - max_transaction_date
         dimensions:
-          # Core business dimensions (existing 14)
           - channel_type
           - category
           - section
@@ -583,20 +569,12 @@ cubes:
           - currency_name
           - transaction_type
           - pricing_type
-
-          # NEW: Product detail dimensions (from product_analysis, size_*, channel_product)
-          # REMOVED: sku and product_name (high cardinality - covered by sku_details and sku_pricing)
-          # - sku
-          # - product_name
+          - sku
+          - product_name
           - size
           - color
-
-          # NEW: Location dimension (from location_analysis, geography_location_channel, size_location_analysis)
           - location_name
-
-          # NEW: Customer segmentation (from v57 customer_type addition)
           - customer_type
-
         time_dimension: transaction_date
         granularity: day
         partition_granularity: day
@@ -607,61 +585,15 @@ cubes:
             columns:
               - channel_type
               - category
-          # REMOVED: sku_idx (sku dimension removed)
-          # - name: sku_idx
-          #   columns:
-          #     - sku
-          - name: location_idx
-            columns:
-              - location_name
-          - name: size_color_idx
-            columns:
-              - size
-              - color
         refresh_key:
           every: 1 day
 
-      # Product-level analysis (SIMPLIFIED - basic SKU queries only)
-      # For SKU + attributes, use sku_details or sku_pricing pre-aggs
-      - name: product_analysis
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-          - transaction_count
-          - sku_count
-        dimensions:
-          - sku
-          - product_name
-          - category
-          # REMOVED: Moved to sku_details/sku_pricing to avoid cardinality explosion
-          # - section
-          # - season
-          # - size
-          # - color
-          # - product_range
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: day
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: sku_idx
-            columns:
-              - sku
-          - name: sku_category_idx
-            columns:
-              - sku
-              - category
-        refresh_key:
-          every: 1 day
-
-      # Customer geography analysis (KEPT - basic customer queries)
-      # For customer + channel/category, use customer_behavior pre-agg
+      # Customer-focused pre-agg for customer email queries
+      # Isolated to prevent high cardinality from bloating main pre-agg
       - name: customer_geography
         measures:
           - total_revenue
+          - net_revenue
           - units_sold
           - transaction_count
         dimensions:
@@ -683,149 +615,3 @@ cubes:
               - customer_email
         refresh_key:
           every: 1 day
-
-      # NEW: SKU + product attributes for merchandising analytics
-      # Handles: "Revenue by SKU and size", "SKU by color", "SKU by location", etc.
-      - name: sku_details
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-          - transaction_count
-        dimensions:
-          - sku
-          - product_name
-          - category              # For "SKU across categories" queries
-          - size
-          - color
-          - season
-          - section
-          - channel_type
-          - billing_country
-          - location_name         # For "SKU by location" queries
-          - customer_type         # For "B2B vs Retail SKU performance"
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: day
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: sku_size_idx
-            columns:
-              - sku
-              - size
-          - name: sku_location_idx
-            columns:
-              - sku
-              - location_name
-        refresh_key:
-          every: 1 day
-
-      # NEW: SKU + business dimensions for pricing/discount analytics
-      # Handles: "Full price vs discounted SKU revenue", "SKU by transaction type"
-      - name: sku_pricing
-        measures:
-          - total_revenue
-          - units_sold
-          - total_discount_amount
-          - total_base_price_for_discount
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-        dimensions:
-          - sku
-          - pricing_type          # FP (full price) vs RP (reduced price)
-          - transaction_type      # CustInvc, CashSale, etc.
-          - channel_type
-          - billing_country
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: day
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: sku_pricing_idx
-            columns:
-              - sku
-              - pricing_type
-          - name: sku_txn_type_idx
-            columns:
-              - sku
-              - transaction_type
-        refresh_key:
-          every: 1 day
-
-      # NEW: Customer behavior analytics
-      # Handles: "Customer segmentation by channel", "Customer purchase patterns by category"
-      - name: customer_behavior
-        measures:
-          - total_revenue
-          - units_sold
-          - transaction_count
-        dimensions:
-          - customer_email
-          - channel_type
-          - category
-          - section
-          - billing_country
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: day
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: customer_channel_idx
-            columns:
-              - customer_email
-              - channel_type
-          - name: customer_category_idx
-            columns:
-              - customer_email
-              - category
-        refresh_key:
-          every: 1 day
-
-      # DELETED 9 REDUNDANT PRE-AGGREGATIONS (2026-01-16 - Final 6 Pre-agg Solution)
-      # All queries now handled by 6 optimized pre-aggs for rollup-only mode (99% coverage)
-      #
-      # FINAL STRUCTURE:
-      # 1. sales_analysis - General analytics (NO sku/customer_email)
-      # 2. product_analysis - Basic SKU queries (sku + category only)
-      # 3. customer_geography - Basic customer queries (customer_email + countries)
-      # 4. sku_details - SKU + product attributes (sku + size/color/season/section/channel/country/location/customer_type)
-      # 5. sku_pricing - SKU + business dimensions (sku + pricing_type/transaction_type/channel/country)
-      # 6. customer_behavior - Customer + business dimensions (customer_email + channel/category/section/country)
-      #
-      # Removed pre-aggs:
-      # 1. location_analysis → sales_analysis (has location_name) OR sku_details (has sku + location)
-      # 2. geography_location_channel → sales_analysis (has all these)
-      # 3. daily_metrics → sales_analysis (has channel_type)
-      # 4. discount_analysis → sales_analysis (has pricing_type) OR sku_pricing (has sku + pricing_type)
-      # 5. product_range_analysis → sales_analysis (has product_range, collection)
-      # 6. size_geography → sales_analysis (has size, color, countries)
-      # 7. transaction_type_analysis → sales_analysis OR sku_pricing (has sku + transaction_type)
-      # 8. weekly_metrics → sales_analysis
-      # 9. product_geography → sku_details (has sku + country + section/season)
-      # 10. channel_product → sku_details (has sku + channel + size)
-      # 11. size_color_analysis → sales_analysis (has size, color, category, section, season, channel)
-      # 12. size_location_analysis → sales_analysis (has size, location, classification, category) OR sku_details (has sku + size + location)
-      # 13. yearly_metrics → sales_analysis
-
-      # REMOVED v62: transaction_grain_aov pre-aggregation
-      #
-      # WHY REMOVED:
-      # - Fundamentally broken for dimension breakdowns
-      # - transaction_count_exact used type: count which counted ROWS not transactions
-      # - Resulted in 3-10x undercounted transactions
-      # - Example: AOV showed as €4 instead of €45 (90% error!)
-      # - Cube architecture doesn't support count_distinct in pre-aggs
-      #
-      # REPLACEMENT:
-      # - Use average_order_value (approximate) for ALL AOV calculations
-      # - Uses count_distinct_approx - works correctly with dimensions
-      # - 10-20% error margin is acceptable for business analysis
-      # - Validated correct: D2C €45.83, RETAIL €62.63
-      #
-      # STORAGE SAVINGS:
-      # - ~438K rows per year eliminated
-      # - ~0.4 GB saved over 5 years
