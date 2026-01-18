@@ -238,3 +238,73 @@ cubes:
         granularity: day
         refresh_key:
           every: 1 day
+
+      # Weekly order analysis - For 1-3 month queries
+      # This pre-agg optimizes weekly reporting by pre-computing weekly rollups
+      # Reduces scan volume by ~7x compared to daily pre-agg
+      - name: orders_weekly
+        measures:
+          - order_count
+          - unique_customers
+          - fulfilled_orders
+          - cancelled_orders
+          - customer_credits
+          - revenue_transaction_count
+          - customer_credits_aligned
+          - revenue_transaction_count_aligned
+          - total_foreign_amount
+        dimensions:
+          - type
+          - status
+          - status_name
+          - billing_country
+          - shipping_country
+          - currency
+          - customer_type
+        time_dimension: trandate
+        granularity: week
+        partition_granularity: week
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: type_status_idx
+            columns:
+              - type
+              - status
+        refresh_key:
+          every: 1 day
+
+      # Monthly order analysis - For 3+ month queries (12-month, YoY)
+      # This pre-agg optimizes long-range queries by pre-computing monthly rollups
+      # Daily pre-agg forces 365-day scans; monthly pre-agg reads just 12 rows
+      - name: orders_monthly
+        measures:
+          - order_count
+          - unique_customers
+          - fulfilled_orders
+          - cancelled_orders
+          - customer_credits
+          - revenue_transaction_count
+          - customer_credits_aligned
+          - revenue_transaction_count_aligned
+          - total_foreign_amount
+        dimensions:
+          - type
+          - status
+          - status_name
+          - billing_country
+          - shipping_country
+          - currency
+          - customer_type
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: type_status_idx
+            columns:
+              - type
+              - status
+        refresh_key:
+          every: 1 day

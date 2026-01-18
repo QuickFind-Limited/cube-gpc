@@ -100,7 +100,7 @@ cubes:
         sql: "{CUBE}.status = 'B'"
 
     pre_aggregations:
-      # Fulfillment status analysis
+      # Fulfillment status analysis - Daily granularity
       - name: fulfillment_analysis
         measures:
           - fulfillment_count
@@ -115,5 +115,57 @@ cubes:
           - shipcarrier
         time_dimension: trandate
         granularity: day
+        refresh_key:
+          every: 1 day
+
+      # Weekly fulfillment analysis - For weekly operational reporting
+      # This pre-agg optimizes weekly shipping performance metrics
+      # Reduces scan volume by ~7x compared to daily pre-agg
+      - name: fulfillment_weekly
+        measures:
+          - fulfillment_count
+          - unique_orders
+          - shipped_count
+          - pending_count
+        dimensions:
+          - status
+          - status_name
+          - shipcarrier
+        time_dimension: trandate
+        granularity: week
+        partition_granularity: week
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: status_carrier_idx
+            columns:
+              - status
+              - shipcarrier
+        refresh_key:
+          every: 1 day
+
+      # Monthly fulfillment analysis - For long-range shipping trends
+      # This pre-agg optimizes monthly operational metrics and carrier analysis
+      # Reduces scan volume by ~30x compared to daily pre-agg
+      - name: fulfillment_monthly
+        measures:
+          - fulfillment_count
+          - unique_orders
+          - shipped_count
+          - pending_count
+        dimensions:
+          - status
+          - status_name
+          - shipcarrier
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: status_carrier_idx
+            columns:
+              - status
+              - shipcarrier
         refresh_key:
           every: 1 day
