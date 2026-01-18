@@ -13,6 +13,11 @@ cubes:
         primary_key: true
         description: Composite primary key (transaction-id)
 
+      - name: transaction_id
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction ID (for JOIN to transaction_lines)
+
       - name: transaction_date
         sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
