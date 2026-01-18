@@ -2,11 +2,39 @@ cubes:
   - name: transaction_lines
     sql: >
       SELECT
-        *,
-        transaction_currency_id as transaction_currency,
-        custbody_customer_email as customer_email,
-        baseprice as item_base_price
-      FROM gpc.transaction_lines_denormalized_mv
+        tl.*,
+        t.type as transaction_type,
+        t.currency as transaction_currency,
+        t.trandate as transaction_date,
+        t.status as transaction_status,
+        t.subsidiary as transaction_subsidiary,
+        t.custbody_customer_email as customer_email,
+        t.billing_country,
+        t.shipping_country,
+        l.name as location_name,
+        -- P5 FIX: Removed inline CASE statement - now using locations.channel_type via join
+        i.itemid as sku,
+        i.displayname as product_name,
+        i.custitem_gpc_category as category,
+        i.custitem_gpc_sections as section,
+        i.custitem_gpc_season as season,
+        i.custitem_gpc_size as size,
+        i.custitem_gpc_range as product_range,
+        i.custitem_gpc_collection as collection,
+        i.custitem_gpc_child_colour as color,
+        i.baseprice as item_base_price,
+        t.exchangerate as transaction_exchange_rate,
+        curr.name as currency_name,
+        d.name as department_name,
+        c.name as classification_name
+      FROM gpc.transaction_lines_clean tl
+      LEFT JOIN gpc.transactions_analysis t ON tl.transaction = t.id
+      LEFT JOIN gpc.currencies curr ON t.currency = curr.id
+      LEFT JOIN gpc.locations l ON tl.location = l.id
+      LEFT JOIN gpc.items i ON tl.item = i.id
+      LEFT JOIN gpc.departments d ON tl.department = d.id
+      LEFT JOIN gpc.classifications c ON tl.class = c.id
+      WHERE tl.item != 25442
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
@@ -535,25 +563,32 @@ cubes:
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
 
     pre_aggregations:
-      # Main revenue pre-agg - Based on cube-demo's revenue_analysis
-      # NO COST MEASURES (no gl_based_cogs, no gl_based_gross_margin, no gross_margin, no total_cost)
-      # to avoid JOIN-based cartesian product explosion
-      - name: revenue_analysis
-        scheduled_refresh: true
+      # Wide rollup covering most sales analysis queries
+      - name: sales_analysis
         measures:
           - total_revenue
           - net_revenue
           - units_sold
           - units_returned
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - total_cost             # DEPRECATED - kept for backward compatibility
+          - gl_based_cogs          # NEW: Accurate GL-based COGS
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - total_tax
           - line_count
-          - transaction_count
-          - total_discount_amount
-          - total_base_price_for_discount
-          - salesord_revenue
-          - salesord_count
           - min_transaction_date
           - max_transaction_date
+          - total_discount_amount
+          - total_base_price_for_discount
+          - transaction_count
+          - salesord_revenue
+          - salesord_count
+          # Removed calculated/non-additive measures:
+          # - sku_count (count_distinct - doesn't work with dimensions)
+          # - average_salesord_value (calculated - makes pre-agg non-additive, use components instead)
+          # - average_order_value (calculated - makes pre-agg non-additive)
+          # - average_items_per_order (calculated - makes pre-agg non-additive)
+          # - discount_rate (calculated - now use component measures instead)
         dimensions:
           - channel_type
           - category
@@ -569,15 +604,9 @@ cubes:
           - currency_name
           - transaction_type
           - pricing_type
-          - sku
-          - product_name
-          - size
-          - color
-          - location_name
-          - customer_type
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: day
+        partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -586,170 +615,146 @@ cubes:
               - channel_type
               - category
         refresh_key:
-          every: 1 day
+          every: 365 days
 
-      # Weekly revenue pre-agg - For operational reporting (4-12 week trends)
-      # This pre-agg optimizes weekly trending queries
-      # Common use case: "Last 12 weeks by channel" reads 12 rows instead of 84 daily
-      - name: revenue_analysis_weekly
-        scheduled_refresh: true
+      # Product-level analysis
+      - name: product_analysis
         measures:
           - total_revenue
-          - net_revenue
           - units_sold
-          - units_returned
-          - total_tax
-          - line_count
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - transaction_count
-          - total_discount_amount
-          - total_base_price_for_discount
-          - salesord_revenue
-          - salesord_count
-          - min_transaction_date
-          - max_transaction_date
+          - sku_count
         dimensions:
-          - channel_type
+          - sku
+          - product_name
           - category
           - section
           - season
+          - size
+          - color
           - product_range
-          - collection
-          - department_name
-          - billing_country
-          - shipping_country
-          - classification_name
-          - transaction_currency
-          - currency_name
-          - transaction_type
-          - pricing_type
-          - customer_type
         time_dimension: transaction_date
-        granularity: week
-        partition_granularity: week
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: channel_category_idx
-            columns:
-              - channel_type
-              - category
-        refresh_key:
-          every: 1 day
-
-      # Monthly revenue pre-agg - For long-range queries (3+ months)
-      # This pre-agg optimizes 12-month queries by pre-computing monthly rollups
-      # Daily pre-agg forces 365-day scans; monthly pre-agg reads just 12 rows
-      - name: revenue_analysis_monthly
-        scheduled_refresh: true
-        measures:
-          - total_revenue
-          - net_revenue
-          - units_sold
-          - units_returned
-          - total_tax
-          - line_count
-          - transaction_count
-          - total_discount_amount
-          - total_base_price_for_discount
-          - salesord_revenue
-          - salesord_count
-          - min_transaction_date
-          - max_transaction_date
-        dimensions:
-          - channel_type
-          - category
-          - section
-          - season
-          - product_range
-          - collection
-          - department_name
-          - billing_country
-          - shipping_country
-          - classification_name
-          - transaction_currency
-          - currency_name
-          - transaction_type
-          - pricing_type
-          - customer_type
-        time_dimension: transaction_date
-        granularity: month
+        granularity: day
         partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
-          - name: channel_category_idx
+          - name: sku_idx
             columns:
-              - channel_type
-              - category
-        refresh_key:
-          every: 1 day
-
-      # FAST monthly pre-agg - Optimized for high-level trending (12+ month queries)
-      # Reduced dimensions (6 vs 15) = 10x smaller partitions = sub-2-second 12-month scans
-      # Use this for executive dashboards and long-range trend analysis
-      - name: revenue_monthly_fast
-        scheduled_refresh: true
-        measures:
-          - total_revenue
-          - net_revenue
-          - units_sold
-          - units_returned
-          - line_count
-          - transaction_count
-        dimensions:
-          - channel_type          # PRIMARY: Most common filter
-          - customer_type          # B2B vs Retail segmentation
-          - category              # Product category
-          - season                # Seasonal analysis
-          - currency_name         # Multi-currency reporting
-          - transaction_type      # CustInvc vs CashSale
-        time_dimension: transaction_date
-        granularity: month
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: channel_customer_idx
-            columns:
-              - channel_type
-              - customer_type
-        refresh_key:
-          every: 1 day
-
-      # Operations monthly pre-agg - For operational metrics (return rate, velocity)
-      # Lightweight pre-agg with only 4 dimensions for fast 12+ month queries
-      # Fixes RET005 timeout (return_rate) - component measures pre-aggregated
-      - name: operations_monthly_fast
-        scheduled_refresh: true
-        measures:
-          - units_sold
-          - units_returned
-          - line_count
-          - transaction_count
-        dimensions:
-          - category              # Product category
-          - season                # Seasonal analysis
-          - customer_type         # B2B vs Retail
-          - transaction_type      # CustInvc vs CashSale
-        time_dimension: transaction_date
-        granularity: month
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
+              - sku
           - name: category_season_idx
             columns:
               - category
               - season
         refresh_key:
-          every: 1 day
+          every: 365 days
 
-      # Customer-focused pre-agg for customer email queries
-      # Isolated to prevent high cardinality from bloating main pre-agg
+      # Location-level analysis
+      - name: location_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+        dimensions:
+          - location_name
+          - channel_type
+          - department_name
+          - classification_name
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: location_name_idx
+            columns:
+              - location_name
+        refresh_key:
+          every: 365 days
+
+      # Geographic + Location + Channel analysis (v61 - NEW)
+      # For queries combining billing_country, channel_type, and location_name
+      # Use case: "Revenue and AOV by day, country, channel, and location"
+      - name: geography_location_channel
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+        dimensions:
+          - billing_country
+          - shipping_country
+          - location_name
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: country_location_channel_idx
+            columns:
+              - billing_country
+              - location_name
+              - channel_type
+        refresh_key:
+          every: 365 days
+
+      # Daily granularity for recent trends
+      - name: daily_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 365 days
+
+      # Discount analysis
+      - name: discount_analysis
+        measures:
+          - total_revenue
+          - total_discount
+          - discounted_units
+          - units_sold
+          - total_discount_amount
+          - total_base_price_for_discount
+          # Removed calculated measure:
+          # - discount_rate (use component measures instead)
+        dimensions:
+          - channel_type
+          - category
+          - section
+          - season
+          - pricing_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: channel_category_idx
+            columns:
+              - channel_type
+              - category
+        refresh_key:
+          every: 365 days
+
+      # Customer geography analysis
       - name: customer_geography
         measures:
           - total_revenue
-          - net_revenue
           - units_sold
           - transaction_count
         dimensions:
@@ -758,7 +763,7 @@ cubes:
           - shipping_country
         time_dimension: transaction_date
         granularity: day
-        partition_granularity: day
+        partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
@@ -770,4 +775,246 @@ cubes:
             columns:
               - customer_email
         refresh_key:
-          every: 1 day
+          every: 365 days
+
+      # Product range/collection analysis for LIFE004 and other product metrics
+      - name: product_range_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+          - min_transaction_date
+          - max_transaction_date
+          - total_discount
+        dimensions:
+          - product_range
+          - collection
+          - category
+          - section
+          - season
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: collection_range_idx
+            columns:
+              - collection
+              - product_range
+        refresh_key:
+          every: 365 days
+
+      # Size/color by geography
+      - name: size_geography
+        measures:
+          - units_sold
+          - total_revenue
+        dimensions:
+          - size
+          - color
+          - billing_country
+          - category
+          - section
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 365 days
+
+      # Transaction type breakdown
+      - name: transaction_type_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - transaction_type
+          - channel_type
+          - billing_country
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 365 days
+
+      # Weekly trends
+      - name: weekly_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+        dimensions:
+          - channel_type
+          - category
+          - section
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 365 days
+
+      # NEW P3: Product geography - for "product X in geography Y" queries
+      # V57: Added customer_type for B2B vs Retail analysis
+      - name: product_geography
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+          - transaction_count
+        dimensions:
+          - sku
+          - product_name
+          - category
+          - section
+          - season
+          - billing_country
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: sku_country_idx
+            columns:
+              - sku
+              - billing_country
+        refresh_key:
+          every: 365 days
+
+      # NEW P3: Channel product - for D2C vs Retail performance comparisons
+      # V57: Added customer_type for B2B vs Retail analysis
+      - name: channel_product
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+          - transaction_count
+        dimensions:
+          - channel_type
+          - category
+          - section
+          - season
+          - size
+          - sku
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: channel_sku_idx
+            columns:
+              - channel_type
+              - sku
+        refresh_key:
+          every: 365 days
+
+      # NEW P3: Size/color analysis - for fashion retail "size S in color Blue" queries
+      # V57: Added customer_type for B2B vs Retail analysis
+      - name: size_color_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+        dimensions:
+          - size
+          - color
+          - category
+          - section
+          - season
+          - channel_type
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: size_color_idx
+            columns:
+              - size
+              - color
+              - category
+        refresh_key:
+          every: 365 days
+
+      # NEW: Size/location analysis - for retail "size curve for location X" queries
+      # V57: Added customer_type for B2B vs Retail analysis
+      - name: size_location_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+        dimensions:
+          - size
+          - location_name
+          - classification_name
+          - category
+          - section
+          - season
+          - channel_type
+          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: size_location_idx
+            columns:
+              - size
+              - location_name
+              - category
+        refresh_key:
+          every: 365 days
+
+      # Yearly metrics for YoY comparisons
+      - name: yearly_metrics
+        measures:
+          - total_revenue
+          - units_sold
+          - transaction_count
+          - gross_margin           # DEPRECATED - kept for backward compatibility
+          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+        dimensions:
+          - channel_type
+          - category
+          - section
+          - billing_country
+        time_dimension: transaction_date
+        granularity: year
+        refresh_key:
+          every: 365 days
+
+      # REMOVED v62: transaction_grain_aov pre-aggregation
+      #
+      # WHY REMOVED:
+      # - Fundamentally broken for dimension breakdowns
+      # - transaction_count_exact used type: count which counted ROWS not transactions
+      # - Resulted in 3-10x undercounted transactions
+      # - Example: AOV showed as €4 instead of €45 (90% error!)
+      # - Cube architecture doesn't support count_distinct in pre-aggs
+      #
+      # REPLACEMENT:
+      # - Use average_order_value (approximate) for ALL AOV calculations
+      # - Uses count_distinct_approx - works correctly with dimensions
+      # - 10-20% error margin is acceptable for business analysis
+      # - Validated correct: D2C €45.83, RETAIL €62.63
+      #
+      # STORAGE SAVINGS:
+      # - ~438K rows per year eliminated
+      # - ~0.4 GB saved over 5 years

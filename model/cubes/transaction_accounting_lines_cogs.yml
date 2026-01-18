@@ -171,30 +171,3 @@ cubes:
           sql: SELECT '2025-10-31'
         refresh_key:
           every: 1 day
-
-      # FAST monthly COGS pre-agg - For high-level COGS trending (12+ month queries)
-      # Reduced dimensions (4 vs 18) = 95% smaller partitions + monthly granularity
-      # Fixes COGS_DIRECT timeout (11.33s → <2s expected)
-      # Use this for executive dashboards and long-range COGS analysis
-      - name: cogs_monthly_fast
-        scheduled_refresh: true
-        measures:
-          - gl_cogs
-          - cogs_entry_count
-        dimensions:
-          - category              # Product category
-          - season                # Seasonal analysis
-          - transaction_type      # Transaction type (CustInvc, CashSale, etc.)
-          - currency_name         # Multi-currency reporting
-        time_dimension: transaction_date
-        granularity: month
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: category_season_idx
-            columns:
-              - category
-              - season
-        refresh_key:
-          every: 1 day
