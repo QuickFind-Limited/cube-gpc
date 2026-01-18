@@ -2,39 +2,11 @@ cubes:
   - name: transaction_lines
     sql: >
       SELECT
-        tl.*,
-        t.type as transaction_type,
-        t.currency as transaction_currency,
-        t.trandate as transaction_date,
-        t.status as transaction_status,
-        t.subsidiary as transaction_subsidiary,
-        t.custbody_customer_email as customer_email,
-        t.billing_country,
-        t.shipping_country,
-        l.name as location_name,
-        -- P5 FIX: Removed inline CASE statement - now using locations.channel_type via join
-        i.itemid as sku,
-        i.displayname as product_name,
-        i.custitem_gpc_category as category,
-        i.custitem_gpc_sections as section,
-        i.custitem_gpc_season as season,
-        i.custitem_gpc_size as size,
-        i.custitem_gpc_range as product_range,
-        i.custitem_gpc_collection as collection,
-        i.custitem_gpc_child_colour as color,
-        i.baseprice as item_base_price,
-        t.exchangerate as transaction_exchange_rate,
-        curr.name as currency_name,
-        d.name as department_name,
-        c.name as classification_name
-      FROM gpc.transaction_lines_clean tl
-      LEFT JOIN gpc.transactions_analysis t ON tl.transaction = t.id
-      LEFT JOIN gpc.currencies curr ON t.currency = curr.id
-      LEFT JOIN gpc.locations l ON tl.location = l.id
-      LEFT JOIN gpc.items i ON tl.item = i.id
-      LEFT JOIN gpc.departments d ON tl.department = d.id
-      LEFT JOIN gpc.classifications c ON tl.class = c.id
-      WHERE tl.item != 25442
+        *,
+        transaction_currency_id as transaction_currency,
+        custbody_customer_email as customer_email,
+        baseprice as item_base_price
+      FROM gpc.transaction_lines_denormalized_mv
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
