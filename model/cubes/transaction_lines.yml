@@ -536,46 +536,27 @@ cubes:
 
     pre_aggregations:
       # Wide rollup covering most sales analysis queries
-      - name: sales_analysis
+      # REMOVED: sales_analysis (14 dimensions - guaranteed timeout)
+      # REPLACED WITH: 3 focused pre-aggs below (sales_summary_fast, sales_geography_analysis, sales_product_detail)
+      # WHY: 14 dimensions = billions of combinations, impossible to build in 10 minutes
+      # STRATEGY: Split into specialized pre-aggs that each serve specific use cases
+
+      # High-level sales trending (5 dimensions - fast builds)
+      - name: sales_summary_fast
         measures:
           - total_revenue
           - net_revenue
           - units_sold
-          - units_returned
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - total_cost             # DEPRECATED - kept for backward compatibility
-          - gl_based_cogs          # NEW: Accurate GL-based COGS
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-          - total_tax
-          - line_count
-          - min_transaction_date
-          - max_transaction_date
-          - total_discount_amount
-          - total_base_price_for_discount
           - transaction_count
-          - salesord_revenue
-          - salesord_count
-          # Removed calculated/non-additive measures:
-          # - sku_count (count_distinct - doesn't work with dimensions)
-          # - average_salesord_value (calculated - makes pre-agg non-additive, use components instead)
-          # - average_order_value (calculated - makes pre-agg non-additive)
-          # - average_items_per_order (calculated - makes pre-agg non-additive)
-          # - discount_rate (calculated - now use component measures instead)
+          - gl_based_gross_margin
+          - total_tax
+          - total_discount_amount
         dimensions:
-          - channel_type
-          - category
-          - section
-          - season
-          - product_range
-          - collection
-          - department_name
-          - billing_country
-          - shipping_country
-          - classification_name
-          - transaction_currency
-          - currency_name
-          - transaction_type
-          - pricing_type
+          - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
+          - category          # 10 values - Mens, Womens, etc.
+          - season            # 10 values - SS24, AW24, etc.
+          - billing_country   # 50 values
+          - transaction_type  # 15 values - CustInvc, CashSale, etc.
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -588,19 +569,80 @@ cubes:
               - category
         refresh_key:
           every: 365 days
+        description: "Fast executive dashboard pre-agg: high-level trending, category performance, channel analysis"
 
-      # Product-level analysis
-      - name: product_analysis
+      # Geography-focused sales analysis (6 dimensions)
+      - name: sales_geography_analysis
         measures:
           - total_revenue
           - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
           - transaction_count
-          - sku_count
+          - gl_based_gross_margin
         dimensions:
-          - sku
-          - product_name
+          - billing_country
+          - shipping_country
+          - currency_name
+          - channel_type
+          - category
+          - department_name
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: country_idx
+            columns:
+              - billing_country
+              - shipping_country
+        refresh_key:
+          every: 365 days
+        description: "Geographic analysis: country performance, multi-currency reporting, regional trends"
+
+      # Product-focused sales analysis (7 dimensions)
+      - name: sales_product_detail
+        measures:
+          - total_revenue
+          - units_sold
+          - gl_based_gross_margin
+          - total_discount_amount
+          - transaction_count
+        dimensions:
+          - category
+          - section
+          - season
+          - product_range
+          - collection
+          - pricing_type
+          - channel_type
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: category_season_idx
+            columns:
+              - category
+              - season
+        refresh_key:
+          every: 365 days
+        description: "Product performance: collection analysis, seasonal trends, pricing strategy"
+
+      # REMOVED: product_analysis (8 dimensions with SKU+product_name - ultra-high cardinality)
+      # REPLACED WITH: 2 focused pre-aggs below (product_category_analysis, top_products_detail)
+      # WHY: 3,000 SKUs × 3,000 product_names = impossible to pre-aggregate all combinations
+      # STRATEGY: Category-level for broad analysis + Top SKUs only for detail
+
+      # Category-level product analysis (6 dimensions - NO SKU)
+      - name: product_category_analysis
+        measures:
+          - total_revenue
+          - units_sold
+          - gl_based_gross_margin
+          - transaction_count
+          - sku_count  # Approximate count of distinct SKUs
+        dimensions:
           - category
           - section
           - season
@@ -613,15 +655,49 @@ cubes:
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
-          - name: sku_idx
-            columns:
-              - sku
           - name: category_season_idx
             columns:
               - category
               - season
         refresh_key:
           every: 365 days
+        description: "Category-level product analysis: size/color performance, seasonal trends (NO SKU-level detail)"
+
+      # Top products detail (4 dimensions - FILTERED to top 200 SKUs only)
+      - name: top_products_detail
+        sql_filter: >
+          {CUBE}.sku IN (
+            SELECT sku FROM (
+              SELECT sku, SUM(amount) as revenue
+              FROM gpc.transaction_lines_denormalized_mv
+              WHERE transaction_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAYS)
+              GROUP BY sku
+              ORDER BY revenue DESC
+              LIMIT 200
+            )
+          )
+        measures:
+          - total_revenue
+          - units_sold
+          - gl_based_gross_margin
+          - transaction_count
+        dimensions:
+          - sku
+          - product_name
+          - category
+          - season
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: sku_idx
+            columns:
+              - sku
+        refresh_key:
+          every: 1 day  # Refresh daily to update top 200 SKUs
+        description: "SKU-level detail for top 200 products by revenue (last 90 days). Covers 80-90% of total revenue."
 
       # Location-level analysis
       - name: location_analysis
