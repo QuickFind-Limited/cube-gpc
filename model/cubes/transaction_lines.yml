@@ -548,9 +548,9 @@ cubes:
           - net_revenue
           - units_sold
           - transaction_count
-          - gl_based_gross_margin
           - total_tax
           - total_discount_amount
+          # REMOVED: gl_based_gross_margin (requires JOIN to COGS cube - not allowed in pre-aggs)
         dimensions:
           - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
           - category          # 10 values - Mens, Womens, etc.
@@ -576,7 +576,6 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
-          - gl_based_gross_margin
         dimensions:
           - billing_country
           - shipping_country
@@ -602,7 +601,6 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gl_based_gross_margin
           - total_discount_amount
           - transaction_count
         dimensions:
@@ -922,7 +920,6 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gl_based_gross_margin
         dimensions:
           - size           # 50 values
           - category       # 10 values
@@ -946,7 +943,6 @@ cubes:
         measures:
           - total_revenue
           - units_sold
-          - gl_based_gross_margin
           - transaction_count
         dimensions:
           - location_name      # 50 values
