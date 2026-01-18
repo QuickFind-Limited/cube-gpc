@@ -941,50 +941,26 @@ cubes:
 
       # NEW P3: Channel product - for D2C vs Retail performance comparisons
       # V57: Added customer_type for B2B vs Retail analysis
-      - name: channel_product
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-          - transaction_count
-        dimensions:
-          - channel_type
-          - category
-          - section
-          - season
-          - size
-          - sku
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: channel_sku_idx
-            columns:
-              - channel_type
-              - sku
-        refresh_key:
-          every: 365 days
+      # REMOVED: channel_product (7 dimensions with SKU - high cardinality timeout risk)
+      # WHY: SKU dimension (3,000 values) creates 2.25 billion potential combinations
+      # REDUNDANT WITH:
+      #   - top_products_detail (top 200 SKUs with channel analysis via queries)
+      #   - product_category_analysis (category-level performance by channel)
+      # DECISION: Coverage provided by other pre-aggs, SKU×channel queries use top_products_detail
 
-      # NEW P3: Size/color analysis - for fashion retail "size S in color Blue" queries
-      # V57: Added customer_type for B2B vs Retail analysis
+      # Size/color analysis - for fashion retail "size S in color Blue" queries
+      # OPTIMIZED: Reduced from 7 to 4 dimensions to prevent timeout
       - name: size_color_analysis
         measures:
           - total_revenue
           - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+          - gl_based_gross_margin
         dimensions:
-          - size
-          - color
-          - category
-          - section
-          - season
-          - channel_type
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+          - size           # 50 values
+          - color          # 50 values
+          - category       # 10 values
+          - season         # 10 values
+          # REMOVED to reduce cardinality: section, channel_type, customer_type
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -998,37 +974,63 @@ cubes:
               - category
         refresh_key:
           every: 365 days
+        description: "Fashion retail size/color performance: 50×50×10×10 = 250K combinations (was 37.5M with 7 dims)"
 
-      # NEW: Size/location analysis - for retail "size curve for location X" queries
-      # V57: Added customer_type for B2B vs Retail analysis
-      - name: size_location_analysis
+      # REMOVED: size_location_analysis (8 dimensions - confirmed timeout)
+      # WHY: 50 sizes × 50 locations × other dims = 187.5M combinations, timed out at 10+ minutes
+      # REPLACED WITH: 2 focused pre-aggs below (size_curve_analysis, location_performance)
+      # STRATEGY: Separate size analysis from location analysis - different use cases
+
+      # Size curve analysis (no location detail)
+      - name: size_curve_analysis
         measures:
           - total_revenue
           - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
+          - gl_based_gross_margin
         dimensions:
-          - size
-          - location_name
-          - classification_name
-          - category
-          - section
-          - season
-          - channel_type
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+          - size           # 50 values
+          - category       # 10 values
+          - season         # 10 values
+          - channel_type   # 5 values
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
         indexes:
-          - name: size_location_idx
+          - name: size_category_idx
             columns:
               - size
+              - category
+        refresh_key:
+          every: 365 days
+        description: "Size distribution analysis: 50×10×10×5 = 25K combinations. Use for size curve trending, no location detail."
+
+      # Location performance analysis (no size detail)
+      - name: location_performance
+        measures:
+          - total_revenue
+          - units_sold
+          - gl_based_gross_margin
+          - transaction_count
+        dimensions:
+          - location_name      # 50 values
+          - category           # 10 values
+          - season             # 10 values
+          - channel_type       # 5 values
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: location_category_idx
+            columns:
               - location_name
               - category
         refresh_key:
           every: 365 days
+        description: "Store/location performance: 50×10×10×5 = 25K combinations. Use for location trending, no size detail."
 
       # Yearly metrics for YoY comparisons
       - name: yearly_metrics
