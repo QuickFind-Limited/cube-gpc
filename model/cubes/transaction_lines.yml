@@ -969,6 +969,9 @@ cubes:
           - billing_country
         time_dimension: transaction_date
         granularity: year
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
         refresh_key:
           every: 365 days
 
