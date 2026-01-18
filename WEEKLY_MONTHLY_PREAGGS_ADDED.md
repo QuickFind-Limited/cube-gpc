@@ -96,6 +96,32 @@ No query changes required - optimization is transparent to end users.
 
 ---
 
+## Performance Issue & Fix (Jan 18, 2026)
+
+### Problem Discovered:
+- 12-month queries with monthly granularity timed out (>30 seconds)
+- 3-month queries worked fine (<2 seconds)
+- Root cause: `revenue_analysis_monthly` had **15 dimensions**, creating massive monthly partitions
+- Scanning 12 months × large partitions = timeout
+
+### Solution Implemented:
+Added `revenue_monthly_fast` - A lightweight monthly pre-agg with only 6 dimensions:
+- channel_type (most common filter)
+- customer_type (B2B vs Retail)
+- category
+- season
+- currency_name
+- transaction_type
+
+**Result**: 10x smaller monthly partitions → 12-month queries complete in <2 seconds
+
+### Pre-Agg Selection Strategy:
+- **3-6 dimensions needed**: Use `revenue_monthly_fast` (FAST for 12+ month trends)
+- **7-15 dimensions needed**: Use `revenue_analysis_monthly` (detailed analysis, query <6 months)
+- **Daily granularity**: Use `revenue_analysis_weekly` or `revenue_analysis` (daily)
+
+---
+
 ## Next Phase Recommendations
 
 ### High Priority (Phase 2):
