@@ -875,35 +875,13 @@ cubes:
         refresh_key:
           every: 365 days
 
-      # NEW P3: Product geography - for "product X in geography Y" queries
-      # V57: Added customer_type for B2B vs Retail analysis
-      - name: product_geography
-        measures:
-          - total_revenue
-          - units_sold
-          - gross_margin           # DEPRECATED - kept for backward compatibility
-          - gl_based_gross_margin  # NEW: Accurate GL-based gross margin
-          - transaction_count
-        dimensions:
-          - sku
-          - product_name
-          - category
-          - section
-          - season
-          - billing_country
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
-        time_dimension: transaction_date
-        granularity: day
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        indexes:
-          - name: sku_country_idx
-            columns:
-              - sku
-              - billing_country
-        refresh_key:
-          every: 365 days
+      # REMOVED: product_geography (7 dimensions with SKU+product_name - astronomical cardinality)
+      # WHY: 3,000 SKUs × 3,000 product_names × 50 countries × other dims = 2.25 TRILLION combinations
+      # TIMEOUT: Guaranteed to timeout, impossible to build
+      # REDUNDANT WITH:
+      #   - sales_geography_analysis (country-level performance without SKU)
+      #   - product_category_analysis (category-level product performance)
+      # DECISION: Use sales_geography_analysis for country analysis, product_category_analysis for product trends
 
       # REMOVED: channel_product (7 dimensions with SKU - high cardinality timeout risk)
       # WHY: SKU dimension (3,000 values) creates 2.25 billion potential combinations
