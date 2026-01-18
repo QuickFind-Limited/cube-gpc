@@ -716,6 +716,34 @@ cubes:
         refresh_key:
           every: 1 day
 
+      # Operations monthly pre-agg - For operational metrics (return rate, velocity)
+      # Lightweight pre-agg with only 4 dimensions for fast 12+ month queries
+      # Fixes RET005 timeout (return_rate) - component measures pre-aggregated
+      - name: operations_monthly_fast
+        scheduled_refresh: true
+        measures:
+          - units_sold
+          - units_returned
+          - line_count
+          - transaction_count
+        dimensions:
+          - category              # Product category
+          - season                # Seasonal analysis
+          - customer_type         # B2B vs Retail
+          - transaction_type      # CustInvc vs CashSale
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: category_season_idx
+            columns:
+              - category
+              - season
+        refresh_key:
+          every: 1 day
+
       # Customer-focused pre-agg for customer email queries
       # Isolated to prevent high cardinality from bloating main pre-agg
       - name: customer_geography
