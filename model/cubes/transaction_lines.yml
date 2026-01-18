@@ -569,7 +569,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-        description: "Fast executive dashboard pre-agg: high-level trending, category performance, channel analysis"
 
       # Geography-focused sales analysis (6 dimensions)
       - name: sales_geography_analysis
@@ -597,7 +596,6 @@ cubes:
               - shipping_country
         refresh_key:
           every: 365 days
-        description: "Geographic analysis: country performance, multi-currency reporting, regional trends"
 
       # Product-focused sales analysis (7 dimensions)
       - name: sales_product_detail
@@ -627,7 +625,6 @@ cubes:
               - season
         refresh_key:
           every: 365 days
-        description: "Product performance: collection analysis, seasonal trends, pricing strategy"
 
       # REMOVED: product_analysis (8 dimensions with SKU+product_name - ultra-high cardinality)
       # REPLACED WITH: 2 focused pre-aggs below (product_category_analysis, top_products_detail)
@@ -661,7 +658,6 @@ cubes:
               - season
         refresh_key:
           every: 365 days
-        description: "Category-level product analysis: size/color performance, seasonal trends (NO SKU-level detail)"
 
       # Top products detail (4 dimensions - FILTERED to top 200 SKUs only)
 
@@ -915,7 +911,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-        description: "Fashion retail size/color performance: 50×50×10×10 = 250K combinations (was 37.5M with 7 dims)"
 
       # REMOVED: size_location_analysis (8 dimensions - confirmed timeout)
       # WHY: 50 sizes × 50 locations × other dims = 187.5M combinations, timed out at 10+ minutes
@@ -945,7 +940,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-        description: "Size distribution analysis: 50×10×10×5 = 25K combinations. Use for size curve trending, no location detail."
 
       # Location performance analysis (no size detail)
       - name: location_performance
@@ -971,7 +965,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-        description: "Store/location performance: 50×10×10×5 = 25K combinations. Use for location trending, no size detail."
 
       # Yearly metrics for YoY comparisons
       - name: yearly_metrics
