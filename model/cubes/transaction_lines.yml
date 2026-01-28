@@ -125,7 +125,16 @@ cubes:
         sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
         type: number
         format: currency
-        description: "Average order value (AOV) - revenue transactions only. Uses count_distinct_approx for transaction counting (10-20% error margin acceptable for business analysis). This is the ONLY AOV measure - use for all queries."
+        description: "Average order value (AOV) - ALL CHANNELS including B2B/wholesale. Uses count_distinct_approx for transaction counting (10-20% error margin acceptable). WARNING: B2B wholesale orders have much higher AOV (€500-2000) and will inflate this metric. For consumer/retail AOV analysis, use average_order_value_retail instead or filter out B2B_WHOLESALE, B2B_CORPORATE, and B2B_MARKETPLACE channels."
+
+      - name: average_order_value_retail
+        sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
+        type: number
+        format: currency
+        filters:
+          - sql: >
+              {channel_type} NOT IN ('B2B_WHOLESALE', 'B2B_CORPORATE', 'B2B_MARKETPLACE')
+        description: "Average order value for RETAIL/CONSUMER channels only (excludes B2B wholesale). Use this measure for consumer-facing AOV analysis, pricing strategy, and marketing performance. Represents typical consumer basket size without bulk B2B orders inflating the average. This is the RECOMMENDED measure for most AOV queries."
 
       # REMOVED v62: average_order_value_exact - fundamentally broken
       # Used transaction_count_exact which counted pre-agg ROWS not transactions
