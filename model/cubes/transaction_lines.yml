@@ -153,16 +153,17 @@ cubes:
         type: count_distinct_approx
         filters:
           - sql: "{CUBE}.transaction_type = 'SalesOrd'"
-        description: "Count of unique SalesOrd transactions (approximate - 10-20% error possible due to HyperLogLog rollup). For exact counts, use salesord_count_exact with limited dimensions."
+        description: "Count of unique SalesOrd transactions (approximate - 10-20% error margin acceptable for business analysis using HyperLogLog). This is the ONLY SalesOrd count measure - salesord_count_exact was removed in v62 due to fundamental counting errors in rollup mode. For OM003 (SalesOrd AOV), use average_salesord_value which handles the calculation correctly."
 
       # REMOVED v62: salesord_count_exact - same issue as transaction_count_exact
-      # Use salesord_count (approx) instead
+      # Counted pre-aggregation ROWS instead of transactions, resulting in incorrect values
+      # Use salesord_count (approx) for all SalesOrd counting
 
       - name: average_salesord_value
         sql: "1.0 * SUM(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END) / NULLIF(COUNT(DISTINCT CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.transaction END), 0)"
         type: number
         format: currency
-        description: Average order value from SalesOrd (OM003 - calculated measure, not in pre-agg)
+        description: "Average value of SalesOrd transactions (OM003 - order intent before fulfillment). Uses approximate transaction counting with 10-20% error margin acceptable for analysis. This calculated measure is NOT stored in pre-aggregations but computed at query time for accuracy. For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). NOTE: May show different values when dimensions change due to approximate counting methodology - this is expected behavior, not a calculation error."
 
       - name: average_items_per_order
         sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
@@ -460,7 +461,7 @@ cubes:
       - name: season
         sql: "{CUBE}.season"
         type: string
-        description: Product season (e.g., AW25, SS24)
+        description: "Product season (e.g., AW25, SS24). DATA QUALITY WARNING: Approximately 27% of sales (€7.7m annually) are from products without season codes assigned ('Uncategorised' or NULL). This indicates gaps in master data maintenance or products not properly categorized. For accurate seasonal analysis, consider filtering out uncategorised products or investigating missing season assignments in the source system."
 
       - name: size
         sql: "{CUBE}.size"

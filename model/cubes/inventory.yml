@@ -2,7 +2,7 @@ cubes:
   - name: inventory
     sql: SELECT * FROM gpc.inventory_calculated
     title: Inventory
-    description: Current inventory positions from inventory_calculated table (Rule 6)
+    description: "Current inventory positions from inventory_calculated table (Rule 6). IMPORTANT LIMITATION: This is a point-in-time snapshot as of 31 October 2025. NO HISTORICAL INVENTORY DATA is available. Inventory turnover calculations (INV002) cannot use average inventory and must use current stock levels instead, which may not accurately represent turnover for the full period. Historical stock movements are not tracked."
 
     joins:
       - name: items

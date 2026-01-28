@@ -34,7 +34,7 @@ cubes:
       - name: fulfillment_count
         sql: "{CUBE}.transaction"
         type: count_distinct_approx
-        description: Number of unique fulfillments
+        description: "Number of unique fulfillments. DATA QUALITY WARNING: Approximately 45% of fulfillments have NULL/missing location data and will show as 'Not Specified' when querying by location. This may indicate fulfillments processed before location tracking was fully implemented or data quality issues in the source system. For accurate location-based analysis, filter out NULL locations or focus on recent data where location tracking is complete."
 
       - name: sku_count
         sql: "{CUBE}.item"

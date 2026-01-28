@@ -28,7 +28,7 @@ cubes:
         type: count
         filters:
           - sql: "{CUBE}.status IN ('B', 'G')"
-        description: Number of fulfilled/billed orders (status B for CustInvc/CashSale, G for SalesOrd)
+        description: "Number of fulfilled/billed orders. NOTE: Status codes vary by transaction type - 'B' = billed invoices/cash sales (CustInvc/CashSale already fulfilled), 'G' = billed sales orders (SalesOrd). For detailed fulfillment tracking use the fulfillments cube which has separate shipment-level status codes. Common confusion: 'B' in transactions cube means 'Billed' (fulfilled), but 'B' in fulfillments cube means something different."
 
       - name: cancelled_orders
         type: count
