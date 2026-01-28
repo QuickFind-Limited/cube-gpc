@@ -139,7 +139,6 @@ cubes:
 
     pre_aggregations:
       - name: cogs_analysis
-        scheduled_refresh: true
         measures:
           - gl_cogs
           - gl_cogs_debit
@@ -177,7 +176,6 @@ cubes:
       # Fixes COGS_DIRECT timeout (11.33s → <2s expected)
       # Use this for executive dashboards and long-range COGS analysis
       - name: cogs_monthly_fast
-        scheduled_refresh: true
         measures:
           - gl_cogs
           - cogs_entry_count
