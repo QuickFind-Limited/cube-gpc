@@ -1,0 +1,232 @@
+cubes:
+  - name: inventory_with_commitments
+    sql: >
+      SELECT
+        inv.item,
+        inv.itemid,
+        inv.displayname,
+        inv.location,
+        inv.calculated_quantity_available as current_stock,
+        COALESCE(SUM(pol.quantity - COALESCE(pol.quantityshiprecv, 0)), 0) as qty_on_order,
+        COALESCE(SUM((pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.unit_cost), 0) as on_order_value,
+        COUNT(DISTINCT CASE WHEN (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) > 0 THEN pol.po_id END) as open_po_count
+      FROM gpc.inventory_calculated inv
+      LEFT JOIN gpc.purchase_order_lines pol ON inv.item = pol.item
+      LEFT JOIN gpc.purchase_orders po ON pol.po_id = po.id
+        AND po.status IN ('B', 'D', 'E')
+        AND (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) > 0
+      GROUP BY inv.item, inv.itemid, inv.displayname, inv.location, inv.calculated_quantity_available
+
+    title: Inventory with Commitments
+    description: >
+      Combined view of current inventory positions with outstanding purchase order commitments.
+      Enables queries like 'How many zero stock items have pending orders?' (STOCK001).
+      Pre-joins inventory with purchase_order_lines to avoid cross-cube join limitations
+      in rollup-only mode.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      - name: total_current_stock
+        sql: "CAST({CUBE}.current_stock AS FLOAT64)"
+        type: sum
+        description: Total current stock on hand
+
+      - name: total_on_order
+        sql: "CAST({CUBE}.qty_on_order AS FLOAT64)"
+        type: sum
+        description: Total units on order (committed but not received)
+
+      - name: total_committed_value
+        sql: "CAST({CUBE}.on_order_value AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total value of units on order
+
+      - name: position_count
+        type: count
+        description: Total number of inventory positions
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        description: Number of unique SKUs
+
+      # STOCK001: Zero stock positions
+      - name: zero_stock_count
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock = 0"
+        description: Number of positions with zero current stock
+
+      - name: zero_stock_with_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order > 0"
+        description: Zero stock positions with outstanding purchase orders (STOCK001)
+
+      - name: zero_stock_without_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
+        description: Zero stock positions with NO outstanding orders (critical issue!)
+
+      - name: backorder_count
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock < 0"
+        description: Positions with negative stock (backorders)
+
+      - name: backorder_with_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock < 0 AND {CUBE}.qty_on_order > 0"
+        description: Backorders with purchase orders to cover shortage
+
+      - name: backorder_without_orders
+        type: count
+        filters:
+          - sql: "{CUBE}.current_stock < 0 AND {CUBE}.qty_on_order = 0"
+        description: Backorders with NO purchase orders (critical shortage!)
+
+      # Stock coverage metrics
+      - name: avg_stock_coverage_days
+        sql: >
+          CASE
+            WHEN {CUBE}.qty_on_order > 0 AND {CUBE}.current_stock <= 0
+            THEN {CUBE}.qty_on_order / NULLIF(ABS({CUBE}.current_stock), 0)
+            ELSE 0
+          END
+        type: avg
+        description: Average coverage provided by on-order inventory (for items with low/negative stock)
+
+    dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.item AS STRING), '-', CAST({CUBE}.location AS STRING))"
+        type: string
+        primary_key: true
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        title: Item ID
+
+      - name: itemid
+        sql: "{CUBE}.itemid"
+        type: string
+        title: SKU
+        description: Item SKU code
+
+      - name: displayname
+        sql: "{CUBE}.displayname"
+        type: string
+        title: Product Name
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        title: Location ID
+
+      - name: current_stock
+        sql: "{CUBE}.current_stock"
+        type: number
+        title: Current Stock
+        description: Current quantity available
+
+      - name: qty_on_order
+        sql: "{CUBE}.qty_on_order"
+        type: number
+        title: Quantity On Order
+        description: Units on order from open POs
+
+      - name: stock_status
+        sql: >
+          CASE
+            WHEN {CUBE}.current_stock > 0 THEN 'In Stock'
+            WHEN {CUBE}.current_stock = 0 AND {CUBE}.qty_on_order > 0 THEN 'Zero Stock - On Order'
+            WHEN {CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0 THEN 'Zero Stock - NO Orders'
+            WHEN {CUBE}.current_stock < 0 AND {CUBE}.qty_on_order > 0 THEN 'Backorder - On Order'
+            WHEN {CUBE}.current_stock < 0 AND {CUBE}.qty_on_order = 0 THEN 'Backorder - NO Orders'
+            ELSE 'Unknown'
+          END
+        type: string
+        title: Stock Status
+        description: Combined stock and order status
+
+      - name: stock_plus_orders
+        sql: "{CUBE}.current_stock + {CUBE}.qty_on_order"
+        type: number
+        title: Stock + Orders
+        description: Current stock plus outstanding orders (projected availability)
+
+    segments:
+      - name: zero_stock
+        sql: "{CUBE}.current_stock = 0"
+        description: Positions with zero stock
+
+      - name: zero_stock_with_commitments
+        sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order > 0"
+        description: Zero stock but orders pending
+
+      - name: zero_stock_no_commitments
+        sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
+        description: Zero stock with NO orders (critical)
+
+      - name: backorder
+        sql: "{CUBE}.current_stock < 0"
+        description: Negative stock positions
+
+    pre_aggregations:
+      # SKU-level analysis for "which products are zero stock with/without orders?"
+      - name: sku_commitment_analysis
+        measures:
+          - total_current_stock
+          - total_on_order
+          - total_committed_value
+          - position_count
+          - zero_stock_count
+          - zero_stock_with_orders
+          - zero_stock_without_orders
+          - backorder_count
+          - backorder_with_orders
+          - backorder_without_orders
+        dimensions:
+          - item
+          - itemid
+          - stock_status
+          - items.category
+          - items.section
+          - items.season
+          - items.gender
+          - locations.channel_type
+        refresh_key:
+          every: 1 day
+
+      # Aggregate analysis for totals
+      - name: commitment_summary
+        measures:
+          - total_current_stock
+          - total_on_order
+          - total_committed_value
+          - position_count
+          - sku_count
+          - zero_stock_count
+          - zero_stock_with_orders
+          - zero_stock_without_orders
+          - backorder_count
+          - backorder_with_orders
+          - backorder_without_orders
+        dimensions:
+          - stock_status
+          - items.category
+          - items.gender
+          - locations.channel_type
+        refresh_key:
+          every: 1 day
