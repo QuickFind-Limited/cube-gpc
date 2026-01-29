@@ -575,6 +575,7 @@ cubes:
           - net_revenue
           - units_sold
           - transaction_count
+          - line_count          # BASK001: Required for average_items_per_order calculation
           - total_tax
           - total_discount_amount
           - salesord_revenue    # OM003: Component for average_salesord_value
