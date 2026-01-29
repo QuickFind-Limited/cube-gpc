@@ -108,6 +108,7 @@ cubes:
 
     pre_aggregations:
       # Monthly landed costs by item
+      # REBUILD REQUIRED: v66 fix applied (amount > 0 filter added to cube SQL)
       - name: monthly_landed_costs
         measures:
           - total_landed_costs
@@ -123,3 +124,4 @@ cubes:
           sql: SELECT '2025-10-31'
         refresh_key:
           every: 1 day
+          # Force rebuild after v66 fix (2026-01-29)
