@@ -114,6 +114,7 @@ cubes:
         sql: "{CUBE}.email"
         type: string
         primary_key: true
+        public: true
         description: Customer email address
 
       - name: billing_country
