@@ -160,7 +160,7 @@ cubes:
       # Use salesord_count (approx) for all SalesOrd counting
 
       - name: average_salesord_value
-        sql: "{salesord_revenue} / NULLIF({salesord_count}, 0)"
+        sql: "1.0 * {salesord_revenue} / NULLIF({salesord_count}, 0)"
         type: number
         format: currency
         description: "Average value of SalesOrd transactions (OM003 - order intent before fulfillment). Calculated as salesord_revenue / salesord_count for consistency. Uses approximate transaction counting with HyperLogLog (10-20% error margin). For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). FIX (v65): Changed from inline SQL to component measure references to ensure consistent calculation regardless of query dimensions or filters."
