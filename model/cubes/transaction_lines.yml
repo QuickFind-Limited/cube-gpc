@@ -577,6 +577,8 @@ cubes:
           - transaction_count
           - total_tax
           - total_discount_amount
+          - salesord_revenue    # OM003: Component for average_salesord_value
+          - salesord_count      # OM003: Component for average_salesord_value
           # REMOVED: gl_based_gross_margin (requires JOIN to COGS cube - not allowed in pre-aggs)
         dimensions:
           - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
