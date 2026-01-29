@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-01-18T14:11:08.927180",
+  "summary": {
+    "total": 8,
+    "passed": 2,
+    "failed": 2,
+    "timeout": 0,
+    "error": 4
+  },
+  "results": [
+    {
+      "test_id": "MM001",
+      "name": "Gross Margin % (GL-based COGS)",
+      "status": "ERROR",
+      "duration": 0.5892977714538574,
+      "error": "HTTP Error 500: Internal Server Error"
+    },
+    {
+      "test_id": "GMROI001",
+      "name": "GMROI (GL-based COGS)",
+      "status": "ERROR",
+      "duration": 0.4634108543395996,
+      "error": "HTTP Error 500: Internal Server Error"
+    },
+    {
+      "test_id": "LIFE004",
+      "name": "Sales Velocity (units per week)",
+      "status": "ERROR",
+      "duration": 0.6116993427276611,
+      "error": "HTTP Error 400: Bad Request"
+    },
+    {
+      "test_id": "RET004",
+      "name": "Return Rate Components",
+      "status": "PASSED",
+      "duration": 1.014312982559204
+    },
+    {
+      "test_id": "RET005",
+      "name": "Return Rate % (line level)",
+      "status": "FAILED",
+      "duration": 13.85403323173523,
+      "error": "Continue wait"
+    },
+    {
+      "test_id": "FD002",
+      "name": "Fulfillments per Order",
+      "status": "PASSED",
+      "duration": 0.30620670318603516
+    },
+    {
+      "test_id": "MM001_COMP",
+      "name": "MM001 Components (Revenue + GL COGS)",
+      "status": "ERROR",
+      "duration": 0.24323654174804688,
+      "error": "HTTP Error 500: Internal Server Error"
+    },
+    {
+      "test_id": "COGS_DIRECT",
+      "name": "GL COGS (Direct from COGS cube)",
+      "status": "FAILED",
+      "duration": 11.328758955001831,
+      "error": "Continue wait"
+    }
+  ]
+}
