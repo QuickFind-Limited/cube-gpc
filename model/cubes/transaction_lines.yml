@@ -160,10 +160,10 @@ cubes:
       # Use salesord_count (approx) for all SalesOrd counting
 
       - name: average_salesord_value
-        sql: "1.0 * SUM(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.amount * -1 ELSE 0 END) / NULLIF(COUNT(DISTINCT CASE WHEN {CUBE}.transaction_type = 'SalesOrd' THEN {CUBE}.transaction END), 0)"
+        sql: "{salesord_revenue} / NULLIF({salesord_count}, 0)"
         type: number
         format: currency
-        description: "Average value of SalesOrd transactions (OM003 - order intent before fulfillment). Uses approximate transaction counting with 10-20% error margin acceptable for analysis. This calculated measure is NOT stored in pre-aggregations but computed at query time for accuracy. For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). NOTE: May show different values when dimensions change due to approximate counting methodology - this is expected behavior, not a calculation error."
+        description: "Average value of SalesOrd transactions (OM003 - order intent before fulfillment). Calculated as salesord_revenue / salesord_count for consistency. Uses approximate transaction counting with HyperLogLog (10-20% error margin). For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). FIX (v65): Changed from inline SQL to component measure references to ensure consistent calculation regardless of query dimensions or filters."
 
       - name: average_items_per_order
         sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
