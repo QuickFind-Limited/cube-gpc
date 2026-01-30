@@ -1,0 +1,78 @@
+cubes:
+  - name: fact_vendpymt_lines
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_vendpymt_lines`
+    title: Vendor Payment Lines
+    description: >
+      Line-level detail for vendor payment transactions.
+      Grain: one row per vendor payment line item.
+
+    joins:
+      - name: fact_vendpymt_headers
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{fact_vendpymt_headers.transaction_id}}"
+
+      - name: transactions
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{transactions.id}}"
+
+    measures:
+      - name: vendpymt_lines_count
+        type: count
+        description: Total number of vendor payment line items
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor payment amounts (negative values represent payments out)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute vendor payment amounts
+
+      - name: avg_amount
+        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor payment amount per line
+
+    dimensions:
+      - name: line_id
+        sql: "{{CUBE}}.line_id"
+        type: number
+        description: Line identifier
+
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        description: Foreign key to vendor payment transaction header
+
+      - name: is_mainline
+        sql: "{{CUBE}}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line
+
+      - name: amount
+        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        type: number
+        description: Payment amount (negative for payments out)
+
+    segments:
+      - name: detail_lines_only
+        sql: "{{CUBE}}.is_mainline = false"
+        description: "Excludes header/summary lines for line-level analysis"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - vendpymt_lines_count
+          - total_amount
+          - total_amount_abs
+        dimensions:
+          - is_mainline
+        time_dimension: fact_vendpymt_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

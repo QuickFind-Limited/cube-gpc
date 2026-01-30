@@ -1,0 +1,160 @@
+cubes:
+  - name: fact_cashrfnd_lines
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_cashrfnd_lines`
+    title: Cash Refund Lines
+    description: >
+      Line-level detail for cash refund transactions.
+      Grain: one row per cash refund line item.
+
+    joins:
+      - name: fact_cashrfnd_headers
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{fact_cashrfnd_headers.transaction_id}}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{{CUBE}}.department_id = {{dim_department.department_id}}"
+
+    measures:
+      - name: cashrfnd_lines_count
+        type: count
+        description: Total number of cash refund line items
+
+      - name: total_quantity
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity refunded across all line items
+
+      - name: total_line_amount
+        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total refund amount across all line items
+
+      - name: total_line_amount_abs
+        sql: "ABS(CAST({{CUBE}}.line_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total refund amount (for positive reporting)
+
+      - name: avg_unit_rate
+        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit refund rate
+
+      - name: avg_quantity
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per refund line
+
+    dimensions:
+      - name: line_id
+        sql: "{{CUBE}}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to cash refund header transaction
+
+      - name: line_sequence_number
+        sql: "{{CUBE}}.line_sequence_number"
+        type: number
+        primary_key: true
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{{CUBE}}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{{CUBE}}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope (excludes system entities)
+
+      - name: is_mainline
+        sql: "{{CUBE}}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line
+
+      - name: item_id
+        sql: "{{CUBE}}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items refunded
+
+      - name: unit_rate
+        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit refund rate/price
+
+      - name: line_amount
+        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        type: number
+        description: Line item refund amount
+
+      - name: location_id
+        sql: "{{CUBE}}.location_id"
+        type: number
+        description: Foreign key to location dimension
+
+      - name: department_id
+        sql: "{{CUBE}}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{{CUBE}}.class_id"
+        type: number
+        description: Foreign key to class dimension
+
+    segments:
+      - name: in_scope_only
+        sql: "{{CUBE}}.transaction_in_scope = true"
+        description: "Excludes webstore and POS system entities for accurate customer metrics"
+
+      - name: customer_refunds
+        sql: "{{CUBE}}.entity_type = 'customer'"
+        description: "Refunds from real customers only"
+
+      - name: webstore_refunds
+        sql: "{{CUBE}}.entity_type = 'webstore'"
+        description: "Refunds from webstore payment processor entities"
+
+      - name: pos_refunds
+        sql: "{{CUBE}}.entity_type = 'pos'"
+        description: "Refunds from POS system entities"
+
+      - name: detail_lines_only
+        sql: "{{CUBE}}.is_mainline = false"
+        description: "Detail lines only (excludes summary mainline records)"
+
+    pre_aggregations:
+      - name: daily_refund_lines
+        measures:
+          - cashrfnd_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_cashrfnd_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

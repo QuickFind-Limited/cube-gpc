@@ -1,0 +1,43 @@
+cubes:
+  - name: classes
+    sql: SELECT * FROM `gpc_data_2026_01_26.classes`
+    title: Classes
+    description: >
+      Class dimension for product line or segment classification.
+      Grain: one row per class (product line/segment classification).
+
+    measures:
+      - name: classes_count
+        type: count
+        description: Total number of classes
+
+    dimensions:
+      - name: id
+        sql: "{{CUBE}}.id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the class
+
+      - name: name
+        sql: "{{CUBE}}.name"
+        type: string
+        description: Short name of the class
+
+      - name: fullname
+        sql: "{{CUBE}}.fullname"
+        type: string
+        description: Full hierarchical name of the class (e.g., 'Parent : Child')
+
+      - name: is_inactive
+        sql: "{{CUBE}}.is_inactive"
+        type: boolean
+        description: Indicates if the class is inactive
+
+    segments:
+      - name: active_classes
+        sql: "{{CUBE}}.is_inactive = false"
+        description: "Active classes available for use"
+
+      - name: inactive_classes
+        sql: "{{CUBE}}.is_inactive = true"
+        description: "Inactive or archived classes"

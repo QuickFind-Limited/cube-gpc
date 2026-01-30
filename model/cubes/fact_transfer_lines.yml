@@ -1,0 +1,49 @@
+cubes:
+  - name: fact_transfer_lines
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_transfer_lines`
+    title: Transfer Lines
+    description: >
+      Line-level details for transfer transactions (inter-account/inter-entity transfers).
+      Grain: one row per transfer line item.
+
+    joins:
+      - name: fact_transfer_headers
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{fact_transfer_headers.transaction_id}}"
+
+      - name: transactions
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{transactions.id}}"
+
+    measures:
+      - name: transfer_lines_count
+        type: count
+        description: Total number of transfer line items
+
+    dimensions:
+      - name: line_id
+        sql: "CAST({{CUBE}}.line_id AS INT64)"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "CAST({{CUBE}}.transaction_id AS INT64)"
+        type: number
+        description: Foreign key to transfer transaction header
+        public: false
+
+      - name: is_mainline
+        sql: "{{CUBE}}.is_mainline"
+        type: boolean
+        description: Indicates if this is a main line (header summary) vs detail line
+
+    pre_aggregations:
+      - name: daily_rollup
+        measures:
+          - transfer_lines_count
+        dimensions:
+          - is_mainline
+        time_dimension: fact_transfer_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

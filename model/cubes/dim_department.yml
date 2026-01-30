@@ -1,21 +1,15 @@
 cubes:
-  - name: departments
-    sql: SELECT * FROM `gpc_data_2026_01_26.departments`
+  - name: dim_department
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_department`
     title: Departments
     description: >
-      Department reference data (eCommerce, Retail, Wholesale, etc.).
+      Department dimension for cost center and organizational tracking.
       Grain: one row per department.
 
     measures:
       - name: department_count
         type: count
         description: Total number of departments
-
-      - name: active_department_count
-        type: count
-        filters:
-          - sql: "{{CUBE}}.is_inactive = false"
-        description: Number of active departments
 
     dimensions:
       - name: department_id
@@ -27,17 +21,17 @@ cubes:
       - name: department_name
         sql: "{{CUBE}}.department_name"
         type: string
-        description: Department name (eCommerce, Retail, Wholesale)
+        description: Short name of the department
 
       - name: department_fullname
         sql: "{{CUBE}}.department_fullname"
         type: string
-        description: Full department name
+        description: Full hierarchical name of the department
 
       - name: is_inactive
         sql: "{{CUBE}}.is_inactive"
         type: boolean
-        description: Whether department is inactive
+        description: Indicates if the department is inactive
 
       - name: last_modified_date
         sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
@@ -45,20 +39,10 @@ cubes:
         description: Date when the department record was last modified
 
     segments:
-      - name: active
+      - name: active_departments
         sql: "{{CUBE}}.is_inactive = false"
-        description: Active departments only
+        description: "Active departments only (excludes inactive departments)"
 
-      - name: inactive
+      - name: inactive_departments
         sql: "{{CUBE}}.is_inactive = true"
-        description: Inactive departments
-
-    pre_aggregations:
-      - name: department_analysis
-        measures:
-          - department_count
-          - active_department_count
-        dimensions:
-          - department_name
-        refresh_key:
-          every: 1 day
+        description: "Inactive departments only"

@@ -1,0 +1,170 @@
+cubes:
+  - name: fact_custcred_headers
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_custcred_headers`
+    title: Customer Credit Memos
+    description: >
+      Customer credit memo transactions.
+      Grain: one row per customer credit memo transaction.
+      Note: Contains entity contamination - use in_scope_only segment to exclude webstore/POS system entities.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: custcred_count
+        type: count
+        description: Total number of customer credit memo transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total credit amount (base currency, negative values)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total credit amount (positive for reporting)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total credit amount in transaction currency (negative values)
+
+      - name: avg_credit_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average credit memo amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the credit memo transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable transaction number (e.g., CM12345)
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Credit memo transaction date
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date when the credit memo was closed/applied
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Flag indicating if transaction is in scope (excludes system entities)
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate from transaction currency to base currency
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Transaction status code
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the credit memo has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to the general ledger
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes webstore and POS system entities for accurate customer credit analysis"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes POS system entities"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer' OR ({CUBE}.entity_type IS NULL AND {CUBE}.transaction_in_scope = true)"
+        description: "Only real customer credit memos"
+
+      - name: open_credits
+        sql: "{CUBE}.transaction_status = 'A'"
+        description: "Open/unapplied credit memos"
+
+      - name: closed_credits
+        sql: "{CUBE}.transaction_status = 'B'"
+        description: "Closed/fully applied credit memos"
+
+      - name: non_voided
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided transactions"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custcred_count
+          - total_amount
+          - total_amount_abs
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

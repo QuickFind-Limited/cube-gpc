@@ -1,0 +1,180 @@
+cubes:
+  - name: fact_custinvc_headers
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_custinvc_headers`
+    title: Customer Invoices
+    description: >
+      Customer invoice transaction headers.
+      Grain: one row per customer invoice transaction.
+      Note: 99.4% of invoices are from webstore/POS system entities. Use in_scope_only segment for customer analytics.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{{CUBE}}.customer_id = {{dim_customer.customer_id}}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{{CUBE}}.posting_period_id = {{dim_accounting_period.period_id}}"
+
+    measures:
+      - name: custinvc_count
+        type: count
+        description: Total number of customer invoices
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of invoice amounts in base currency
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute invoice amounts (for reports showing positive values)
+
+      - name: foreign_total_amount
+        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of invoice amounts in transaction currency
+
+      - name: avg_invoice_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average invoice amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique invoice transaction identifier
+
+      - name: transaction_number
+        sql: "{{CUBE}}.transaction_number"
+        type: string
+        description: Human-readable invoice number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        type: time
+        description: Invoice transaction date
+
+      - name: ship_date
+        sql: "TIMESTAMP({{CUBE}}.ship_date)"
+        type: time
+        description: Invoice ship date
+
+      - name: close_date
+        sql: "TIMESTAMP({{CUBE}}.close_date)"
+        type: time
+        description: Invoice close date
+
+      - name: customer_id
+        sql: "{{CUBE}}.customer_id"
+        type: number
+        description: Customer identifier (foreign key to dim_customer)
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Subsidiary identifier (foreign key to dim_subsidiary)
+
+      - name: currency_id
+        sql: "{{CUBE}}.currency_id"
+        type: number
+        description: Currency identifier (foreign key to dim_currency)
+
+      - name: posting_period_id
+        sql: "{{CUBE}}.posting_period_id"
+        type: number
+        description: Posting period identifier (foreign key to dim_accounting_period)
+
+      - name: entity_type
+        sql: "{{CUBE}}.entity_type"
+        type: string
+        description: Entity classification (webstore, pos, customer)
+
+      - name: transaction_in_scope
+        sql: "{{CUBE}}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope (excludes system entities)
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: number
+        description: Invoice amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Invoice amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to convert transaction currency to base currency
+
+      - name: transaction_status
+        sql: "{{CUBE}}.transaction_status"
+        type: string
+        description: Invoice status code
+
+      - name: is_voided
+        sql: "{{CUBE}}.is_voided"
+        type: boolean
+        description: Indicates if the invoice has been voided
+
+      - name: is_posting
+        sql: "{{CUBE}}.is_posting"
+        type: boolean
+        description: Indicates if the invoice posts to the general ledger
+
+    segments:
+      - name: in_scope_only
+        sql: "{{CUBE}}.transaction_in_scope = true"
+        description: "Excludes webstore/POS system entities for accurate customer analytics"
+
+      - name: customers_only
+        sql: "{{CUBE}}.entity_type = 'customer'"
+        description: "Only real customer invoices (excludes webstore and POS entities)"
+
+      - name: exclude_webstore
+        sql: "{{CUBE}}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{{CUBE}}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
+      - name: posted_invoices
+        sql: "{{CUBE}}.is_posting = true AND {{CUBE}}.is_voided = false"
+        description: "Posted, non-voided invoices"
+
+      - name: voided_invoices
+        sql: "{{CUBE}}.is_voided = true"
+        description: "Voided invoices"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custinvc_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

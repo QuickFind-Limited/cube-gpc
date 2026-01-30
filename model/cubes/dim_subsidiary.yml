@@ -1,8 +1,19 @@
 cubes:
-  - name: subsidiaries
-    sql: SELECT * FROM `gpc_data_2026_01_26.subsidiaries`
+  - name: dim_subsidiary
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_subsidiary`
     title: Subsidiaries
-    description: Legal entity reference data for multi-entity accounting
+    description: >
+      Subsidiary and legal entity dimension for multi-entity organizations.
+      Grain: one row per subsidiary/legal entity.
+
+    joins:
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+
+      - name: parent_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.parent_subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
 
     measures:
       - name: subsidiary_count
@@ -19,32 +30,32 @@ cubes:
       - name: subsidiary_name
         sql: "{{CUBE}}.subsidiary_name"
         type: string
-        description: Subsidiary name
+        description: Short name of the subsidiary
 
       - name: subsidiary_legal_name
         sql: "{{CUBE}}.subsidiary_legal_name"
         type: string
-        description: Legal company name
+        description: Full legal name of the subsidiary
 
       - name: federal_id_number
         sql: "{{CUBE}}.federal_id_number"
         type: string
-        description: Federal tax identification number
+        description: Federal tax identification number (EIN, VAT number, etc.)
 
       - name: country_code
         sql: "{{CUBE}}.country_code"
         type: string
-        description: Country code (IE, GB)
+        description: ISO country code where subsidiary is registered
 
       - name: currency_id
         sql: "{{CUBE}}.currency_id"
         type: number
-        description: Currency ID reference
+        description: Base currency for the subsidiary
 
       - name: parent_subsidiary_id
         sql: "{{CUBE}}.parent_subsidiary_id"
         type: number
-        description: Parent subsidiary ID for hierarchical structures
+        description: Parent subsidiary for organizational hierarchy
 
       - name: is_inactive
         sql: "{{CUBE}}.is_inactive"
@@ -59,7 +70,7 @@ cubes:
       - name: last_modified_date
         sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
         type: time
-        description: Date when the subsidiary record was last modified
+        description: Date when subsidiary record was last modified
 
     segments:
       - name: active_subsidiaries
@@ -68,18 +79,12 @@ cubes:
 
       - name: operating_subsidiaries
         sql: "{{CUBE}}.is_elimination = false"
-        description: "Operating subsidiaries (excludes elimination entities)"
+        description: "Operating subsidiaries (excludes elimination entities for consolidation)"
 
-      - name: elimination_subsidiaries
-        sql: "{{CUBE}}.is_elimination = true"
-        description: "Elimination subsidiaries for consolidation purposes"
+      - name: parent_companies
+        sql: "{{CUBE}}.parent_subsidiary_id IS NULL"
+        description: "Top-level parent companies with no parent subsidiary"
 
-    pre_aggregations:
-      - name: subsidiary_analysis
-        measures:
-          - subsidiary_count
-        dimensions:
-          - subsidiary_name
-          - country_code
-        refresh_key:
-          every: 1 day
+      - name: child_subsidiaries
+        sql: "{{CUBE}}.parent_subsidiary_id IS NOT NULL"
+        description: "Child subsidiaries with a parent entity"

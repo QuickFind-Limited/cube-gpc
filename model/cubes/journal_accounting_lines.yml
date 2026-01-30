@@ -1,0 +1,143 @@
+cubes:
+  - name: journal_accounting_lines
+    sql: SELECT * FROM `gpc_data_2026_01_26.journal_accounting_lines`
+    title: Journal Accounting Lines
+    description: >
+      Detailed accounting lines from journal entries showing debits, credits, and account distributions.
+      Grain: one row per journal entry accounting line.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction = {{transactions.id}}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{{CUBE}}.department = {{departments.department_id}}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{{CUBE}}.location = {{locations.location_id}}"
+
+    measures:
+      - name: journal_lines_count
+        type: count
+        description: Total number of journal accounting lines
+
+      - name: total_debit
+        sql: "CAST({{CUBE}}.debit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all debit amounts
+
+      - name: total_credit
+        sql: "CAST({{CUBE}}.credit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all credit amounts
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all transaction amounts
+
+      - name: total_netamount
+        sql: "CAST({{CUBE}}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net amounts after adjustments
+
+      - name: avg_exchangerate
+        sql: "CAST({{CUBE}}.exchangerate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate for multi-currency transactions
+
+    dimensions:
+      - name: transaction
+        sql: "{{CUBE}}.transaction"
+        type: number
+        primary_key: true
+        description: Foreign key to the parent transaction
+
+      - name: account
+        sql: "{{CUBE}}.account"
+        type: number
+        primary_key: true
+        description: GL account number for this accounting line
+
+      - name: debit
+        sql: "CAST({{CUBE}}.debit AS FLOAT64)"
+        type: number
+        description: Debit amount for this line
+
+      - name: credit
+        sql: "CAST({{CUBE}}.credit AS FLOAT64)"
+        type: number
+        description: Credit amount for this line
+
+      - name: amount
+        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        type: number
+        description: Transaction amount (signed)
+
+      - name: netamount
+        sql: "CAST({{CUBE}}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after adjustments
+
+      - name: exchangerate
+        sql: "CAST({{CUBE}}.exchangerate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to foreign currency amounts
+
+      - name: department
+        sql: "{{CUBE}}.department"
+        type: number
+        description: Department for cost allocation
+
+      - name: class
+        sql: "{{CUBE}}.class"
+        type: number
+        description: Class/segment for reporting
+
+      - name: location
+        sql: "{{CUBE}}.location"
+        type: number
+        description: Location for this accounting line
+
+      - name: memo
+        sql: "{{CUBE}}.memo"
+        type: string
+        description: Line-level memo or description
+
+      - name: trandate
+        sql: "TIMESTAMP({{CUBE}}.trandate)"
+        type: time
+        description: Transaction date for this journal line
+
+    segments:
+      - name: debit_lines
+        sql: "CAST({{CUBE}}.debit AS FLOAT64) > 0"
+        description: "Lines with debit entries"
+
+      - name: credit_lines
+        sql: "CAST({{CUBE}}.credit AS FLOAT64) > 0"
+        description: "Lines with credit entries"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - journal_lines_count
+          - total_debit
+          - total_credit
+          - total_amount
+          - total_netamount
+        dimensions:
+          - account
+          - department
+          - location
+        time_dimension: trandate
+        granularity: day
+        refresh_key:
+          every: 1 day

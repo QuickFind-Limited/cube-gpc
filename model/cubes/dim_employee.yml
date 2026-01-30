@@ -1,0 +1,105 @@
+cubes:
+  - name: dim_employee
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_employee`
+    title: Employees
+    description: >
+      Employee dimension containing employee information including sales representatives.
+      Grain: one row per employee.
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+    measures:
+      - name: employee_count
+        type: count
+        description: Total number of employees
+
+      - name: active_employee_count
+        type: count
+        sql: employee_id
+        filters:
+          - sql: "{{CUBE}}.is_inactive = false"
+        description: Count of active employees
+
+      - name: sales_rep_count
+        type: count
+        sql: employee_id
+        filters:
+          - sql: "{{CUBE}}.is_sales_rep = true AND {{CUBE}}.is_inactive = false"
+        description: Count of active sales representatives
+
+    dimensions:
+      - name: employee_id
+        sql: "{{CUBE}}.employee_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the employee
+
+      - name: employee_code
+        sql: "{{CUBE}}.employee_code"
+        type: string
+        description: Employee code or badge number
+
+      - name: first_name
+        sql: "{{CUBE}}.first_name"
+        type: string
+        description: Employee first name
+
+      - name: last_name
+        sql: "{{CUBE}}.last_name"
+        type: string
+        description: Employee last name
+
+      - name: full_name
+        sql: "CONCAT({{CUBE}}.first_name, ' ', {{CUBE}}.last_name)"
+        type: string
+        description: Employee full name (first + last)
+
+      - name: employee_email
+        sql: "{{CUBE}}.employee_email"
+        type: string
+        description: Employee email address
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: is_inactive
+        sql: "{{CUBE}}.is_inactive"
+        type: boolean
+        description: Indicates if the employee is inactive
+
+      - name: is_sales_rep
+        sql: "{{CUBE}}.is_sales_rep"
+        type: boolean
+        description: Indicates if the employee is a sales representative
+
+      - name: hire_date
+        sql: "TIMESTAMP({{CUBE}}.hire_date)"
+        type: time
+        description: Date when employee was hired
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        type: time
+        description: Date when employee record was last modified
+
+    segments:
+      - name: active_employees
+        sql: "{{CUBE}}.is_inactive = false"
+        description: "Employees who are currently active"
+
+      - name: inactive_employees
+        sql: "{{CUBE}}.is_inactive = true"
+        description: "Employees who are inactive"
+
+      - name: sales_representatives
+        sql: "{{CUBE}}.is_sales_rep = true"
+        description: "Employees who are sales representatives"
+
+      - name: active_sales_reps
+        sql: "{{CUBE}}.is_sales_rep = true AND {{CUBE}}.is_inactive = false"
+        description: "Active sales representatives"

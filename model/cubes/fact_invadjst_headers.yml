@@ -1,0 +1,146 @@
+cubes:
+  - name: fact_invadjst_headers
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_invadjst_headers`
+    title: Inventory Adjustment Headers
+    description: >
+      Inventory adjustment transaction headers tracking stock level corrections and adjustments.
+      Grain: one row per inventory adjustment transaction.
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{{CUBE}}.posting_period_id = {{dim_accounting_period.period_id}}"
+
+    measures:
+      - name: invadjst_count
+        type: count
+        description: Total number of inventory adjustment transactions
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total amounts (base currency)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute total amounts (for volume metrics)
+
+      - name: foreign_total_amount
+        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total amounts in transaction currency
+
+      - name: avg_adjustment_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average inventory adjustment amount
+
+      - name: min_adjustment_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum inventory adjustment amount
+
+      - name: max_adjustment_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum inventory adjustment amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the inventory adjustment transaction
+
+      - name: transaction_number
+        sql: "{{CUBE}}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        type: time
+        description: Date when the inventory adjustment was recorded
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{{CUBE}}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{{CUBE}}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: exchange_rate
+        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{{CUBE}}.transaction_status"
+        type: string
+        description: Status of the inventory adjustment transaction
+
+      - name: is_voided
+        sql: "{{CUBE}}.is_voided"
+        type: boolean
+        description: Indicates if the transaction has been voided
+
+      - name: is_posting
+        sql: "{{CUBE}}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to the general ledger
+
+    segments:
+      - name: posted_adjustments
+        sql: "{{CUBE}}.is_posting = true AND {{CUBE}}.is_voided = false"
+        description: "Posted, non-voided inventory adjustments"
+
+      - name: voided_adjustments
+        sql: "{{CUBE}}.is_voided = true"
+        description: "Voided inventory adjustments"
+
+      - name: positive_adjustments
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64) > 0"
+        description: "Inventory increases (positive adjustments)"
+
+      - name: negative_adjustments
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64) < 0"
+        description: "Inventory decreases (negative adjustments)"
+
+    pre_aggregations:
+      - name: daily_adjustments
+        measures:
+          - invadjst_count
+          - total_amount
+          - total_amount_abs
+          - foreign_total_amount
+        dimensions:
+          - transaction_status
+          - subsidiary_id
+          - currency_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
