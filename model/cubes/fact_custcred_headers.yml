@@ -53,6 +53,11 @@ cubes:
         format: currency
         description: Average credit memo amount
 
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
     dimensions:
       - name: transaction_id
         sql: "{CUBE}.transaction_id"

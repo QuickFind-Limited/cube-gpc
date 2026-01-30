@@ -13,26 +13,26 @@ cubes:
 
     dimensions:
       - name: payment_method_id
-        sql: "{{CUBE}}.payment_method_id"
+        sql: "{CUBE}.payment_method_id"
         type: number
         primary_key: true
         description: Unique identifier for the payment method
 
       - name: payment_method_name
-        sql: "{{CUBE}}.payment_method_name"
+        sql: "{CUBE}.payment_method_name"
         type: string
         description: Name of the payment method (e.g., Visa, Mastercard, Cash, PayPal)
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the payment method is inactive
 
     segments:
       - name: active_methods
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Payment methods currently available for use"
 
       - name: inactive_methods
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Payment methods that have been deactivated"

@@ -9,11 +9,11 @@ cubes:
     joins:
       - name: dim_currency
         relationship: many_to_one
-        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
 
       - name: parent_subsidiary
         relationship: many_to_one
-        sql: "{{CUBE}}.parent_subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+        sql: "{CUBE}.parent_subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
     measures:
       - name: subsidiary_count
@@ -22,69 +22,69 @@ cubes:
 
     dimensions:
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         primary_key: true
         description: Unique identifier for the subsidiary
 
       - name: subsidiary_name
-        sql: "{{CUBE}}.subsidiary_name"
+        sql: "{CUBE}.subsidiary_name"
         type: string
         description: Short name of the subsidiary
 
       - name: subsidiary_legal_name
-        sql: "{{CUBE}}.subsidiary_legal_name"
+        sql: "{CUBE}.subsidiary_legal_name"
         type: string
         description: Full legal name of the subsidiary
 
       - name: federal_id_number
-        sql: "{{CUBE}}.federal_id_number"
+        sql: "{CUBE}.federal_id_number"
         type: string
         description: Federal tax identification number (EIN, VAT number, etc.)
 
       - name: country_code
-        sql: "{{CUBE}}.country_code"
+        sql: "{CUBE}.country_code"
         type: string
         description: ISO country code where subsidiary is registered
 
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         description: Base currency for the subsidiary
 
       - name: parent_subsidiary_id
-        sql: "{{CUBE}}.parent_subsidiary_id"
+        sql: "{CUBE}.parent_subsidiary_id"
         type: number
         description: Parent subsidiary for organizational hierarchy
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the subsidiary is inactive
 
       - name: is_elimination
-        sql: "{{CUBE}}.is_elimination"
+        sql: "{CUBE}.is_elimination"
         type: boolean
         description: Indicates if this is an elimination subsidiary for consolidation
 
       - name: last_modified_date
-        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
         description: Date when subsidiary record was last modified
 
     segments:
       - name: active_subsidiaries
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active subsidiaries only"
 
       - name: operating_subsidiaries
-        sql: "{{CUBE}}.is_elimination = false"
+        sql: "{CUBE}.is_elimination = false"
         description: "Operating subsidiaries (excludes elimination entities for consolidation)"
 
       - name: parent_companies
-        sql: "{{CUBE}}.parent_subsidiary_id IS NULL"
+        sql: "{CUBE}.parent_subsidiary_id IS NULL"
         description: "Top-level parent companies with no parent subsidiary"
 
       - name: child_subsidiaries
-        sql: "{{CUBE}}.parent_subsidiary_id IS NOT NULL"
+        sql: "{CUBE}.parent_subsidiary_id IS NOT NULL"
         description: "Child subsidiaries with a parent entity"

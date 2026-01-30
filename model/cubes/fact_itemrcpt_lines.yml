@@ -9,15 +9,15 @@ cubes:
     joins:
       - name: fact_itemrcpt_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_itemrcpt_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_itemrcpt_headers.transaction_id}"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
     measures:
       - name: itemrcpt_lines_count
@@ -25,96 +25,96 @@ cubes:
         description: Total number of item receipt line items
 
       - name: total_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: sum
         description: Total quantity received across all line items
 
       - name: avg_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: avg
         description: Average quantity received per line item
 
       - name: total_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: sum
         description: Sum of unit rates (for aggregation purposes)
 
       - name: avg_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: avg
         description: Average unit rate per line item
 
       - name: total_line_value
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) * CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
         type: sum
         format: currency
         description: Total value of all receipt lines (quantity × unit rate)
 
       - name: avg_line_value
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) * CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
         type: avg
         format: currency
         description: Average value per receipt line
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier within the transaction
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Item receipt transaction identifier
 
       - name: line_sequence_number
-        sql: "{{CUBE}}.line_sequence_number"
+        sql: "{CUBE}.line_sequence_number"
         type: number
         primary_key: true
         description: Sequence number of the line within the transaction
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a mainline (header summary) record
 
       - name: item_id
-        sql: "{{CUBE}}.item_id"
+        sql: "{CUBE}.item_id"
         type: number
         description: Item/product identifier
 
       - name: quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: number
         description: Quantity of items received
 
       - name: unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: number
         description: Unit cost/rate for the item
 
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         description: Location/warehouse where items were received
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Class/product line identifier
 
     segments:
       - name: positive_quantities
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) > 0"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
         description: "Receipt lines with positive quantities (actual receipts)"
 
       - name: negative_quantities
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) < 0"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
         description: "Receipt lines with negative quantities (returns or adjustments)"
 
       - name: zero_quantities
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) = 0"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) = 0"
         description: "Receipt lines with zero quantity"
 
     pre_aggregations:

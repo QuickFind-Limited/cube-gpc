@@ -9,11 +9,11 @@ cubes:
     joins:
       - name: fact_vendpymt_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_vendpymt_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_vendpymt_headers.transaction_id}"
 
       - name: transactions
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{transactions.id}}"
+        sql: "{CUBE}.transaction_id = {transactions.id}"
 
     measures:
       - name: vendpymt_lines_count
@@ -21,47 +21,47 @@ cubes:
         description: Total number of vendor payment line items
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of vendor payment amounts (negative values represent payments out)
 
       - name: total_amount_abs
-        sql: "ABS(CAST({{CUBE}}.amount AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
         type: sum
         format: currency
         description: Sum of absolute vendor payment amounts
 
       - name: avg_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average vendor payment amount per line
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         description: Foreign key to vendor payment transaction header
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is the main summary line
 
       - name: amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: number
         description: Payment amount (negative for payments out)
 
     segments:
       - name: detail_lines_only
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Excludes header/summary lines for line-level analysis"
 
     pre_aggregations:

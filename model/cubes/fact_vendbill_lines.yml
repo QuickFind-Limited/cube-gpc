@@ -9,15 +9,15 @@ cubes:
     joins:
       - name: fact_vendbill_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_vendbill_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_vendbill_headers.transaction_id}"
 
       - name: transactions
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{transactions.id}}"
+        sql: "{CUBE}.transaction_id = {transactions.id}"
 
       - name: classes
         relationship: many_to_one
-        sql: "{{CUBE}}.class_id = {{classes.id}}"
+        sql: "{CUBE}.class_id = {classes.id}"
 
     measures:
       - name: vendbill_lines_count
@@ -25,13 +25,13 @@ cubes:
         description: Total number of vendor bill line items
 
       - name: total_line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of line amounts across vendor bill lines
 
       - name: avg_line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average line amount
@@ -48,50 +48,50 @@ cubes:
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier (not globally unique, scoped to transaction)
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         description: Foreign key to vendor bill transaction
 
       - name: line_sequence_number
-        sql: "{{CUBE}}.line_sequence_number"
+        sql: "{CUBE}.line_sequence_number"
         type: number
         description: Sequence number of line within transaction
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a mainline summary record
 
       - name: line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: number
         description: Line amount in base currency
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Foreign key to class/department dimension
 
     segments:
       - name: detail_lines_only
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Excludes mainline summary records, only detail lines"
 
       - name: negative_amounts
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64) < 0"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) < 0"
         description: "Lines with negative amounts (credits or reversals)"
 
       - name: positive_amounts
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64) > 0"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) > 0"
         description: "Lines with positive amounts (debits or expenses)"
 
       - name: has_class_assignment
-        sql: "{{CUBE}}.class_id IS NOT NULL"
+        sql: "{CUBE}.class_id IS NOT NULL"
         description: "Lines with class/department assignment"
 
     pre_aggregations:

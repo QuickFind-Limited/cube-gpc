@@ -13,81 +13,80 @@ cubes:
 
       - name: active_vendor_count
         type: count
-        sql: "vendor_id"
         filters:
-          - sql: "{{CUBE}}.is_inactive = false"
+          - sql: "{CUBE}.is_inactive = false"
         description: Number of active vendors
 
     dimensions:
       - name: vendor_id
-        sql: "{{CUBE}}.vendor_id"
+        sql: "{CUBE}.vendor_id"
         type: number
         primary_key: true
         description: Unique identifier for the vendor
 
       - name: vendor_code
-        sql: "{{CUBE}}.vendor_code"
+        sql: "{CUBE}.vendor_code"
         type: string
         description: Vendor code or external identifier
 
       - name: company_name
-        sql: "{{CUBE}}.company_name"
+        sql: "{CUBE}.company_name"
         type: string
         description: Vendor company name
 
       - name: email
-        sql: "{{CUBE}}.email"
+        sql: "{CUBE}.email"
         type: string
         description: Vendor email address
 
       - name: phone
-        sql: "{{CUBE}}.phone"
+        sql: "{CUBE}.phone"
         type: string
         description: Vendor phone number
 
       - name: vendor_category_id
-        sql: "{{CUBE}}.vendor_category_id"
+        sql: "{CUBE}.vendor_category_id"
         type: number
         description: Vendor category classification ID
 
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         description: Subsidiary ID the vendor is associated with
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the vendor is inactive
 
       - name: is_person
-        sql: "{{CUBE}}.is_person"
+        sql: "{CUBE}.is_person"
         type: boolean
         description: Indicates if the vendor is an individual person (not a company)
 
       - name: date_created
-        sql: "TIMESTAMP({{CUBE}}.date_created)"
+        sql: "TIMESTAMP({CUBE}.date_created)"
         type: time
         description: Date when the vendor record was created
 
       - name: last_modified_date
-        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
         description: Date when the vendor record was last modified
 
     segments:
       - name: active_vendors
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Vendors that are currently active"
 
       - name: inactive_vendors
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Vendors that have been marked inactive"
 
       - name: company_vendors
-        sql: "{{CUBE}}.is_person = false"
+        sql: "{CUBE}.is_person = false"
         description: "Vendors that are companies (not individuals)"
 
       - name: individual_vendors
-        sql: "{{CUBE}}.is_person = true"
+        sql: "{CUBE}.is_person = true"
         description: "Vendors that are individual persons"

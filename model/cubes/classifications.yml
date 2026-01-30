@@ -14,33 +14,33 @@ cubes:
       - name: active_count
         type: count
         filters:
-          - sql: "{{CUBE}}.is_inactive = false"
+          - sql: "{CUBE}.is_inactive = false"
         description: Number of active classifications
 
     dimensions:
       - name: classification_id
-        sql: "{{CUBE}}.classification_id"
+        sql: "{CUBE}.classification_id"
         type: number
         primary_key: true
         description: Unique identifier for the classification
 
       - name: classification_name
-        sql: "{{CUBE}}.classification_name"
+        sql: "{CUBE}.classification_name"
         type: string
         description: Classification name (EU Website, UK Website, Kildare Village, etc.)
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Whether classification is inactive
 
     segments:
       - name: active
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active classifications only"
 
       - name: inactive
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Inactive classifications"
 
     pre_aggregations:

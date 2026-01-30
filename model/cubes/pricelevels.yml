@@ -12,46 +12,46 @@ cubes:
         description: Total number of price levels
 
       - name: avg_discount_percent
-        sql: "CAST({{CUBE}}.discount_percent AS FLOAT64)"
+        sql: "CAST({CUBE}.discount_percent AS FLOAT64)"
         type: avg
         description: Average discount percentage across price levels
 
     dimensions:
       - name: id
-        sql: "{{CUBE}}.id"
+        sql: "{CUBE}.id"
         type: number
         primary_key: true
         description: Unique identifier for the price level
 
       - name: name
-        sql: "{{CUBE}}.name"
+        sql: "{CUBE}.name"
         type: string
         description: Price level name (e.g., 'Base Price', 'VIP Discount')
 
       - name: discount_percent
-        sql: "CAST({{CUBE}}.discount_percent AS FLOAT64)"
+        sql: "CAST({CUBE}.discount_percent AS FLOAT64)"
         type: number
         description: Discount percentage applied at this price level
 
       - name: is_online
-        sql: "{{CUBE}}.is_online"
+        sql: "{CUBE}.is_online"
         type: boolean
         description: Indicates if this price level is available for online purchases
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if this price level is inactive
 
     segments:
       - name: active_price_levels
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active price levels available for use"
 
       - name: online_price_levels
-        sql: "{{CUBE}}.is_online = true"
+        sql: "{CUBE}.is_online = true"
         description: "Price levels available for online transactions"
 
       - name: discounted_levels
-        sql: "{{CUBE}}.discount_percent > 0"
+        sql: "{CUBE}.discount_percent > 0"
         description: "Price levels with a discount applied"

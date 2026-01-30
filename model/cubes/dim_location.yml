@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
     measures:
       - name: location_count
@@ -17,118 +17,118 @@ cubes:
         description: Total number of locations
 
       - name: avg_latitude
-        sql: "CAST({{CUBE}}.latitude AS FLOAT64)"
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
         type: avg
         description: Average latitude of locations
 
       - name: avg_longitude
-        sql: "CAST({{CUBE}}.longitude AS FLOAT64)"
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
         type: avg
         description: Average longitude of locations
 
     dimensions:
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         primary_key: true
         description: Unique identifier for the location
 
       - name: location_name
-        sql: "{{CUBE}}.location_name"
+        sql: "{CUBE}.location_name"
         type: string
         description: Location name
 
       - name: location_fullname
-        sql: "{{CUBE}}.location_fullname"
+        sql: "{CUBE}.location_fullname"
         type: string
         description: Full hierarchical location name
 
       - name: location_external_id
-        sql: "{{CUBE}}.location_external_id"
+        sql: "{CUBE}.location_external_id"
         type: string
         description: External system identifier for the location
 
       - name: location_type_id
-        sql: "{{CUBE}}.location_type_id"
+        sql: "{CUBE}.location_type_id"
         type: number
         description: Location type identifier
 
       - name: location_type
-        sql: "{{CUBE}}.location_type"
+        sql: "{CUBE}.location_type"
         type: string
         description: Location type (e.g., warehouse, retail store)
 
       - name: is_sellable_location
-        sql: "{{CUBE}}.is_sellable_location"
+        sql: "{CUBE}.is_sellable_location"
         type: boolean
         description: Indicates if items can be sold from this location
 
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         description: Subsidiary/legal entity identifier
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the location is inactive
 
       - name: make_inventory_available
-        sql: "{{CUBE}}.make_inventory_available"
+        sql: "{CUBE}.make_inventory_available"
         type: boolean
         description: Indicates if inventory at this location is available for allocation
 
       - name: include_in_control_tower
-        sql: "{{CUBE}}.include_in_control_tower"
+        sql: "{CUBE}.include_in_control_tower"
         type: boolean
         description: Indicates if location is included in supply chain control tower
 
       - name: geolocation_method
-        sql: "{{CUBE}}.geolocation_method"
+        sql: "{CUBE}.geolocation_method"
         type: string
         description: Method used to determine geolocation coordinates
 
       - name: latitude
-        sql: "CAST({{CUBE}}.latitude AS FLOAT64)"
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
         type: number
         description: Geographic latitude coordinate
 
       - name: longitude
-        sql: "CAST({{CUBE}}.longitude AS FLOAT64)"
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
         type: number
         description: Geographic longitude coordinate
 
       - name: last_modified_date
-        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
         description: Date when the location record was last modified
 
       - name: main_address_id
-        sql: "{{CUBE}}.main_address_id"
+        sql: "{CUBE}.main_address_id"
         type: number
         description: Main address identifier for the location
 
     segments:
       - name: active_locations
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active locations only"
 
       - name: inactive_locations
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Inactive locations"
 
       - name: sellable_locations
-        sql: "{{CUBE}}.is_sellable_location = true"
+        sql: "{CUBE}.is_sellable_location = true"
         description: "Locations where items can be sold (retail stores)"
 
       - name: warehouse_locations
-        sql: "{{CUBE}}.is_sellable_location = false"
+        sql: "{CUBE}.is_sellable_location = false"
         description: "Warehouse/distribution locations (not retail)"
 
       - name: inventory_available_locations
-        sql: "{{CUBE}}.make_inventory_available = true"
+        sql: "{CUBE}.make_inventory_available = true"
         description: "Locations with inventory available for allocation"
 
       - name: control_tower_locations
-        sql: "{{CUBE}}.include_in_control_tower = true"
+        sql: "{CUBE}.include_in_control_tower = true"
         description: "Locations included in supply chain control tower monitoring"

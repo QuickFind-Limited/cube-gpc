@@ -13,31 +13,31 @@ cubes:
 
     dimensions:
       - name: id
-        sql: "{{CUBE}}.id"
+        sql: "{CUBE}.id"
         type: number
         primary_key: true
         description: Unique identifier for the class
 
       - name: name
-        sql: "{{CUBE}}.name"
+        sql: "{CUBE}.name"
         type: string
         description: Short name of the class
 
       - name: fullname
-        sql: "{{CUBE}}.fullname"
+        sql: "{CUBE}.fullname"
         type: string
         description: Full hierarchical name of the class (e.g., 'Parent : Child')
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the class is inactive
 
     segments:
       - name: active_classes
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active classes available for use"
 
       - name: inactive_classes
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Inactive or archived classes"
