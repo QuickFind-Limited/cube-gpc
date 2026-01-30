@@ -55,14 +55,23 @@ cubes:
           Old path (98.3% NULL): fulfillment_lines → fulfillments.entity → transactions (1,146 days avg - wrong!)
           New path (83.7% coverage): fulfillment_lines.createdfrom → transactions (20.5 days avg, 2 days median - correct!)
 
+      - name: lines_with_order_date
+        sql: "CASE WHEN {transactions.trandate} IS NOT NULL THEN 1 END"
+        type: count
+        description: >
+          Count of fulfillment lines with valid order date (FD002).
+          Used as denominator for average_fulfillment_days calculation.
+          Sept 2025: 78,230 of 93,436 lines (83.7%) have valid order dates.
+
       - name: average_fulfillment_days
-        sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
-        type: avg
+        sql: "1.0 * {total_fulfillment_days} / NULLIF({lines_with_order_date}, 0)"
+        type: number
         description: >
           Average days from order to ship (FD002).
-          FD002 FIX (FD002-fix-2): Changed from calculated measure (sum/count) to direct AVG to prevent line-count inflation.
-          Old method incorrectly summed days across all lines then divided by fulfillment count (98.6 days - WRONG).
-          New method uses SQL AVG directly (20.5 days - CORRECT).
+          FD002 FIX (FD002-fix-2): Changed denominator to lines_with_order_date (not line_count or fulfillment_count).
+          Old method #1: total_days / fulfillment_count (98.6 days - multi-line fulfillments inflated).
+          Old method #2: total_days / line_count (17.2 days - includes NULL dates).
+          New method: total_days / lines_with_order_date (20.5 days - CORRECT).
           Sept 2025: 20.5 days average, 2 days median (Wholesale UK 115-day outlier pulls average up).
           Use with location_label dimension to see DC vs Store breakdowns.
 
@@ -141,7 +150,8 @@ cubes:
           - sku_count
           - location_count
           - total_fulfillment_days
-          - average_fulfillment_days  # FD002 fix (FD002-fix-2): Now uses direct AVG instead of calculated
+          - lines_with_order_date  # FD002 fix (FD002-fix-2): Denominator for average calculation
+          # average_fulfillment_days excluded - calculated measure (total_days / lines_with_order_date)
         dimensions:
           - location
           - locations.name
