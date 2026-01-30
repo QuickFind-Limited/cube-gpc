@@ -7,13 +7,28 @@ cubes:
     measures:
       - name: item_count
         type: count
-        description: Total number of items
+        description: Total number of SKUs (size variants). LIFE001 NOTE - This counts SKUs, not products. For product count, use product_count measure.
+
+      - name: product_count
+        sql: "{CUBE}.custitem_gpc_stylenumber"
+        type: count_distinct_approx
+        description: >
+          Total number of products (unique style numbers). LIFE001 FIX - Counts distinct products, not SKUs.
+          GPC has ~25 SKUs per product (much higher than typical 7:1 ratio due to size/color variations).
+          Use this for "How many products..." questions. Use item_count for "How many SKUs..." questions.
 
       - name: active_item_count
         type: count
         filters:
           - sql: "{CUBE}.isinactive = FALSE"
-        description: Number of active items
+        description: Number of active SKUs (not products)
+
+      - name: active_product_count
+        sql: "{CUBE}.custitem_gpc_stylenumber"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.isinactive = FALSE"
+        description: Number of active products (unique style numbers, inactive excluded)
 
     dimensions:
       - name: id
@@ -89,9 +104,10 @@ cubes:
         description: Product parent color
 
       - name: style_number
-        sql: "{CUBE}.custitem_gpc_style_number"
+        sql: "{CUBE}.custitem_gpc_stylenumber"
         type: string
-        description: Style number
+        title: Product Style Number
+        description: Style number - unique product identifier (multiple SKUs share same style number)
 
       - name: season_type
         sql: "{CUBE}.custitem_gpc_seasontype"
@@ -143,6 +159,8 @@ cubes:
         measures:
           - item_count
           - active_item_count
+          - product_count  # LIFE001 fix - product (style number) count
+          - active_product_count  # LIFE001 fix - active product count
         dimensions:
           - category
           - section
@@ -151,5 +169,6 @@ cubes:
           - color
           - itemtype
           - season_type
+          - markdown  # LIFE001 - needed for full price vs markdown analysis
         refresh_key:
           every: 1 day
