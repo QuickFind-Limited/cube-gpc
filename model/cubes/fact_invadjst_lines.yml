@@ -1,0 +1,155 @@
+cubes:
+  - name: fact_invadjst_lines
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_invadjst_lines`
+    title: Inventory Adjustment Lines
+    description: >
+      Line-level details for inventory adjustment transactions.
+      Grain: one row per inventory adjustment line item.
+
+    joins:
+      - name: fact_invadjst_headers
+        relationship: many_to_one
+        sql: "{{CUBE}}.transaction_id = {{fact_invadjst_headers.transaction_id}}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{{CUBE}}.class_id = {{classes.id}}"
+
+    measures:
+      - name: invadjst_lines_count
+        type: count
+        description: Total number of inventory adjustment line items
+
+      - name: total_quantity
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity adjusted across all lines
+
+      - name: total_quantity_abs
+        sql: "ABS(CAST({{CUBE}}.quantity AS FLOAT64))"
+        type: sum
+        description: Total absolute quantity adjusted (ignoring positive/negative direction)
+
+      - name: adjustment_value
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64) * CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total value of inventory adjustments (quantity × rate)
+
+      - name: adjustment_value_abs
+        sql: "ABS(CAST({{CUBE}}.quantity AS FLOAT64) * CAST({{CUBE}}.unit_rate AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total absolute value of inventory adjustments
+
+      - name: avg_unit_rate
+        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit rate for inventory adjustments
+
+      - name: distinct_items
+        sql: "{{CUBE}}.item_id"
+        type: count_distinct
+        description: Number of distinct items adjusted
+
+      - name: distinct_locations
+        sql: "{{CUBE}}.location_id"
+        type: count_distinct
+        description: Number of distinct locations with adjustments
+
+    dimensions:
+      - name: line_id
+        sql: "{{CUBE}}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to inventory adjustment transaction header
+
+      - name: line_sequence_number
+        sql: "{{CUBE}}.line_sequence_number"
+        type: number
+        primary_key: true
+        description: Sequential line number within the transaction
+
+      - name: is_mainline
+        sql: "{{CUBE}}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header summary) record
+
+      - name: item_id
+        sql: "{{CUBE}}.item_id"
+        type: number
+        description: Foreign key to the item being adjusted
+
+      - name: quantity
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        type: number
+        description: Adjustment quantity (positive for increases, negative for decreases)
+
+      - name: unit_rate
+        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit cost/rate for the adjusted inventory
+
+      - name: location_id
+        sql: "{{CUBE}}.location_id"
+        type: number
+        description: Foreign key to the location where adjustment occurred
+
+      - name: class_id
+        sql: "{{CUBE}}.class_id"
+        type: number
+        description: Foreign key to class (product line/segment)
+
+    segments:
+      - name: quantity_increases
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64) > 0"
+        description: "Adjustments that increase inventory (positive quantities)"
+
+      - name: quantity_decreases
+        sql: "CAST({{CUBE}}.quantity AS FLOAT64) < 0"
+        description: "Adjustments that decrease inventory (negative quantities)"
+
+      - name: detail_lines_only
+        sql: "{{CUBE}}.is_mainline = false"
+        description: "Excludes mainline/header records, showing only detail lines"
+
+    pre_aggregations:
+      - name: daily_adjustments
+        measures:
+          - invadjst_lines_count
+          - total_quantity
+          - adjustment_value
+        dimensions:
+          - item_id
+          - location_id
+        time_dimension: fact_invadjst_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_by_item_location
+        measures:
+          - invadjst_lines_count
+          - total_quantity
+          - adjustment_value
+        dimensions:
+          - item_id
+          - location_id
+        time_dimension: fact_invadjst_headers.transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day

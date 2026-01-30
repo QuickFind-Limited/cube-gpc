@@ -1,0 +1,174 @@
+cubes:
+  - name: fact_vendpymt_headers
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_vendpymt_headers`
+    title: Vendor Payments
+    description: >
+      Vendor payment transactions representing payments made to vendors.
+      Grain: one row per vendor payment transaction.
+
+    joins:
+      - name: dim_vendor
+        relationship: many_to_one
+        sql: "{{CUBE}}.vendor_id = {{dim_vendor.vendor_id}}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{{CUBE}}.posting_period_id = {{dim_accounting_period.period_id}}"
+
+    measures:
+      - name: vendpymt_count
+        type: count
+        description: Total number of vendor payment transactions
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total payment amount in base currency (negative values indicate outbound payments)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total payment amounts (positive for analysis)
+
+      - name: foreign_total_amount
+        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total payment amount in transaction currency
+
+      - name: foreign_total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.foreign_total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of foreign total payment amounts
+
+      - name: avg_payment_amount
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average vendor payment amount
+
+      - name: max_payment_amount
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: max
+        format: currency
+        description: Maximum vendor payment amount
+
+      - name: min_payment_amount
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: min
+        format: currency
+        description: Minimum vendor payment amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the vendor payment transaction
+
+      - name: transaction_number
+        sql: "{{CUBE}}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        type: time
+        description: Date when the payment was made
+
+      - name: close_date
+        sql: "TIMESTAMP({{CUBE}}.close_date)"
+        type: time
+        description: Date when the payment transaction was closed
+
+      - name: vendor_id
+        sql: "{{CUBE}}.vendor_id"
+        type: number
+        description: Foreign key to vendor dimension
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{{CUBE}}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{{CUBE}}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: exchange_rate
+        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{{CUBE}}.transaction_status"
+        type: string
+        description: Status of the payment transaction
+
+      - name: is_voided
+        sql: "{{CUBE}}.is_voided"
+        type: boolean
+        description: Indicates if the payment has been voided
+
+      - name: is_posting
+        sql: "{{CUBE}}.is_posting"
+        type: boolean
+        description: Indicates if the payment posts to the general ledger
+
+    segments:
+      - name: active_payments
+        sql: "{{CUBE}}.is_voided = false"
+        description: "Non-voided vendor payments"
+
+      - name: voided_payments
+        sql: "{{CUBE}}.is_voided = true"
+        description: "Voided vendor payments"
+
+      - name: gl_posting_payments
+        sql: "{{CUBE}}.is_posting = true"
+        description: "Payments that post to the general ledger"
+
+    pre_aggregations:
+      - name: daily_vendor_payments
+        measures:
+          - vendpymt_count
+          - total_amount_abs
+          - foreign_total_amount_abs
+        dimensions:
+          - vendor_id
+          - subsidiary_id
+          - currency_id
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_vendor_payments
+        measures:
+          - vendpymt_count
+          - total_amount_abs
+        dimensions:
+          - vendor_id
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day

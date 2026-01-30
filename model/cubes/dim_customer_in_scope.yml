@@ -1,0 +1,152 @@
+cubes:
+  - name: dim_customer_in_scope
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_customer_in_scope`
+    title: Customers (In Scope)
+    description: >
+      Filtered customer dimension containing only in-scope customers (excludes webstore and POS system entities).
+      Use this dimension for customer-facing analytics and reporting.
+      Grain: one row per in-scope customer (filtered subset of customers).
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+    measures:
+      - name: customer_count
+        type: count
+        description: Total number of in-scope customers
+
+      - name: active_customer_count
+        type: count
+        description: Number of active customers
+        filters:
+          - sql: "{{CUBE}}.is_inactive = false"
+
+      - name: person_customer_count
+        type: count
+        description: Number of individual person customers
+        filters:
+          - sql: "{{CUBE}}.is_person = true"
+
+      - name: company_customer_count
+        type: count
+        description: Number of company/business customers
+        filters:
+          - sql: "{{CUBE}}.is_person = false"
+
+    dimensions:
+      - name: customer_id
+        sql: "{{CUBE}}.customer_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the customer
+
+      - name: customer_code
+        sql: "{{CUBE}}.customer_code"
+        type: string
+        description: Customer code/number for reference
+
+      - name: company_name
+        sql: "{{CUBE}}.company_name"
+        type: string
+        description: Company name for business customers
+
+      - name: first_name
+        sql: "{{CUBE}}.first_name"
+        type: string
+        description: First name for individual customers
+
+      - name: last_name
+        sql: "{{CUBE}}.last_name"
+        type: string
+        description: Last name for individual customers
+
+      - name: customer_name
+        sql: "COALESCE({{CUBE}}.company_name, CONCAT({{CUBE}}.first_name, ' ', {{CUBE}}.last_name))"
+        type: string
+        description: Computed customer name (company name or full name)
+
+      - name: email
+        sql: "{{CUBE}}.email"
+        type: string
+        description: Customer email address
+
+      - name: phone
+        sql: "{{CUBE}}.phone"
+        type: string
+        description: Customer phone number
+
+      - name: entity_type
+        sql: "{{CUBE}}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos)
+
+      - name: is_test_entity
+        sql: "{{CUBE}}.is_test_entity"
+        type: boolean
+        description: Indicates if this is a test entity
+
+      - name: customer_in_scope
+        sql: "{{CUBE}}.customer_in_scope"
+        type: boolean
+        description: Indicates if customer is in scope for analytics
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: category_id
+        sql: "{{CUBE}}.category_id"
+        type: number
+        description: Customer category identifier
+
+      - name: is_inactive
+        sql: "{{CUBE}}.is_inactive"
+        type: boolean
+        description: Indicates if customer is inactive
+
+      - name: is_person
+        sql: "{{CUBE}}.is_person"
+        type: boolean
+        description: Indicates if customer is an individual person vs company
+
+      - name: date_created
+        sql: "TIMESTAMP({{CUBE}}.date_created)"
+        type: time
+        description: Date when customer record was created
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        type: time
+        description: Date when customer record was last modified
+
+    segments:
+      - name: active_customers
+        sql: "{{CUBE}}.is_inactive = false"
+        description: "Active customers only"
+
+      - name: inactive_customers
+        sql: "{{CUBE}}.is_inactive = true"
+        description: "Inactive customers"
+
+      - name: individual_customers
+        sql: "{{CUBE}}.is_person = true"
+        description: "Individual person customers"
+
+      - name: business_customers
+        sql: "{{CUBE}}.is_person = false"
+        description: "Business/company customers"
+
+      - name: verified_customers
+        sql: "{{CUBE}}.is_test_entity = false"
+        description: "Excludes test entities for production analytics"
+
+      - name: customers_only
+        sql: "{{CUBE}}.entity_type = 'customer'"
+        description: "Real customers only (excludes any system entities)"
+
+      - name: exclude_test
+        sql: "{{CUBE}}.is_test_entity = false AND {{CUBE}}.customer_in_scope = true"
+        description: "Production-ready customer data excluding test entities"

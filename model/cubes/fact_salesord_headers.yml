@@ -1,0 +1,198 @@
+cubes:
+  - name: fact_salesord_headers
+    sql: SELECT * FROM `gpc_data_2026_01_26.fact_salesord_headers`
+    title: Sales Order Headers
+    description: >
+      Sales order transaction headers with header-level amounts and dates.
+      Grain: one row per sales order transaction.
+      Note: This dataset contains 99.2% webstore/POS system entities. Use segments to filter to real customer orders.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{{CUBE}}.customer_id = {{dim_customer.customer_id}}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+
+    measures:
+      - name: salesord_count
+        type: count
+        description: Total number of sales orders
+
+      - name: total_amount
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of sales order amounts in base currency
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute sales order amounts (for display purposes)
+
+      - name: foreign_total_amount
+        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of sales order amounts in transaction currency
+
+      - name: avg_order_value
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average sales order value
+
+      - name: min_order_value
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum sales order value
+
+      - name: max_order_value
+        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum sales order value
+
+    dimensions:
+      - name: transaction_id
+        sql: "{{CUBE}}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the sales order transaction
+
+      - name: transaction_number
+        sql: "{{CUBE}}.transaction_number"
+        type: string
+        description: User-visible sales order number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        type: time
+        description: Sales order transaction date
+
+      - name: ship_date
+        sql: "TIMESTAMP({{CUBE}}.ship_date)"
+        type: time
+        description: Scheduled or actual ship date
+
+      - name: close_date
+        sql: "TIMESTAMP({{CUBE}}.close_date)"
+        type: time
+        description: Date when the sales order was closed/fulfilled
+
+      - name: customer_id
+        sql: "{{CUBE}}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{{CUBE}}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{{CUBE}}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: entity_type
+        sql: "{{CUBE}}.entity_type"
+        type: string
+        description: Classification of entity (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{{CUBE}}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for business analytics (excludes system entities)
+
+      - name: exchange_rate
+        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{{CUBE}}.transaction_status"
+        type: string
+        description: Status of the sales order (e.g., Pending Approval, Pending Fulfillment, Billed, Closed)
+
+      - name: is_voided
+        sql: "{{CUBE}}.is_voided"
+        type: boolean
+        description: Indicates if the sales order was voided
+
+      - name: is_posting
+        sql: "{{CUBE}}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to the general ledger
+
+    segments:
+      - name: in_scope_only
+        sql: "{{CUBE}}.transaction_in_scope = true"
+        description: "Excludes webstore/POS system entities for accurate customer analytics"
+
+      - name: customer_orders
+        sql: "{{CUBE}}.entity_type = 'customer'"
+        description: "Orders from real customers (excludes webstore and POS entities)"
+
+      - name: webstore_orders
+        sql: "{{CUBE}}.entity_type = 'webstore'"
+        description: "Orders from webstore payment processor entities"
+
+      - name: pos_orders
+        sql: "{{CUBE}}.entity_type = 'pos'"
+        description: "Orders from POS system entities"
+
+      - name: not_voided
+        sql: "{{CUBE}}.is_voided = false"
+        description: "Active orders that have not been voided"
+
+      - name: voided
+        sql: "{{CUBE}}.is_voided = true"
+        description: "Voided sales orders"
+
+      - name: closed_orders
+        sql: "{{CUBE}}.close_date IS NOT NULL"
+        description: "Sales orders that have been closed/fulfilled"
+
+      - name: open_orders
+        sql: "{{CUBE}}.close_date IS NULL"
+        description: "Sales orders that are still open"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - salesord_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+          - currency_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: customer_daily
+        measures:
+          - salesord_count
+          - total_amount
+        dimensions:
+          - customer_id
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+        indexes:
+          - columns:
+              - customer_id

@@ -1,0 +1,88 @@
+cubes:
+  - name: entity_classification
+    sql: SELECT * FROM `gpc_data_2026_01_26.entity_classification`
+    title: Entity Classification
+    description: >
+      Entity classification lookup for identifying and filtering system entities (webstore, POS)
+      versus real customers/vendors. Used to exclude payment processor and system entities from
+      customer-facing analytics.
+      Grain: one row per entity with classification.
+
+    measures:
+      - name: entity_classification_count
+        type: count
+        description: Total number of classified entities
+
+      - name: customer_count
+        type: count
+        sql: "entity_id"
+        filters:
+          - sql: "{{CUBE}}.entity_type = 'customer'"
+        description: Count of real customer entities
+
+      - name: webstore_count
+        type: count
+        sql: "entity_id"
+        filters:
+          - sql: "{{CUBE}}.entity_type = 'webstore'"
+        description: Count of webstore payment processor entities
+
+      - name: pos_count
+        type: count
+        sql: "entity_id"
+        filters:
+          - sql: "{{CUBE}}.entity_type = 'pos'"
+        description: Count of POS system entities
+
+      - name: test_entity_count
+        type: count
+        sql: "entity_id"
+        filters:
+          - sql: "{{CUBE}}.is_test_entity = true"
+        description: Count of test entities
+
+    dimensions:
+      - name: entity_id
+        sql: "{{CUBE}}.entity_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the entity (customer/vendor)
+
+      - name: entity_type
+        sql: "{{CUBE}}.entity_type"
+        type: string
+        description: "Entity classification: 'customer' (real customer), 'webstore' (payment processor like Stripe/PayPal), 'pos' (point-of-sale system)"
+
+      - name: is_test_entity
+        sql: "{{CUBE}}.is_test_entity"
+        type: boolean
+        description: Indicates if this is a test entity that should be excluded from production analytics
+
+    segments:
+      - name: customers_only
+        sql: "{{CUBE}}.entity_type = 'customer'"
+        description: "Real customers only - excludes webstore and POS system entities"
+
+      - name: system_entities
+        sql: "{{CUBE}}.entity_type IN ('webstore', 'pos')"
+        description: "System entities (webstore payment processors and POS systems) that should be excluded from customer analytics"
+
+      - name: webstore_entities
+        sql: "{{CUBE}}.entity_type = 'webstore'"
+        description: "Webstore payment processor entities (Stripe, PayPal, etc.)"
+
+      - name: pos_entities
+        sql: "{{CUBE}}.entity_type = 'pos'"
+        description: "Point-of-sale system entities"
+
+      - name: test_entities
+        sql: "{{CUBE}}.is_test_entity = true"
+        description: "Test entities to exclude from production reporting"
+
+      - name: production_entities
+        sql: "{{CUBE}}.is_test_entity = false"
+        description: "Production entities (non-test)"
+
+      - name: in_scope_entities
+        sql: "{{CUBE}}.entity_type = 'customer' AND {{CUBE}}.is_test_entity = false"
+        description: "In-scope entities: real customers excluding test entities - use this for clean customer analytics"

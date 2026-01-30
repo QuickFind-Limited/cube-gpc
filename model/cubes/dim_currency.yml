@@ -1,8 +1,10 @@
 cubes:
-  - name: currencies
-    sql: SELECT * FROM `gpc_data_2026_01_26.currencies`
-    title: Currencies
-    description: Currency reference data with exchange rates for multi-currency support
+  - name: dim_currency
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_currency`
+    title: Currency
+    description: >
+      Currency dimension table with currency codes, names, and symbols.
+      Grain: one row per currency.
 
     measures:
       - name: currency_count
@@ -19,17 +21,17 @@ cubes:
       - name: currency_name
         sql: "{{CUBE}}.currency_name"
         type: string
-        description: Currency name (EUR, GBP, USD, etc.)
+        description: Full currency name (e.g., 'US Dollar', 'Euro', 'British Pound')
 
       - name: currency_symbol
         sql: "{{CUBE}}.currency_symbol"
         type: string
-        description: Currency symbol
+        description: Currency symbol for display (e.g., '$', '€', '£')
 
       - name: is_base_currency
         sql: "{{CUBE}}.is_base_currency"
         type: boolean
-        description: Indicates if this is the base/home currency for reporting
+        description: Indicates if this is the base/home currency for the organization
 
       - name: is_inactive
         sql: "{{CUBE}}.is_inactive"
@@ -44,12 +46,3 @@ cubes:
       - name: base_currency
         sql: "{{CUBE}}.is_base_currency = true"
         description: "The organization's base/home currency"
-
-    pre_aggregations:
-      - name: currency_analysis
-        measures:
-          - currency_count
-        dimensions:
-          - currency_name
-        refresh_key:
-          every: 1 day

@@ -1,0 +1,118 @@
+cubes:
+  - name: dim_accounting_period
+    sql: SELECT * FROM `gpc_data_2026_01_26.dim_accounting_period`
+    title: Accounting Period Dimension
+    description: >
+      Normalized accounting period dimension including months, quarters, years, and adjustment periods.
+      Grain: one row per accounting period.
+
+    measures:
+      - name: accounting_period_count
+        type: count
+        description: Total number of accounting periods
+
+    dimensions:
+      - name: period_id
+        sql: "{{CUBE}}.period_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the accounting period
+
+      - name: period_name
+        sql: "{{CUBE}}.period_name"
+        type: string
+        description: Human-readable period name (e.g., 'Jan 2024', 'Q1 2024')
+
+      - name: is_adjustment_period
+        sql: "{{CUBE}}.is_adjustment_period"
+        type: boolean
+        description: Indicates if this is an adjustment period for year-end entries
+
+      - name: is_quarter
+        sql: "{{CUBE}}.is_quarter"
+        type: boolean
+        description: Indicates if this period represents a quarter
+
+      - name: is_year
+        sql: "{{CUBE}}.is_year"
+        type: boolean
+        description: Indicates if this period represents a full year
+
+      - name: is_closed
+        sql: "{{CUBE}}.is_closed"
+        type: boolean
+        description: Indicates if the period is closed for new transactions
+
+      - name: is_posting
+        sql: "{{CUBE}}.is_posting"
+        type: boolean
+        description: Indicates if transactions can be posted to this period
+
+      - name: is_inactive
+        sql: "{{CUBE}}.is_inactive"
+        type: boolean
+        description: Indicates if the period is inactive
+
+      - name: start_date
+        sql: "TIMESTAMP({{CUBE}}.start_date)"
+        type: time
+        description: Period start date
+
+      - name: end_date
+        sql: "TIMESTAMP({{CUBE}}.end_date)"
+        type: time
+        description: Period end date
+
+      - name: closed_on_date
+        sql: "TIMESTAMP({{CUBE}}.closed_on_date)"
+        type: time
+        description: Date when the period was closed
+
+      - name: is_all_locked
+        sql: "{{CUBE}}.is_all_locked"
+        type: boolean
+        description: Indicates if all transactions in this period are locked
+
+      - name: is_ap_locked
+        sql: "{{CUBE}}.is_ap_locked"
+        type: boolean
+        description: Indicates if accounts payable transactions are locked
+
+      - name: is_ar_locked
+        sql: "{{CUBE}}.is_ar_locked"
+        type: boolean
+        description: Indicates if accounts receivable transactions are locked
+
+      - name: allow_non_gl_changes
+        sql: "{{CUBE}}.allow_non_gl_changes"
+        type: boolean
+        description: Indicates if non-GL changes are allowed in this period
+
+    segments:
+      - name: open_periods
+        sql: "{{CUBE}}.is_closed = false"
+        description: "Periods that are open for transaction posting"
+
+      - name: closed_periods
+        sql: "{{CUBE}}.is_closed = true"
+        description: "Periods that are closed to new transactions"
+
+      - name: month_periods
+        sql: "{{CUBE}}.is_quarter = false AND {{CUBE}}.is_year = false AND {{CUBE}}.is_adjustment_period = false"
+        description: "Regular monthly periods"
+
+      - name: quarter_periods
+        sql: "{{CUBE}}.is_quarter = true"
+        description: "Quarterly periods"
+
+      - name: year_periods
+        sql: "{{CUBE}}.is_year = true"
+        description: "Annual periods"
+
+      - name: adjustment_periods
+        sql: "{{CUBE}}.is_adjustment_period = true"
+        description: "Year-end adjustment periods"
+
+      - name: posting_periods
+        sql: "{{CUBE}}.is_posting = true"
+        description: "Periods that allow transaction posting"
