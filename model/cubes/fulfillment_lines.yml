@@ -51,7 +51,7 @@ cubes:
         type: sum
         description: >
           Total days from order to ship (for averaging - FD002).
-          FD002 FIX (v72): Changed join from fulfillments.entity to createdfrom field.
+          FD002 FIX (FD002-fix-1): Changed join from fulfillments.entity to createdfrom field.
           Old path (98.3% NULL): fulfillment_lines → fulfillments.entity → transactions (1,146 days avg - wrong!)
           New path (83.7% coverage): fulfillment_lines.createdfrom → transactions (20.5 days avg, 2 days median - correct!)
 
@@ -60,7 +60,7 @@ cubes:
         type: avg
         description: >
           Average days from order to ship (FD002).
-          FD002 FIX (v73): Changed from calculated measure (sum/count) to direct AVG to prevent line-count inflation.
+          FD002 FIX (FD002-fix-2): Changed from calculated measure (sum/count) to direct AVG to prevent line-count inflation.
           Old method incorrectly summed days across all lines then divided by fulfillment count (98.6 days - WRONG).
           New method uses SQL AVG directly (20.5 days - CORRECT).
           Sept 2025: 20.5 days average, 2 days median (Wholesale UK 115-day outlier pulls average up).
@@ -141,11 +141,11 @@ cubes:
           - sku_count
           - location_count
           - total_fulfillment_days
-          - average_fulfillment_days  # FD002 fix (v73): Now uses direct AVG instead of calculated
+          - average_fulfillment_days  # FD002 fix (FD002-fix-2): Now uses direct AVG instead of calculated
         dimensions:
           - location
           - locations.name
-          - location_label  # FD002 fix (v72): Added for labeled location queries
+          - location_label  # FD002 fix (FD002-fix-1): Added for labeled location queries
         time_dimension: shipdate
         granularity: day
         build_range_end:
