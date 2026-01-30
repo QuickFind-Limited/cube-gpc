@@ -423,6 +423,12 @@ cubes:
       - name: channel_type
         sql: >
           CASE
+            -- Priority 0: Bulk D2C orders (>€10k per transaction) should be B2B_CORPORATE
+            -- This separates high-value corporate/wholesale orders from consumer D2C
+            WHEN ({CUBE}.department = 109 OR ({CUBE}.department IS NULL AND {CUBE}.class IN (101, 102, 103, 106, 215, 220, 216)))
+              AND ABS(SUM({CUBE}.amount) OVER (PARTITION BY {CUBE}.transaction)) > 10000
+              THEN 'B2B_CORPORATE'
+
             -- Priority 1: Known department mappings
             WHEN {CUBE}.department = 109 THEN 'D2C'
             WHEN {CUBE}.department = 108 THEN 'RETAIL'
@@ -446,7 +452,7 @@ cubes:
             ELSE 'OTHER'
           END
         type: string
-        description: "Channel type using 3-tier classification: (1) Department field for known mappings, (2) CLASS field as fallback for NULL/unmatched departments, (3) Location field for marketplaces. D2C (dept 109 or website classes 101-103,106,215,216,220), RETAIL (dept 108 or store classes 109-119,209,219), B2B_WHOLESALE (dept 202 or classes 123,214), B2B_CORPORATE (class 120), B2B_MARKETPLACE (dept 207, class 222, or locations 212/231 Otrium/Very Group), EVENTS (dept Event* or class 108). CLASS field handles €2.9m in NULL departments that were previously categorized as OTHER."
+        description: "Channel type using 4-tier classification: (0) Value-based reclassification - bulk D2C orders >€10k are B2B_CORPORATE to prevent inflation of consumer AOV metrics, (1) Department field for known mappings, (2) CLASS field as fallback for NULL/unmatched departments, (3) Location field for marketplaces. D2C (dept 109 or website classes 101-103,106,215,216,220 with order value ≤€10k), RETAIL (dept 108 or store classes 109-119,209,219), B2B_WHOLESALE (dept 202 or classes 123,214), B2B_CORPORATE (class 120 OR bulk D2C orders >€10k), B2B_MARKETPLACE (dept 207, class 222, or locations 212/231 Otrium/Very Group), EVENTS (dept Event* or class 108). This prevents corporate bulk orders placed through D2C website from inflating consumer AOV (€30-80 typical vs €10k-€136k bulk)."
 
       # Denormalized dimensions from items
       - name: sku
