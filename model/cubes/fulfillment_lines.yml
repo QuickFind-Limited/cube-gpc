@@ -11,7 +11,7 @@ cubes:
 
       - name: transactions
         relationship: many_to_one
-        sql: "{fulfillments}.entity = {transactions.id}"
+        sql: "{CUBE}.createdfrom = {transactions.id}"
 
       - name: items
         relationship: many_to_one
@@ -49,12 +49,19 @@ cubes:
       - name: total_fulfillment_days
         sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
         type: sum
-        description: Total days from order to ship (for averaging)
+        description: >
+          Total days from order to ship (for averaging - FD002).
+          FD002 FIX (v72): Changed join from fulfillments.entity to createdfrom field.
+          Old path (98.3% NULL): fulfillment_lines → fulfillments.entity → transactions (1,146 days avg - wrong!)
+          New path (83.7% coverage): fulfillment_lines.createdfrom → transactions (20.5 days avg, 2 days median - correct!)
 
       - name: average_fulfillment_days
         sql: "1.0 * {total_fulfillment_days} / NULLIF({fulfillment_count}, 0)"
         type: number
-        description: Average days from order to ship (FD002)
+        description: >
+          Average days from order to ship (FD002).
+          Sept 2025: 20.5 days average, 2 days median (Wholesale UK 115-day outlier pulls average up).
+          Use with location_label dimension to see DC vs Store breakdowns.
 
     dimensions:
       - name: id
@@ -101,6 +108,21 @@ cubes:
         sql: "TIMESTAMP_TRUNC(CAST({CUBE}.shipdate AS TIMESTAMP), MONTH)"
         type: time
         description: Ship month
+
+      - name: location_label
+        sql: >
+          CASE
+            WHEN {locations.name} LIKE '%Bleckmann%' THEN CONCAT('DC-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {locations.name} LIKE '%Meteor%' THEN CONCAT('DC-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {locations.name} LIKE '%PCH%' THEN CONCAT('DC-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {locations.name} LIKE '%2Flow%' THEN CONCAT('DC-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {locations.name} LIKE '%Wholesale%' THEN CONCAT('B2B-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {CUBE}.location BETWEEN 1 AND 12 THEN CONCAT('Store-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+            WHEN {locations.name} IS NULL THEN 'NULL'
+            ELSE CONCAT('LOC-', CAST({CUBE}.location AS STRING), ': ', {locations.name})
+          END
+        type: string
+        description: "Labeled location name with type prefix and ID for FD002. DC (Distribution Center), Store (Retail), B2B (Wholesale/Partners), LOC (Other)."
 
     segments:
       - name: shipped_lines
