@@ -10,11 +10,11 @@ cubes:
     joins:
       - name: currencies
         relationship: many_to_one
-        sql: "{{CUBE}}.currency = {{currencies.currency_id}}"
+        sql: "{CUBE}.currency = {currencies.currency_id}"
 
       - name: subsidiaries
         relationship: many_to_one
-        sql: "{{CUBE}}.subsidiary = {{subsidiaries.subsidiary_id}}"
+        sql: "{CUBE}.subsidiary = {subsidiaries.subsidiary_id}"
 
     measures:
       - name: transactions_count
@@ -33,25 +33,25 @@ cubes:
       - name: fulfilled_orders
         type: count
         filters:
-          - sql: "{{CUBE}}.status IN ('B', 'G')"
+          - sql: "{CUBE}.status IN ('B', 'G')"
         description: Number of fulfilled/billed orders (status B for CustInvc/CashSale, G for SalesOrd)
 
       - name: cancelled_orders
         type: count
         filters:
-          - sql: "{{CUBE}}.status = 'C'"
+          - sql: "{CUBE}.status = 'C'"
         description: Number of cancelled orders (NOTE - primarily Shopify placeholders pre-March 2025, see documentation)
 
       - name: customer_credits
         type: count
         filters:
-          - sql: "{{CUBE}}.type = 'CustCred'"
+          - sql: "{CUBE}.type = 'CustCred'"
         description: Number of customer credit transactions (returns, refunds, adjustments)
 
       - name: revenue_transaction_count
         type: count
         filters:
-          - sql: "{{CUBE}}.type IN ('CustInvc', 'CashSale')"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
         description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
       # Time-aligned component measures (Feb 2025+) for accurate RET005 calculations
@@ -59,217 +59,217 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{{CUBE}}.type = 'CustCred' AND {{CUBE}}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{{CUBE}}.type IN ('CustInvc', 'CashSale') AND {{CUBE}}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.total AS FLOAT64)"
+        sql: "CAST({CUBE}.total AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of transaction totals in base currency
 
       - name: total_foreign_amount
-        sql: "CAST({{CUBE}}.foreigntotal AS FLOAT64)"
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of foreign totals for average calculation (component measure for rollup-only mode)
 
       - name: average_transaction_total
-        sql: "{{total_foreign_amount}} / NULLIF({{order_count}}, 0)"
+        sql: "{total_foreign_amount} / NULLIF({order_count}, 0)"
         type: number
         format: currency
         description: Average transaction total (calculated from components, NOT for use in pre-aggregations)
 
     dimensions:
       - name: id
-        sql: "{{CUBE}}.id"
+        sql: "{CUBE}.id"
         type: number
         primary_key: true
         description: Unique transaction identifier
 
       - name: tranid
-        sql: "{{CUBE}}.tranid"
+        sql: "{CUBE}.tranid"
         type: string
         description: Transaction number/document number
 
       - name: type
-        sql: "{{CUBE}}.type"
+        sql: "{CUBE}.type"
         type: string
         description: "Transaction type: SalesOrd, CustInvc, CashSale, CustCred, CustDep, CustPymt, DepAppl, ItemShip, Journal, Transfer, VendBill, VendCred, VendPymt, etc."
 
       - name: trandate
-        sql: "TIMESTAMP({{CUBE}}.trandate)"
+        sql: "TIMESTAMP({CUBE}.trandate)"
         type: time
         description: Transaction date
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({{CUBE}}.trandate), MONTH)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({{CUBE}}.trandate), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({{CUBE}}.trandate), YEAR)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({{CUBE}}.trandate), WEEK)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), WEEK)"
         type: time
         description: Transaction week
 
       - name: shipdate
-        sql: "TIMESTAMP({{CUBE}}.shipdate)"
+        sql: "TIMESTAMP({CUBE}.shipdate)"
         type: time
         description: Ship date
 
       - name: closedate
-        sql: "TIMESTAMP({{CUBE}}.closedate)"
+        sql: "TIMESTAMP({CUBE}.closedate)"
         type: time
         description: Close date
 
       - name: duedate
-        sql: "TIMESTAMP({{CUBE}}.duedate)"
+        sql: "TIMESTAMP({CUBE}.duedate)"
         type: time
         description: Due date
 
       - name: entity
-        sql: "{{CUBE}}.entity"
+        sql: "{CUBE}.entity"
         type: number
         description: Entity ID (customer or vendor depending on transaction type)
 
       - name: subsidiary
-        sql: "{{CUBE}}.subsidiary"
+        sql: "{CUBE}.subsidiary"
         type: number
         description: Subsidiary ID (2=Ireland/EUR, 6=UK/GBP)
 
       - name: currency
-        sql: "{{CUBE}}.currency"
+        sql: "{CUBE}.currency"
         type: number
         description: Currency ID
 
       - name: postingperiod
-        sql: "{{CUBE}}.postingperiod"
+        sql: "{CUBE}.postingperiod"
         type: number
         description: Posting period ID for accounting period classification
 
       - name: total
-        sql: "CAST({{CUBE}}.total AS FLOAT64)"
+        sql: "CAST({CUBE}.total AS FLOAT64)"
         type: number
         description: Transaction total in base currency
 
       - name: foreigntotal
-        sql: "CAST({{CUBE}}.foreigntotal AS FLOAT64)"
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
         type: number
         description: Transaction total in foreign currency
 
       - name: foreign_total
-        sql: "CAST({{CUBE}}.foreigntotal AS FLOAT64)"
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
         type: number
         description: Transaction total in foreign currency (alias for backward compatibility)
 
       - name: exchangerate
-        sql: "CAST({{CUBE}}.exchangerate AS FLOAT64)"
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
         type: number
         description: Exchange rate applied to the transaction
 
       - name: status
-        sql: "{{CUBE}}.status"
+        sql: "{CUBE}.status"
         type: string
         description: "Transaction status code: A (Pending Approval), B (Pending Fulfillment), C (Cancelled), G (Billed), Y (Pending)"
 
       - name: status_name
         sql: >
           CASE
-            WHEN {{CUBE}}.status = 'A' THEN 'Pending Approval'
-            WHEN {{CUBE}}.status = 'B' THEN 'Pending Fulfillment'
-            WHEN {{CUBE}}.status = 'C' THEN 'Cancelled'
-            WHEN {{CUBE}}.status = 'D' THEN 'Partially Fulfilled'
-            WHEN {{CUBE}}.status = 'E' THEN 'Pending Billing'
-            WHEN {{CUBE}}.status = 'F' THEN 'Pending Billing'
-            WHEN {{CUBE}}.status = 'G' THEN 'Billed'
-            WHEN {{CUBE}}.status = 'H' THEN 'Closed'
-            WHEN {{CUBE}}.status = 'Y' THEN 'Pending'
-            ELSE {{CUBE}}.status
+            WHEN {CUBE}.status = 'A' THEN 'Pending Approval'
+            WHEN {CUBE}.status = 'B' THEN 'Pending Fulfillment'
+            WHEN {CUBE}.status = 'C' THEN 'Cancelled'
+            WHEN {CUBE}.status = 'D' THEN 'Partially Fulfilled'
+            WHEN {CUBE}.status = 'E' THEN 'Pending Billing'
+            WHEN {CUBE}.status = 'F' THEN 'Pending Billing'
+            WHEN {CUBE}.status = 'G' THEN 'Billed'
+            WHEN {CUBE}.status = 'H' THEN 'Closed'
+            WHEN {CUBE}.status = 'Y' THEN 'Pending'
+            ELSE {CUBE}.status
           END
         type: string
         description: Human-readable transaction status
 
       - name: voided
-        sql: "{{CUBE}}.voided"
+        sql: "{CUBE}.voided"
         type: boolean
         description: Indicates if transaction is voided
 
       - name: posting
-        sql: "{{CUBE}}.posting"
+        sql: "{CUBE}.posting"
         type: boolean
         description: Indicates if transaction posts to GL
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: "Entity type classification: 'customer', 'webstore', 'pos' - used to filter system entities"
 
       - name: transaction_in_scope
-        sql: "{{CUBE}}.transaction_in_scope"
+        sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: Indicates if transaction is in scope (excludes webstore/POS system entities)
 
       - name: paymentmethod
-        sql: "{{CUBE}}.paymentmethod"
+        sql: "{CUBE}.paymentmethod"
         type: number
         description: Payment method ID
 
       - name: createdfrom
-        sql: "{{CUBE}}.createdfrom"
+        sql: "{CUBE}.createdfrom"
         type: number
         description: Source transaction ID (e.g., invoice created from sales order)
 
     segments:
       - name: in_scope_only
-        sql: "{{CUBE}}.transaction_in_scope = true"
+        sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes webstore/POS system entities for accurate business metrics"
 
       - name: exclude_webstore
-        sql: "{{CUBE}}.entity_type != 'webstore' OR {{CUBE}}.entity_type IS NULL"
+        sql: "{CUBE}.entity_type != 'webstore' OR {CUBE}.entity_type IS NULL"
         description: "Excludes webstore payment processor entities"
 
       - name: exclude_pos
-        sql: "{{CUBE}}.entity_type != 'pos' OR {{CUBE}}.entity_type IS NULL"
+        sql: "{CUBE}.entity_type != 'pos' OR {CUBE}.entity_type IS NULL"
         description: "Excludes POS system entities"
 
       - name: customers_only
-        sql: "{{CUBE}}.entity_type = 'customer' OR ({{CUBE}}.entity_type IS NULL AND {{CUBE}}.type IN ('SalesOrd', 'CustInvc', 'CashSale', 'CustCred', 'CustPymt', 'CustDep', 'RtnAuth'))"
+        sql: "{CUBE}.entity_type = 'customer' OR ({CUBE}.entity_type IS NULL AND {CUBE}.type IN ('SalesOrd', 'CustInvc', 'CashSale', 'CustCred', 'CustPymt', 'CustDep', 'RtnAuth'))"
         description: "Only real customer transactions"
 
       - name: revenue_transactions
-        sql: "{{CUBE}}.type IN ('CustInvc', 'CashSale')"
+        sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
         description: "Revenue-generating transactions"
 
       - name: sales_orders
-        sql: "{{CUBE}}.type = 'SalesOrd'"
+        sql: "{CUBE}.type = 'SalesOrd'"
         description: "Sales order transactions"
 
       - name: fulfilled_status
-        sql: "{{CUBE}}.status = 'G'"
+        sql: "{CUBE}.status = 'G'"
         description: "Fulfilled/billed transactions"
 
       - name: posted_transactions
-        sql: "{{CUBE}}.posting = true"
+        sql: "{CUBE}.posting = true"
         description: "Transactions that post to GL"
 
       - name: non_voided
-        sql: "{{CUBE}}.voided = false OR {{CUBE}}.voided IS NULL"
+        sql: "{CUBE}.voided = false OR {CUBE}.voided IS NULL"
         description: "Exclude voided transactions"
 
     pre_aggregations:

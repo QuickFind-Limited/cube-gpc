@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: fact_purchord_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_purchord_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_purchord_headers.transaction_id}"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
       - name: dim_department
         relationship: many_to_one
-        sql: "{{CUBE}}.department_id = {{dim_department.department_id}}"
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
 
     measures:
       - name: purchord_lines_count
@@ -29,118 +29,118 @@ cubes:
         description: Total number of purchase order line items
 
       - name: total_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: sum
         description: Total quantity ordered across all lines
 
       - name: avg_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: avg
         description: Average quantity per line
 
       - name: total_line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Total line amount (quantity × unit rate)
 
       - name: avg_line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average line amount per line item
 
       - name: avg_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: avg
         format: currency
         description: Average unit rate/price across all lines
 
       - name: min_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: min
         format: currency
         description: Minimum unit rate
 
       - name: max_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: max
         format: currency
         description: Maximum unit rate
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier (internal)
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
-        description: Foreign key to purchase order header transaction
         primary_key: true
+        description: Foreign key to purchase order header transaction
 
       - name: line_sequence_number
-        sql: "{{CUBE}}.line_sequence_number"
+        sql: "{CUBE}.line_sequence_number"
         type: number
-        description: Line sequence number within the purchase order
         primary_key: true
+        description: Line sequence number within the purchase order
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a header/summary line
 
       - name: item_id
-        sql: "{{CUBE}}.item_id"
+        sql: "{CUBE}.item_id"
         type: number
         description: Foreign key to item/product dimension
 
       - name: quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: number
         description: Quantity ordered
 
       - name: unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: number
         description: Unit price/rate for the item
 
       - name: line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: number
         description: Line total amount (quantity × unit rate)
 
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         description: Foreign key to location/warehouse dimension
 
       - name: department_id
-        sql: "{{CUBE}}.department_id"
+        sql: "{CUBE}.department_id"
         type: number
         description: Foreign key to department dimension
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Class/segment identifier for reporting
 
     segments:
       - name: detail_lines_only
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Excludes header summary lines, includes only detail lines"
 
       - name: positive_quantity
-        sql: "{{CUBE}}.quantity > 0"
+        sql: "{CUBE}.quantity > 0"
         description: "Lines with positive quantity (normal orders)"
 
       - name: has_department
-        sql: "{{CUBE}}.department_id IS NOT NULL"
+        sql: "{CUBE}.department_id IS NOT NULL"
         description: "Lines assigned to a department"
 
       - name: has_location
-        sql: "{{CUBE}}.location_id IS NOT NULL"
+        sql: "{CUBE}.location_id IS NOT NULL"
         description: "Lines assigned to a location/warehouse"
 
     pre_aggregations:

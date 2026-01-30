@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: dim_customer
         relationship: many_to_one
-        sql: "{{CUBE}}.customer_id = {{dim_customer.customer_id}}"
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
 
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
       - name: dim_currency
         relationship: many_to_one
-        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
 
       - name: dim_accounting_period
         relationship: many_to_one
-        sql: "{{CUBE}}.posting_period_id = {{dim_accounting_period.period_id}}"
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
 
     measures:
       - name: itemship_count
@@ -32,79 +32,79 @@ cubes:
         type: count
         sql: "transaction_id"
         filters:
-          - sql: "{{CUBE}}.is_voided = true"
+          - sql: "{CUBE}.is_voided = true"
         description: Number of voided shipments
 
       - name: posted_shipments
         type: count
         sql: "transaction_id"
         filters:
-          - sql: "{{CUBE}}.is_posting = true"
+          - sql: "{CUBE}.is_posting = true"
         description: Number of posted shipments
 
     dimensions:
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Unique identifier for the shipment transaction
 
       - name: transaction_number
-        sql: "{{CUBE}}.transaction_number"
+        sql: "{CUBE}.transaction_number"
         type: string
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
         type: time
         description: Date when the shipment was created
 
       - name: customer_id
-        sql: "{{CUBE}}.customer_id"
+        sql: "{CUBE}.customer_id"
         type: number
         description: Foreign key to customer dimension
 
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         description: Foreign key to subsidiary dimension
 
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         description: Foreign key to currency dimension
 
       - name: posting_period_id
-        sql: "{{CUBE}}.posting_period_id"
+        sql: "{CUBE}.posting_period_id"
         type: number
         description: Foreign key to accounting period dimension
 
       - name: transaction_status
-        sql: "{{CUBE}}.transaction_status"
+        sql: "{CUBE}.transaction_status"
         type: string
         description: Status of the shipment transaction
 
       - name: is_voided
-        sql: "{{CUBE}}.is_voided"
+        sql: "{CUBE}.is_voided"
         type: boolean
         description: Indicates if the shipment has been voided
 
       - name: is_posting
-        sql: "{{CUBE}}.is_posting"
+        sql: "{CUBE}.is_posting"
         type: boolean
         description: Indicates if the shipment posts to general ledger
 
     segments:
       - name: active_shipments
-        sql: "{{CUBE}}.is_voided = false"
+        sql: "{CUBE}.is_voided = false"
         description: "Shipments that have not been voided"
 
       - name: voided_shipments_segment
-        sql: "{{CUBE}}.is_voided = true"
+        sql: "{CUBE}.is_voided = true"
         description: "Shipments that have been voided"
 
       - name: posted_shipments_segment
-        sql: "{{CUBE}}.is_posting = true"
+        sql: "{CUBE}.is_posting = true"
         description: "Shipments that post to GL"
 
     pre_aggregations:

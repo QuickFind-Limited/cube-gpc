@@ -13,7 +13,7 @@ cubes:
     joins:
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
     measures:
       - name: dim_customer_count
@@ -23,139 +23,139 @@ cubes:
       - name: customers_only_count
         type: count
         filters:
-          - sql: "{{CUBE}}.customer_in_scope = true"
+          - sql: "{CUBE}.customer_in_scope = true"
         description: Count of real customers only (excludes webstore/POS system entities)
 
       - name: active_customers_count
         type: count
         filters:
-          - sql: "{{CUBE}}.is_inactive = false AND {{CUBE}}.customer_in_scope = true"
+          - sql: "{CUBE}.is_inactive = false AND {CUBE}.customer_in_scope = true"
         description: Count of active, in-scope customers
 
     dimensions:
       - name: customer_id
-        sql: "{{CUBE}}.customer_id"
+        sql: "{CUBE}.customer_id"
         type: number
         primary_key: true
         description: Unique identifier for the customer
 
       - name: customer_code
-        sql: "{{CUBE}}.customer_code"
+        sql: "{CUBE}.customer_code"
         type: string
         description: Customer code or account number
 
       - name: company_name
-        sql: "{{CUBE}}.company_name"
+        sql: "{CUBE}.company_name"
         type: string
         description: Company name for business customers
 
       - name: first_name
-        sql: "{{CUBE}}.first_name"
+        sql: "{CUBE}.first_name"
         type: string
         description: First name for individual customers
 
       - name: last_name
-        sql: "{{CUBE}}.last_name"
+        sql: "{CUBE}.last_name"
         type: string
         description: Last name for individual customers
 
       - name: full_name
-        sql: "COALESCE({{CUBE}}.company_name, CONCAT({{CUBE}}.first_name, ' ', {{CUBE}}.last_name))"
+        sql: "COALESCE({CUBE}.company_name, CONCAT({CUBE}.first_name, ' ', {CUBE}.last_name))"
         type: string
         description: Full name (company name or first + last name)
 
       - name: email
-        sql: "{{CUBE}}.email"
+        sql: "{CUBE}.email"
         type: string
         description: Customer email address
 
       - name: phone
-        sql: "{{CUBE}}.phone"
+        sql: "{CUBE}.phone"
         type: string
         description: Customer phone number
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: Entity type classification (customer, webstore, pos)
 
       - name: is_test_entity
-        sql: "{{CUBE}}.is_test_entity"
+        sql: "{CUBE}.is_test_entity"
         type: boolean
         description: Indicates if this is a test entity
 
       - name: customer_in_scope
-        sql: "{{CUBE}}.customer_in_scope"
+        sql: "{CUBE}.customer_in_scope"
         type: boolean
         description: Indicates if customer is in scope (excludes webstore/POS system entities)
 
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         description: Foreign key to subsidiary dimension
 
       - name: category_id
-        sql: "{{CUBE}}.category_id"
+        sql: "{CUBE}.category_id"
         type: number
         description: Customer category identifier
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the customer is inactive
 
       - name: is_person
-        sql: "{{CUBE}}.is_person"
+        sql: "{CUBE}.is_person"
         type: boolean
         description: Indicates if customer is an individual person (vs company)
 
       - name: date_created
-        sql: "TIMESTAMP({{CUBE}}.date_created)"
+        sql: "TIMESTAMP({CUBE}.date_created)"
         type: time
         description: Date when customer record was created
 
       - name: last_modified_date
-        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
         description: Date when customer record was last modified
 
     segments:
       - name: customers_only
-        sql: "{{CUBE}}.customer_in_scope = true"
+        sql: "{CUBE}.customer_in_scope = true"
         description: "Real customers only - excludes webstore and POS system entities for accurate customer analytics"
 
       - name: in_scope_only
-        sql: "{{CUBE}}.customer_in_scope = true AND {{CUBE}}.is_test_entity = false"
+        sql: "{CUBE}.customer_in_scope = true AND {CUBE}.is_test_entity = false"
         description: "In-scope customers only - excludes system entities and test accounts"
 
       - name: exclude_webstore
-        sql: "{{CUBE}}.entity_type != 'webstore' OR {{CUBE}}.entity_type IS NULL"
+        sql: "{CUBE}.entity_type != 'webstore' OR {CUBE}.entity_type IS NULL"
         description: "Excludes webstore payment processor entities"
 
       - name: exclude_pos
-        sql: "{{CUBE}}.entity_type != 'pos' OR {{CUBE}}.entity_type IS NULL"
+        sql: "{CUBE}.entity_type != 'pos' OR {CUBE}.entity_type IS NULL"
         description: "Excludes POS system entities"
 
       - name: active_customers
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Active customers only"
 
       - name: inactive_customers
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: "Inactive customers"
 
       - name: individual_customers
-        sql: "{{CUBE}}.is_person = true"
+        sql: "{CUBE}.is_person = true"
         description: "Individual person customers (not companies)"
 
       - name: business_customers
-        sql: "{{CUBE}}.is_person = false"
+        sql: "{CUBE}.is_person = false"
         description: "Business/company customers (not individuals)"
 
       - name: webstore_entities
-        sql: "{{CUBE}}.entity_type = 'webstore'"
+        sql: "{CUBE}.entity_type = 'webstore'"
         description: "Webstore payment processor entities"
 
       - name: pos_entities
-        sql: "{{CUBE}}.entity_type = 'pos'"
+        sql: "{CUBE}.entity_type = 'pos'"
         description: "POS system entities"

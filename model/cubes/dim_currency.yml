@@ -13,36 +13,36 @@ cubes:
 
     dimensions:
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         primary_key: true
         description: Unique identifier for the currency
 
       - name: currency_name
-        sql: "{{CUBE}}.currency_name"
+        sql: "{CUBE}.currency_name"
         type: string
         description: Full currency name (e.g., 'US Dollar', 'Euro', 'British Pound')
 
       - name: currency_symbol
-        sql: "{{CUBE}}.currency_symbol"
+        sql: "{CUBE}.currency_symbol"
         type: string
         description: Currency symbol for display (e.g., '$', '€', '£')
 
       - name: is_base_currency
-        sql: "{{CUBE}}.is_base_currency"
+        sql: "{CUBE}.is_base_currency"
         type: boolean
         description: Indicates if this is the base/home currency for the organization
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the currency is no longer in use
 
     segments:
       - name: active_currencies
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Currencies currently in use"
 
       - name: base_currency
-        sql: "{{CUBE}}.is_base_currency = true"
+        sql: "{CUBE}.is_base_currency = true"
         description: "The organization's base/home currency"

@@ -14,43 +14,43 @@ cubes:
       - name: active_department_count
         type: count
         filters:
-          - sql: "{{CUBE}}.is_inactive = false"
+          - sql: "{CUBE}.is_inactive = false"
         description: Number of active departments
 
     dimensions:
       - name: department_id
-        sql: "{{CUBE}}.department_id"
+        sql: "{CUBE}.department_id"
         type: number
         primary_key: true
         description: Unique identifier for the department
 
       - name: department_name
-        sql: "{{CUBE}}.department_name"
+        sql: "{CUBE}.department_name"
         type: string
         description: Department name (eCommerce, Retail, Wholesale)
 
       - name: department_fullname
-        sql: "{{CUBE}}.department_fullname"
+        sql: "{CUBE}.department_fullname"
         type: string
         description: Full department name
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Whether department is inactive
 
       - name: last_modified_date
-        sql: "TIMESTAMP({{CUBE}}.last_modified_date)"
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
         description: Date when the department record was last modified
 
     segments:
       - name: active
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: Active departments only
 
       - name: inactive
-        sql: "{{CUBE}}.is_inactive = true"
+        sql: "{CUBE}.is_inactive = true"
         description: Inactive departments
 
     pre_aggregations:

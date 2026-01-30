@@ -10,7 +10,7 @@ cubes:
     joins:
       - name: fact_custpymt_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_custpymt_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_custpymt_headers.transaction_id}"
 
     measures:
       - name: custpymt_lines_count
@@ -18,91 +18,91 @@ cubes:
         description: Total number of customer payment lines
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of payment amounts (negative values represent AR reduction)
 
       - name: total_amount_abs
-        sql: "ABS(CAST({{CUBE}}.amount AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
         type: sum
         format: currency
         description: Absolute sum of payment amounts
 
       - name: total_net_amount
-        sql: "CAST({{CUBE}}.net_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of net payment amounts (may include adjustments)
 
       - name: total_net_amount_abs
-        sql: "ABS(CAST({{CUBE}}.net_amount AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.net_amount AS FLOAT64))"
         type: sum
         format: currency
         description: Absolute sum of net payment amounts
 
       - name: avg_payment_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average payment line amount
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier (not globally unique, use with transaction_id)
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Foreign key to payment transaction header
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: "Entity type classification: 'customer', 'webstore', or 'pos'"
 
       - name: transaction_in_scope
-        sql: "{{CUBE}}.transaction_in_scope"
+        sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: Indicates if transaction is in scope (excludes system entities)
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a mainline (header summary) record
 
       - name: amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: number
         description: Payment line amount (negative = AR reduction)
 
       - name: net_amount
-        sql: "CAST({{CUBE}}.net_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
         type: number
         description: Net payment amount (may differ from amount due to discounts/fees)
 
     segments:
       - name: in_scope_only
-        sql: "{{CUBE}}.transaction_in_scope = true"
+        sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes system entities (webstore/POS) for customer payment analysis"
 
       - name: customer_payments
-        sql: "{{CUBE}}.entity_type = 'customer'"
+        sql: "{CUBE}.entity_type = 'customer'"
         description: "Payments from real customers only (excludes webstore and POS)"
 
       - name: pos_payments
-        sql: "{{CUBE}}.entity_type = 'pos'"
+        sql: "{CUBE}.entity_type = 'pos'"
         description: "Payments from POS system entities"
 
       - name: webstore_payments
-        sql: "{{CUBE}}.entity_type = 'webstore'"
+        sql: "{CUBE}.entity_type = 'webstore'"
         description: "Payments from webstore system entities"
 
       - name: detail_lines
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Detail lines only (excludes header summary records)"
 
     pre_aggregations:

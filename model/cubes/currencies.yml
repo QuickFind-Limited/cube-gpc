@@ -2,7 +2,9 @@ cubes:
   - name: currencies
     sql: SELECT * FROM `gpc_data_2026_01_26.currencies`
     title: Currencies
-    description: Currency reference data with exchange rates for multi-currency support
+    description: >
+      Currency reference data with exchange rates for multi-currency support.
+      Grain: one row per currency.
 
     measures:
       - name: currency_count
@@ -11,38 +13,38 @@ cubes:
 
     dimensions:
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         primary_key: true
         description: Unique identifier for the currency
 
       - name: currency_name
-        sql: "{{CUBE}}.currency_name"
+        sql: "{CUBE}.currency_name"
         type: string
         description: Currency name (EUR, GBP, USD, etc.)
 
       - name: currency_symbol
-        sql: "{{CUBE}}.currency_symbol"
+        sql: "{CUBE}.currency_symbol"
         type: string
         description: Currency symbol
 
       - name: is_base_currency
-        sql: "{{CUBE}}.is_base_currency"
+        sql: "{CUBE}.is_base_currency"
         type: boolean
         description: Indicates if this is the base/home currency for reporting
 
       - name: is_inactive
-        sql: "{{CUBE}}.is_inactive"
+        sql: "{CUBE}.is_inactive"
         type: boolean
         description: Indicates if the currency is no longer in use
 
     segments:
       - name: active_currencies
-        sql: "{{CUBE}}.is_inactive = false"
+        sql: "{CUBE}.is_inactive = false"
         description: "Currencies currently in use"
 
       - name: base_currency
-        sql: "{{CUBE}}.is_base_currency = true"
+        sql: "{CUBE}.is_base_currency = true"
         description: "The organization's base/home currency"
 
     pre_aggregations:

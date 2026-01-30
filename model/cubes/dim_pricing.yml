@@ -4,12 +4,16 @@ cubes:
     title: Pricing
     description: >
       Item pricing by price level and currency.
-      Grain: one row per item-price level combination.
+      Grain: one row per item-price level-quantity combination.
 
     joins:
       - name: dim_item
         relationship: many_to_one
-        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
 
     measures:
       - name: pricing_count
@@ -17,62 +21,63 @@ cubes:
         description: Total number of pricing records
 
       - name: avg_unit_price
-        sql: "CAST({{CUBE}}.unit_price AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
         type: avg
         description: Average unit price across all price levels
 
       - name: min_unit_price
-        sql: "CAST({{CUBE}}.unit_price AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
         type: min
         description: Minimum unit price
 
       - name: max_unit_price
-        sql: "CAST({{CUBE}}.unit_price AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
         type: max
         description: Maximum unit price
 
       - name: total_price_quantity
-        sql: "CAST({{CUBE}}.price_quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
         type: sum
         description: Sum of price quantities
 
     dimensions:
       - name: item_id
-        sql: "{{CUBE}}.item_id"
+        sql: "{CUBE}.item_id"
         type: number
         primary_key: true
         description: Foreign key to items table
 
       - name: price_level_id
-        sql: "{{CUBE}}.price_level_id"
+        sql: "{CUBE}.price_level_id"
         type: number
         primary_key: true
-        description: Foreign key to price levels (composite primary key with item_id)
+        description: Foreign key to price levels (composite primary key with item_id and price_quantity)
+
+      - name: price_quantity
+        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
+        type: number
+        primary_key: true
+        description: Minimum quantity for this price to apply (for volume pricing, part of composite key)
 
       - name: unit_price
-        sql: "CAST({{CUBE}}.unit_price AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
         type: number
         description: Price per unit for this item at this price level
 
-      - name: price_quantity
-        sql: "CAST({{CUBE}}.price_quantity AS FLOAT64)"
-        type: number
-        description: Minimum quantity for this price to apply (for volume pricing)
-
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         description: Foreign key to currency table
 
     segments:
       - name: base_price_level
-        sql: "{{CUBE}}.price_level_id = 1"
+        sql: "{CUBE}.price_level_id = 1"
         description: "Base/standard price level (typically price level 1)"
 
       - name: volume_pricing
-        sql: "{{CUBE}}.price_quantity > 1"
+        sql: "{CUBE}.price_quantity > 1"
         description: "Items with volume-based pricing (quantity breaks)"
 
       - name: unit_pricing
-        sql: "{{CUBE}}.price_quantity = 1"
+        sql: "{CUBE}.price_quantity = 1"
         description: "Standard unit pricing (no volume discounts)"

@@ -9,11 +9,11 @@ cubes:
     joins:
       - name: fact_transfer_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_transfer_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_transfer_headers.transaction_id}"
 
       - name: transactions
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{transactions.id}}"
+        sql: "{CUBE}.transaction_id = {transactions.id}"
 
     measures:
       - name: transfer_lines_count
@@ -22,18 +22,18 @@ cubes:
 
     dimensions:
       - name: line_id
-        sql: "CAST({{CUBE}}.line_id AS INT64)"
+        sql: "CAST({CUBE}.line_id AS INT64)"
         type: number
         description: Line identifier within the transaction
 
       - name: transaction_id
-        sql: "CAST({{CUBE}}.transaction_id AS INT64)"
+        sql: "CAST({CUBE}.transaction_id AS INT64)"
         type: number
         description: Foreign key to transfer transaction header
         public: false
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a main line (header summary) vs detail line
 

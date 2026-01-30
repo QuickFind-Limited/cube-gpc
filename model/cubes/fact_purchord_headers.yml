@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: dim_vendor
         relationship: many_to_one
-        sql: "{{CUBE}}.vendor_id = {{dim_vendor.vendor_id}}"
+        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
 
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{{CUBE}}.subsidiary_id = {{dim_subsidiary.subsidiary_id}}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
       - name: dim_currency
         relationship: many_to_one
-        sql: "{{CUBE}}.currency_id = {{dim_currency.currency_id}}"
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
 
       - name: dim_accounting_period
         relationship: many_to_one
-        sql: "{{CUBE}}.posting_period_id = {{dim_accounting_period.period_id}}"
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
 
     measures:
       - name: purchord_count
@@ -29,131 +29,131 @@ cubes:
         description: Total number of purchase orders
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of purchase order amounts in base currency
 
       - name: total_amount_abs
-        sql: "ABS(CAST({{CUBE}}.total_amount AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
         type: sum
         format: currency
         description: Sum of absolute purchase order amounts (for reporting negative values as positive)
 
       - name: foreign_total_amount
-        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of purchase order amounts in transaction currency
 
       - name: avg_order_amount
-        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average purchase order amount
 
       - name: avg_exchange_rate
-        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
         type: avg
         description: Average exchange rate across purchase orders
 
     dimensions:
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Unique identifier for the purchase order transaction
 
       - name: transaction_number
-        sql: "{{CUBE}}.transaction_number"
+        sql: "{CUBE}.transaction_number"
         type: string
         description: Human-readable purchase order number
 
       - name: transaction_date
-        sql: "TIMESTAMP({{CUBE}}.transaction_date)"
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
         type: time
         description: Purchase order transaction date
 
       - name: ship_date
-        sql: "TIMESTAMP({{CUBE}}.ship_date)"
+        sql: "TIMESTAMP({CUBE}.ship_date)"
         type: time
         description: Expected or actual ship date
 
       - name: due_date
-        sql: "TIMESTAMP({{CUBE}}.due_date)"
+        sql: "TIMESTAMP({CUBE}.due_date)"
         type: time
         description: Payment due date
 
       - name: close_date
-        sql: "TIMESTAMP({{CUBE}}.close_date)"
+        sql: "TIMESTAMP({CUBE}.close_date)"
         type: time
         description: Date when the purchase order was closed
 
       - name: vendor_id
-        sql: "{{CUBE}}.vendor_id"
+        sql: "{CUBE}.vendor_id"
         type: number
         description: Foreign key to vendor dimension
 
       - name: subsidiary_id
-        sql: "{{CUBE}}.subsidiary_id"
+        sql: "{CUBE}.subsidiary_id"
         type: number
         description: Foreign key to subsidiary dimension
 
       - name: currency_id
-        sql: "{{CUBE}}.currency_id"
+        sql: "{CUBE}.currency_id"
         type: number
         description: Foreign key to currency dimension
 
       - name: posting_period_id
-        sql: "{{CUBE}}.posting_period_id"
+        sql: "{CUBE}.posting_period_id"
         type: number
         description: Foreign key to accounting period dimension
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.total_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: number
         description: Purchase order total amount in base currency
 
       - name: foreign_total_amount
-        sql: "CAST({{CUBE}}.foreign_total_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: number
         description: Purchase order total amount in transaction currency
 
       - name: exchange_rate
-        sql: "CAST({{CUBE}}.exchange_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
         type: number
         description: Currency exchange rate used for conversion
 
       - name: transaction_status
-        sql: "{{CUBE}}.transaction_status"
+        sql: "{CUBE}.transaction_status"
         type: string
         description: Purchase order status (e.g., pending, approved, closed)
 
       - name: is_voided
-        sql: "{{CUBE}}.is_voided"
+        sql: "{CUBE}.is_voided"
         type: boolean
         description: Indicates if the purchase order is voided
 
       - name: is_posting
-        sql: "{{CUBE}}.is_posting"
+        sql: "{CUBE}.is_posting"
         type: boolean
         description: Indicates if the transaction posts to the general ledger
 
     segments:
       - name: open_orders
-        sql: "{{CUBE}}.transaction_status IN ('B', 'D', 'E', 'F')"
+        sql: "{CUBE}.transaction_status IN ('B', 'D', 'E', 'F')"
         description: "Purchase orders that are open or in process"
 
       - name: closed_orders
-        sql: "{{CUBE}}.transaction_status IN ('G', 'H')"
+        sql: "{CUBE}.transaction_status IN ('G', 'H')"
         description: "Purchase orders that are closed or fully billed"
 
       - name: non_voided
-        sql: "{{CUBE}}.is_voided = false"
+        sql: "{CUBE}.is_voided = false"
         description: "Excludes voided purchase orders"
 
       - name: multi_currency
-        sql: "{{CUBE}}.exchange_rate != 1.0"
+        sql: "{CUBE}.exchange_rate != 1.0"
         description: "Purchase orders in foreign currencies"
 
     pre_aggregations:

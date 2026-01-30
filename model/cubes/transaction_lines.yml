@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction = {{transactions.id}}"
+        sql: "{CUBE}.transaction = {transactions.id}"
 
       - name: items
         relationship: many_to_one
-        sql: "{{CUBE}}.item = {{items.item_id}}"
+        sql: "{CUBE}.item = {items.item_id}"
 
       - name: locations
         relationship: many_to_one
-        sql: "{{CUBE}}.location_id = {{locations.location_id}}"
+        sql: "{CUBE}.location_id = {locations.location_id}"
 
       - name: departments
         relationship: many_to_one
-        sql: "{{CUBE}}.department_id = {{departments.department_id}}"
+        sql: "{CUBE}.department_id = {departments.department_id}"
 
     measures:
       - name: transaction_lines_count
@@ -29,161 +29,161 @@ cubes:
         description: Total number of transaction line items
 
       - name: total_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: sum
         description: Sum of line quantities (negative for sales, positive for returns)
 
       - name: total_rate
-        sql: "CAST({{CUBE}}.rate AS FLOAT64)"
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
         type: sum
         description: Sum of line rates/unit prices
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of line amounts
 
       - name: avg_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: avg
         description: Average quantity per line
 
       - name: avg_rate
-        sql: "CAST({{CUBE}}.rate AS FLOAT64)"
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
         type: avg
         format: currency
         description: Average rate per line
 
       - name: avg_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average amount per line
 
       - name: unique_transactions
-        sql: "{{CUBE}}.transaction"
+        sql: "{CUBE}.transaction"
         type: count_distinct_approx
         description: Approximate count of unique transactions (HyperLogLog)
 
       - name: unique_items
-        sql: "{{CUBE}}.item"
+        sql: "{CUBE}.item"
         type: count_distinct_approx
         description: Approximate count of unique items/SKUs
 
       # Sales-specific measures (using joins to transactions for filtering)
       - name: sales_quantity
-        sql: "CAST(CASE WHEN {{CUBE}}.quantity < 0 THEN ABS({{CUBE}}.quantity) ELSE 0 END AS FLOAT64)"
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS FLOAT64)"
         type: sum
         description: Total sales quantity (absolute value of negative quantities)
 
       - name: returns_quantity
-        sql: "CAST(CASE WHEN {{CUBE}}.quantity > 0 THEN {{CUBE}}.quantity ELSE 0 END AS FLOAT64)"
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS FLOAT64)"
         type: sum
         description: Total returns quantity
 
     dimensions:
       - name: id
-        sql: "{{CUBE}}.id"
+        sql: "{CUBE}.id"
         type: number
         primary_key: true
         description: Unique line identifier
 
       - name: transaction
-        sql: "{{CUBE}}.transaction"
+        sql: "{CUBE}.transaction"
         type: number
         description: Transaction ID (foreign key to transactions table)
 
       - name: linesequencenumber
-        sql: "{{CUBE}}.linesequencenumber"
+        sql: "{CUBE}.linesequencenumber"
         type: number
         description: Line sequence number within transaction
 
       - name: mainline
-        sql: "{{CUBE}}.mainline"
+        sql: "{CUBE}.mainline"
         type: boolean
         description: "Mainline flag: true for header, false for detail lines"
 
       - name: item
-        sql: "{{CUBE}}.item"
+        sql: "{CUBE}.item"
         type: number
         description: Item/SKU ID (foreign key to items table)
 
       - name: quantity
-        sql: "{{CUBE}}.quantity"
+        sql: "{CUBE}.quantity"
         type: number
         description: Line quantity (negative for sales, positive for returns)
 
       - name: rate
-        sql: "{{CUBE}}.rate"
+        sql: "{CUBE}.rate"
         type: number
         description: Unit rate/price
 
       - name: amount
-        sql: "{{CUBE}}.amount"
+        sql: "{CUBE}.amount"
         type: number
         description: Line amount (quantity × rate)
 
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         description: Location ID (foreign key to locations table)
 
       - name: department_id
-        sql: "{{CUBE}}.department_id"
+        sql: "{CUBE}.department_id"
         type: number
         description: Department ID (foreign key to departments table)
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Class/classification ID
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: "Entity type classification: customer, webstore, pos"
 
       - name: transaction_in_scope
-        sql: "{{CUBE}}.transaction_in_scope"
+        sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: "Indicates if transaction is in scope (excludes webstore/POS system entities)"
 
     segments:
       - name: in_scope_only
-        sql: "{{CUBE}}.transaction_in_scope = true"
+        sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes webstore and POS system entities for accurate business metrics"
 
       - name: out_of_scope
-        sql: "{{CUBE}}.transaction_in_scope = false"
+        sql: "{CUBE}.transaction_in_scope = false"
         description: "Only webstore and POS system entities"
 
       - name: customer_transactions
-        sql: "{{CUBE}}.entity_type = 'customer'"
+        sql: "{CUBE}.entity_type = 'customer'"
         description: "Real customer transactions only"
 
       - name: webstore_transactions
-        sql: "{{CUBE}}.entity_type = 'webstore'"
+        sql: "{CUBE}.entity_type = 'webstore'"
         description: "Webstore payment processor transactions"
 
       - name: pos_transactions
-        sql: "{{CUBE}}.entity_type = 'pos'"
+        sql: "{CUBE}.entity_type = 'pos'"
         description: "POS system transactions"
 
       - name: mainline_only
-        sql: "{{CUBE}}.mainline = true"
+        sql: "{CUBE}.mainline = true"
         description: "Header/summary lines only"
 
       - name: detail_lines_only
-        sql: "{{CUBE}}.mainline = false"
+        sql: "{CUBE}.mainline = false"
         description: "Detail lines only (excludes headers)"
 
       - name: sales_lines
-        sql: "{{CUBE}}.quantity < 0"
+        sql: "{CUBE}.quantity < 0"
         description: "Lines with negative quantity (sales)"
 
       - name: return_lines
-        sql: "{{CUBE}}.quantity > 0"
+        sql: "{CUBE}.quantity > 0"
         description: "Lines with positive quantity (returns)"
 
     pre_aggregations:

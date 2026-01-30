@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: fact_custcred_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_custcred_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_custcred_headers.transaction_id}"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
       - name: dim_department
         relationship: many_to_one
-        sql: "{{CUBE}}.department_id = {{dim_department.department_id}}"
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
 
     measures:
       - name: custcred_lines_count
@@ -29,114 +29,114 @@ cubes:
         description: Total number of customer credit memo line items
 
       - name: total_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: sum
         description: Total quantity credited across all lines
 
       - name: avg_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: avg
         description: Average unit rate for credited items
 
       - name: total_line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Total credit amount across all lines
 
       - name: total_line_amount_abs
-        sql: "ABS(CAST({{CUBE}}.line_amount AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.line_amount AS FLOAT64))"
         type: sum
         format: currency
         description: Total credit amount (absolute value) across all lines
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Internal line identifier
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Foreign key to customer credit memo header transaction
 
       - name: line_sequence_number
-        sql: "{{CUBE}}.line_sequence_number"
+        sql: "{CUBE}.line_sequence_number"
         type: number
         primary_key: true
         description: Line sequence number within the transaction
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: Entity type classification (customer, webstore, pos)
 
       - name: transaction_in_scope
-        sql: "{{CUBE}}.transaction_in_scope"
+        sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: Indicates if transaction is in scope for business analytics (excludes system entities)
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is the main summary line (false for detail lines)
 
       - name: item_id
-        sql: "{{CUBE}}.item_id"
+        sql: "{CUBE}.item_id"
         type: number
         description: Foreign key to item/product dimension
 
       - name: quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: number
         description: Quantity of items credited
 
       - name: unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: number
         description: Unit rate/price for the credited item
 
       - name: line_amount
-        sql: "CAST({{CUBE}}.line_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
         type: number
         description: Total line amount for this credit
 
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         description: Foreign key to location/warehouse dimension
 
       - name: department_id
-        sql: "{{CUBE}}.department_id"
+        sql: "{CUBE}.department_id"
         type: number
         description: Foreign key to department dimension
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Class/product line identifier
 
     segments:
       - name: in_scope_only
-        sql: "{{CUBE}}.transaction_in_scope = true"
+        sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes webstore and POS system entities for accurate customer analytics"
 
       - name: customer_credits
-        sql: "{{CUBE}}.entity_type = 'customer'"
+        sql: "{CUBE}.entity_type = 'customer'"
         description: "Credits from real customers only"
 
       - name: webstore_credits
-        sql: "{{CUBE}}.entity_type = 'webstore'"
+        sql: "{CUBE}.entity_type = 'webstore'"
         description: "Credits from webstore payment processor entities"
 
       - name: pos_credits
-        sql: "{{CUBE}}.entity_type = 'pos'"
+        sql: "{CUBE}.entity_type = 'pos'"
         description: "Credits from POS system entities"
 
       - name: detail_lines
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Detail line items (excludes summary lines)"
 
     pre_aggregations:

@@ -10,7 +10,7 @@ cubes:
     joins:
       - name: fact_custdep_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_custdep_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_custdep_headers.transaction_id}"
 
     measures:
       - name: custdep_lines_count
@@ -18,120 +18,120 @@ cubes:
         description: Total number of customer deposit lines
 
       - name: total_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of deposit line amounts
 
       - name: total_net_amount
-        sql: "CAST({{CUBE}}.net_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of net deposit amounts (after discounts)
 
       - name: total_transaction_discount
-        sql: "CAST({{CUBE}}.transaction_discount AS FLOAT64)"
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of transaction discounts applied
 
       - name: avg_amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: avg
         format: currency
         description: Average deposit line amount
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier within transaction
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
         description: Foreign key to customer deposit header transaction
 
       - name: line_sequence_number
-        sql: "{{CUBE}}.line_sequence_number"
+        sql: "{CUBE}.line_sequence_number"
         type: number
         primary_key: true
         description: Sequence number of line within transaction
 
       - name: entity_type
-        sql: "{{CUBE}}.entity_type"
+        sql: "{CUBE}.entity_type"
         type: string
         description: Type of entity (customer, webstore, pos) - used for contamination filtering
 
       - name: transaction_in_scope
-        sql: "{{CUBE}}.transaction_in_scope"
+        sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: Indicates if transaction is in scope (excludes webstore/POS system entities)
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is the main summary line
 
       - name: amount
-        sql: "CAST({{CUBE}}.amount AS FLOAT64)"
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: number
         description: Deposit line amount
 
       - name: net_amount
-        sql: "CAST({{CUBE}}.net_amount AS FLOAT64)"
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
         type: number
         description: Net amount after discounts
 
       - name: transaction_discount
-        sql: "CAST({{CUBE}}.transaction_discount AS FLOAT64)"
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
         type: number
         description: Discount amount applied to line
 
       - name: is_tax_line
-        sql: "{{CUBE}}.is_tax_line"
+        sql: "{CUBE}.is_tax_line"
         type: boolean
         description: Indicates if this line represents tax
 
       - name: is_closed
-        sql: "{{CUBE}}.is_closed"
+        sql: "{CUBE}.is_closed"
         type: boolean
         description: Indicates if the line is closed
 
       - name: is_fully_shipped
-        sql: "{{CUBE}}.is_fully_shipped"
+        sql: "{CUBE}.is_fully_shipped"
         type: boolean
         description: Indicates if the line is fully shipped
 
       - name: is_cogs
-        sql: "{{CUBE}}.is_cogs"
+        sql: "{CUBE}.is_cogs"
         type: boolean
         description: Indicates if this is a cost of goods sold line
 
     segments:
       - name: in_scope_only
-        sql: "{{CUBE}}.transaction_in_scope = true"
+        sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes webstore/POS system entities for accurate customer deposit metrics"
 
       - name: webstore_only
-        sql: "{{CUBE}}.entity_type = 'webstore'"
+        sql: "{CUBE}.entity_type = 'webstore'"
         description: "Webstore payment processor deposits only"
 
       - name: pos_only
-        sql: "{{CUBE}}.entity_type = 'pos'"
+        sql: "{CUBE}.entity_type = 'pos'"
         description: "POS system deposits only"
 
       - name: customer_only
-        sql: "{{CUBE}}.entity_type = 'customer'"
+        sql: "{CUBE}.entity_type = 'customer'"
         description: "Real customer deposits only (excludes system entities)"
 
       - name: tax_lines_only
-        sql: "{{CUBE}}.is_tax_line = true"
+        sql: "{CUBE}.is_tax_line = true"
         description: "Tax lines only"
 
       - name: non_tax_lines
-        sql: "{{CUBE}}.is_tax_line = false"
+        sql: "{CUBE}.is_tax_line = false"
         description: "Non-tax lines (deposit amounts)"
 
     pre_aggregations:

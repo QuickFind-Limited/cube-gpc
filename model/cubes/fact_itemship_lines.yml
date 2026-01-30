@@ -9,23 +9,23 @@ cubes:
     joins:
       - name: fact_itemship_headers
         relationship: many_to_one
-        sql: "{{CUBE}}.transaction_id = {{fact_itemship_headers.transaction_id}}"
+        sql: "{CUBE}.transaction_id = {fact_itemship_headers.transaction_id}"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{{CUBE}}.item_id = {{dim_item.item_id}}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{{CUBE}}.location_id = {{dim_location.location_id}}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
       - name: dim_department
         relationship: many_to_one
-        sql: "{{CUBE}}.department_id = {{dim_department.department_id}}"
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
 
       - name: classes
         relationship: many_to_one
-        sql: "{{CUBE}}.class_id = {{classes.id}}"
+        sql: "{CUBE}.class_id = {classes.id}"
 
     measures:
       - name: itemship_lines_count
@@ -33,104 +33,104 @@ cubes:
         description: Total number of item shipment lines
 
       - name: total_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: sum
         description: Total quantity shipped across all lines
 
       - name: total_quantity_abs
-        sql: "ABS(CAST({{CUBE}}.quantity AS FLOAT64))"
+        sql: "ABS(CAST({CUBE}.quantity AS FLOAT64))"
         type: sum
         description: Total absolute quantity (for returns analysis)
 
       - name: avg_quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: avg
         description: Average quantity per line
 
       - name: total_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: sum
         description: Sum of unit rates (for weighted calculations)
 
       - name: avg_unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: avg
         description: Average unit rate per line
 
       - name: total_line_value
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64) * CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
         type: sum
         description: Total value of shipment lines (quantity × unit rate)
 
       - name: lines_with_negative_qty
         type: count
         filters:
-          - sql: "{{CUBE}}.quantity < 0"
+          - sql: "{CUBE}.quantity < 0"
         description: Count of lines with negative quantities (returns/reversals)
 
       - name: lines_with_positive_qty
         type: count
         filters:
-          - sql: "{{CUBE}}.quantity > 0"
+          - sql: "{CUBE}.quantity > 0"
         description: Count of lines with positive quantities (shipments)
 
     dimensions:
       - name: line_id
-        sql: "{{CUBE}}.line_id"
+        sql: "{CUBE}.line_id"
         type: number
         description: Line identifier
 
       - name: transaction_id
-        sql: "{{CUBE}}.transaction_id"
+        sql: "{CUBE}.transaction_id"
         type: number
         description: Foreign key to item shipment transaction
 
       - name: is_mainline
-        sql: "{{CUBE}}.is_mainline"
+        sql: "{CUBE}.is_mainline"
         type: boolean
         description: Indicates if this is a mainline (header) record
 
       - name: item_id
-        sql: "{{CUBE}}.item_id"
+        sql: "{CUBE}.item_id"
         type: number
         description: Foreign key to item/product
 
       - name: quantity
-        sql: "CAST({{CUBE}}.quantity AS FLOAT64)"
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
         type: number
         description: Quantity shipped (negative indicates returns)
 
       - name: unit_rate
-        sql: "CAST({{CUBE}}.unit_rate AS FLOAT64)"
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
         type: number
         description: Unit rate/price
 
       - name: location_id
-        sql: "{{CUBE}}.location_id"
+        sql: "{CUBE}.location_id"
         type: number
         description: Foreign key to fulfillment location
 
       - name: department_id
-        sql: "{{CUBE}}.department_id"
+        sql: "{CUBE}.department_id"
         type: number
         description: Foreign key to department
 
       - name: class_id
-        sql: "{{CUBE}}.class_id"
+        sql: "{CUBE}.class_id"
         type: number
         description: Foreign key to class/segment
 
     segments:
       - name: shipments_only
-        sql: "{{CUBE}}.quantity > 0"
+        sql: "{CUBE}.quantity > 0"
         description: "Exclude returns and reversals (positive quantities only)"
 
       - name: returns_only
-        sql: "{{CUBE}}.quantity < 0"
+        sql: "{CUBE}.quantity < 0"
         description: "Returns and reversals only (negative quantities)"
 
       - name: detail_lines_only
-        sql: "{{CUBE}}.is_mainline = false"
+        sql: "{CUBE}.is_mainline = false"
         description: "Exclude mainline header records"
 
     pre_aggregations:
