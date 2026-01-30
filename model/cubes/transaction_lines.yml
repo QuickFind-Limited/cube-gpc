@@ -38,20 +38,31 @@ cubes:
       - name: total_revenue
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            ({CUBE}.amount * -1 * COALESCE({CUBE}.transaction_exchange_rate, 1.0))
+            (CASE
+              WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1
+              ELSE {CUBE}.rate * {CUBE}.quantity * -1
+            END) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
-        description: Total gross revenue in EUR (CustInvc + CashSale only, all currencies converted using transaction-date exchange rates)
+        description: >
+          Total gross revenue in EUR (CustInvc + CashSale only, all currencies converted using transaction-date exchange rates).
+          DM001 FIX: Uses hybrid calculation - 'amount' for custom items (rate IS NULL), 'rate × quantity' for standard items (rate IS NOT NULL).
+          This prevents revenue inflation from NetSuite's data structure where custom line items carry full transaction amounts.
 
       - name: net_revenue
         sql: >
           CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            (({CUBE}.amount * -1) - COALESCE({CUBE}.taxamount, 0)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
+            ((CASE
+              WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1
+              ELSE {CUBE}.rate * {CUBE}.quantity * -1
+            END) - COALESCE({CUBE}.taxamount, 0)) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
           ELSE 0 END AS FLOAT64)
         type: sum
         format: currency
-        description: Net revenue in EUR (gross revenue minus tax, all currencies converted using transaction-date exchange rates)
+        description: >
+          Net revenue in EUR (gross revenue minus tax, all currencies converted using transaction-date exchange rates).
+          DM001 FIX: Uses hybrid calculation matching total_revenue to prevent inflation.
 
       # Units Measures - Rule 2: Sales quantities are negative
       - name: units_sold
