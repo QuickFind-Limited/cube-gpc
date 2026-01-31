@@ -12,6 +12,7 @@ cubes:
         (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.unit_cost as line_on_order_value,
         po.status as po_status,
         CAST(po.trandate AS TIMESTAMP) as po_date,
+        CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,
         i.itemid,
         i.displayname
       FROM gpc.purchase_order_lines pol
@@ -97,6 +98,12 @@ cubes:
         type: time
         title: PO Date
         description: Purchase order date
+
+      - name: expected_receipt_date
+        sql: "CAST({CUBE}.expected_receipt_date AS TIMESTAMP)"
+        type: time
+        title: Expected Receipt Date
+        description: Expected delivery date from PO duedate (OOI002 metric)
 
     joins:
       - name: items
