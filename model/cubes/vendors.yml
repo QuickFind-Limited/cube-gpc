@@ -55,11 +55,11 @@ cubes:
         title: Balance
         description: Current outstanding balance
 
-      - name: currency
-        sql: currency
+      - name: currency_name
+        sql: "currency.refName"
         type: string
         title: Currency
-        description: Vendor's default currency
+        description: Vendor's default currency code
 
       - name: date_created
         sql: date_created
@@ -84,6 +84,6 @@ cubes:
           - vendor_name
           - is_inactive
           - is_person
-          - currency
+          - currency_name
         refresh_key:
           every: 1 day
