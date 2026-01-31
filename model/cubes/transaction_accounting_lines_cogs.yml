@@ -137,6 +137,26 @@ cubes:
         type: count
         description: Number of COGS GL entries
 
+      # Revenue measures (from denormalized view)
+      - name: total_revenue
+        sql: amount
+        type: sum
+        format: currency
+        description: "Total revenue from transaction line amounts (denormalized in view)"
+
+      # Gross Margin measures (MAR001 metric)
+      - name: gl_based_gross_margin
+        sql: "{total_revenue} - {gl_cogs}"
+        type: number
+        format: currency
+        description: "MAR001: GL-based Gross Margin (Revenue - GL COGS). Uses accurate GL COGS from accounting lines."
+
+      - name: gl_based_gross_margin_pct
+        sql: "CASE WHEN {total_revenue} = 0 THEN 0 ELSE (({total_revenue} - {gl_cogs}) / {total_revenue}) * 100 END"
+        type: number
+        format: percent
+        description: "MAR001: GL-based Gross Margin % ((Revenue - GL COGS) / Revenue * 100). Uses accurate GL COGS."
+
     pre_aggregations:
       - name: cogs_analysis
         measures:
@@ -144,6 +164,8 @@ cubes:
           - gl_cogs_debit
           - gl_cogs_credit
           - cogs_entry_count
+          - total_revenue
+          - gl_based_gross_margin
         dimensions:
           - transaction_type
           - category
