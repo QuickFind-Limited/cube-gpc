@@ -163,6 +163,7 @@ cubes:
           - active_product_count  # LIFE001 fix - active product count
         dimensions:
           - category
+          - gender
           - section
           - season
           - size
