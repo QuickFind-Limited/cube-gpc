@@ -1,0 +1,74 @@
+cubes:
+  - name: vendors
+    sql_table: gpc.vendors
+
+    title: Vendors
+    description: Vendor/supplier master data from NetSuite
+
+    measures:
+      - name: vendor_count
+        type: count
+        description: Number of vendors
+
+      - name: active_vendor_count
+        type: count
+        filters:
+          - sql: "{CUBE}.is_inactive = false"
+        description: Number of active vendors
+
+      - name: total_vendor_balance
+        sql: balance
+        type: sum
+        format: currency
+        description: Total outstanding balance across all vendors
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+        title: Vendor ID
+        description: Vendor internal ID
+
+      - name: vendor_name
+        sql: vendor_name
+        type: string
+        title: Vendor Name
+        description: Vendor company name (entityId from NetSuite)
+
+      - name: is_inactive
+        sql: is_inactive
+        type: boolean
+        title: Is Inactive
+        description: Whether the vendor is inactive
+
+      - name: is_person
+        sql: is_person
+        type: boolean
+        title: Is Person
+        description: Whether the vendor is a person (vs company)
+
+      - name: balance
+        sql: balance
+        type: number
+        format: currency
+        title: Balance
+        description: Current outstanding balance
+
+      - name: currency
+        sql: currency
+        type: string
+        title: Currency
+        description: Vendor's default currency
+
+      - name: date_created
+        sql: date_created
+        type: time
+        title: Date Created
+        description: Date vendor record was created
+
+      - name: last_modified_date
+        sql: last_modified_date
+        type: time
+        title: Last Modified
+        description: Date vendor record was last modified

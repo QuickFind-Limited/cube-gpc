@@ -107,6 +107,10 @@ cubes:
         relationship: one_to_many
         sql: "{CUBE}.id = {purchase_order_lines}.po_id"
 
+      - name: vendors
+        relationship: many_to_one
+        sql: "{CUBE}.entity = {vendors}.id"
+
     pre_aggregations:
       - name: po_summary
         measures:
@@ -120,5 +124,6 @@ cubes:
         dimensions:
           - status
           - supplier
+          - vendors.vendor_name
         refresh_key:
           every: 1 day
