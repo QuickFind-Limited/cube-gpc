@@ -1,0 +1,95 @@
+cubes:
+  - name: product_sales_detail
+    sql_table: gpc.transaction_lines
+    title: Product Sales Detail
+    description: Product-level sales metrics (PRD-001, PRD-002). Limited to product_name + sku dimensions only to avoid cardinality explosion. For category/channel/geography analysis, use transaction_lines cube instead.
+
+    dimensions:
+      - name: id
+        sql: id
+        type: number
+        primary_key: true
+
+      - name: product_name
+        sql: product_name
+        type: string
+        description: "Product display name (3,000+ unique products)"
+
+      - name: sku
+        sql: sku
+        type: string
+        description: "Product SKU code (3,000+ unique SKUs)"
+
+      - name: transaction_date
+        sql: "CAST(transaction_date AS TIMESTAMP)"
+        type: time
+        description: "Transaction date"
+
+      # Minimal context dimensions (low cardinality)
+      - name: category
+        sql: category
+        type: string
+        description: "Product category (for filtering only, not for grouping with product_name)"
+
+      - name: section
+        sql: section
+        type: string
+        description: "Product section (for filtering only, not for grouping with product_name)"
+
+    measures:
+      - name: total_revenue
+        sql: "CAST(amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "Total revenue (gross, includes VAT)"
+
+      - name: units_sold
+        sql: >
+          CAST(CASE
+            WHEN transaction_type IN ('CustInvc', 'CashSale') THEN quantity
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        description: "Units sold (positive sales only)"
+
+      - name: units_returned
+        sql: >
+          CAST(CASE
+            WHEN transaction_type IN ('CustCred', 'RtnAuth') THEN ABS(quantity)
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        description: "Units returned (from credits/return auths)"
+
+      - name: line_count
+        type: count
+        description: "Number of transaction lines"
+
+    pre_aggregations:
+      - name: product_daily_sales
+        measures:
+          - total_revenue
+          - units_sold
+          - units_returned
+          - line_count
+        dimensions:
+          - product_name
+          - sku
+          - transaction_date
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        type: rollup
+        refresh_key:
+          every: 1 day
+        build_range_end:
+          sql: SELECT '2025-10-31'
+
+    segments:
+      - name: sales_lines
+        sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
+        description: "Only sales transactions (exclude returns)"
+
+      - name: return_lines
+        sql: "{CUBE}.transaction_type IN ('CustCred', 'RtnAuth')"
+        description: "Only return transactions"
