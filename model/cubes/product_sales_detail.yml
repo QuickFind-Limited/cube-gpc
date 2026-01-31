@@ -38,19 +38,19 @@ cubes:
 
     measures:
       - name: total_revenue
-        sql: "CAST(amount AS FLOAT64)"
+        sql: "CAST(CASE WHEN transaction_type IN ('CustInvc', 'CashSale') THEN amount * -1 ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
-        description: "Total revenue (gross, includes VAT)"
+        description: "Total revenue (gross, includes VAT). Multiplied by -1 to convert NetSuite's negative amounts to positive."
 
       - name: units_sold
         sql: >
           CAST(CASE
-            WHEN transaction_type IN ('CustInvc', 'CashSale') THEN quantity
+            WHEN transaction_type IN ('CustInvc', 'CashSale') THEN quantity * -1
             ELSE 0
           END AS FLOAT64)
         type: sum
-        description: "Units sold (positive sales only)"
+        description: "Units sold (positive values). Multiplied by -1 to convert NetSuite's negative quantities to positive."
 
       - name: units_returned
         sql: >
