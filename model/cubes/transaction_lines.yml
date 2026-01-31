@@ -216,15 +216,23 @@ cubes:
         format: currency
         description: "DEPRECATED - Use gl_based_gross_margin instead. This is an alias for gross_margin which uses corrupt costestimate data. Gross Profit (alias for gross_margin) - Revenue minus COGS. Same as gross_margin measure, provided for clarity in AI queries."
 
-      # GMROI Component Measure
-      # Note: Full GMROI calculation requires joining with inventory.inventory_value_at_cost
-      # GMROI = gross_margin (YTD) / average inventory_value_at_cost
-      # This should be calculated client-side by querying both measures separately
+      # ============================================================================
+      # INV-001: GMROI (Gross Margin Return on Investment)
+      # ============================================================================
+      # ⚠️  IMPORTANT: Use gl_based_gmroi (line 280) for INV-001 metric
+      # ❌ DO NOT USE gmroi_numerator (deprecated - uses corrupt costestimate field)
+      #
+      # GMROI Formula: (Revenue - COGS) / COGS
+      # Higher GMROI = Better return on inventory investment
+      # Industry Benchmark: 3.0+ is good for apparel retail
+      # ============================================================================
+
+      # DEPRECATED GMROI Measure (DO NOT USE FOR INV-001)
       - name: gmroi_numerator
         sql: "{gross_margin}"
         type: number
         format: currency
-        description: "DEPRECATED - Use gl_based_gmroi instead. This measure uses gross_margin which contains corrupt costestimate data. GMROI numerator component - use gross_margin for specified time period (e.g., YTD). Divide by inventory.inventory_value_at_cost to get GMROI ratio."
+        description: "❌ DEPRECATED FOR INV-001 - Use gl_based_gmroi instead. This measure uses gross_margin which contains corrupt costestimate data. GMROI numerator component - use gross_margin for specified time period (e.g., YTD). Divide by inventory.inventory_value_at_cost to get GMROI ratio."
 
       # GL-Based COGS Measures (ACCURATE - replaces corrupt costestimate field)
       # These measures use TransactionAccountingLine GL postings for accurate COGS
@@ -248,7 +256,7 @@ cubes:
       - name: gl_based_gmroi
         sql: "({total_revenue} - {gl_based_cogs}) / NULLIF({gl_based_cogs}, 0)"
         type: number
-        description: "GMROI using GL-based COGS (ACCURATE - Gross Margin Return on Investment). Formula: (Revenue - GL COGS) / GL COGS"
+        description: "✅ INV-001: GMROI (Gross Margin Return on Investment) using GL-based COGS. ACCURATE measure - uses actual GL COGS, not corrupt costestimate field. Formula: (Revenue - GL COGS) / GL COGS. Measures how much gross margin is generated per euro invested in inventory. Higher is better. Industry benchmark: 3.0+ for apparel retail."
 
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
@@ -300,6 +308,76 @@ cubes:
         sql: "100.0 * {units_returned} / NULLIF({units_sold} + {units_returned}, 0)"
         type: number
         description: Return rate percentage (RET001)
+
+      # Customer Churn Measures (CUS-004)
+      # Churn = Customers who haven't purchased in X days
+      - name: total_customers
+        sql: "{CUBE}.customer_email"
+        type: count_distinct_approx
+        description: "Total unique customers (approximate count using HyperLogLog)"
+
+      - name: active_customers_90d
+        sql: >
+          CASE
+            WHEN CURRENT_DATE - MAX({CUBE}.transaction_date) <= 90
+            THEN {CUBE}.customer_email
+          END
+        type: count_distinct_approx
+        description: "Customers with purchase in last 90 days (CUS-004)"
+
+      - name: active_customers_180d
+        sql: >
+          CASE
+            WHEN CURRENT_DATE - MAX({CUBE}.transaction_date) <= 180
+            THEN {CUBE}.customer_email
+          END
+        type: count_distinct_approx
+        description: "Customers with purchase in last 180 days (CUS-004)"
+
+      - name: active_customers_365d
+        sql: >
+          CASE
+            WHEN CURRENT_DATE - MAX({CUBE}.transaction_date) <= 365
+            THEN {CUBE}.customer_email
+          END
+        type: count_distinct_approx
+        description: "Customers with purchase in last 365 days (CUS-004)"
+
+      - name: churn_rate_90d
+        sql: "100.0 * (1 - ({active_customers_90d} / NULLIF({total_customers}, 0)))"
+        type: number
+        description: "90-day churn rate percentage (CUS-004): Customers who haven't purchased in 90+ days"
+
+      - name: churn_rate_180d
+        sql: "100.0 * (1 - ({active_customers_180d} / NULLIF({total_customers}, 0)))"
+        type: number
+        description: "180-day churn rate percentage (CUS-004): Customers who haven't purchased in 180+ days"
+
+      - name: churn_rate_365d
+        sql: "100.0 * (1 - ({active_customers_365d} / NULLIF({total_customers}, 0)))"
+        type: number
+        description: "365-day churn rate percentage (CUS-004): Customers who haven't purchased in 365+ days"
+
+      # Ship Speed Measures (FUL-001 Alternative)
+      # Instead of OTD (requires promised date), measure fulfillment speed
+      - name: avg_ship_to_order_days
+        sql: "AVG(DATE_DIFF({transactions.shipdate}, {transactions.createddate}, DAY))"
+        type: number
+        description: "FUL-001 Alternative: Average days from order to ship (fulfillment speed)"
+
+      - name: orders_shipped_2days
+        sql: >
+          COUNT(DISTINCT CASE
+            WHEN DATE_DIFF({transactions.shipdate}, {transactions.createddate}, DAY) <= 2
+            THEN {CUBE}.transaction
+          END)
+        type: number
+        description: "FUL-001 Alternative: Count of orders shipped within 2 days"
+
+      - name: ship_speed_2day_rate
+        sql: "100.0 * {orders_shipped_2days} / NULLIF({transaction_count}, 0)"
+        type: number
+        description: "FUL-001 Alternative: % of orders shipped within 2 days (target: 95%)"
 
     dimensions:
       - name: id
