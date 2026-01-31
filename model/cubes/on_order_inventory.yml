@@ -14,7 +14,8 @@ cubes:
         CAST(po.trandate AS TIMESTAMP) as po_date,
         CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,
         i.itemid,
-        i.displayname
+        i.displayname,
+        i.custitem_gpc_stylenumber
       FROM gpc.purchase_order_lines pol
       LEFT JOIN gpc.purchase_orders po ON pol.po_id = po.id
       LEFT JOIN gpc.items i ON pol.item = i.id
@@ -49,7 +50,16 @@ cubes:
       - name: item_count
         sql: item
         type: count_distinct_approx
-        description: Number of unique items with on-order inventory (approximate with HyperLogLog)
+        description: Number of unique SKUs with on-order inventory (size/color variants) - OOI003a. Use product_count for parent product count.
+
+      - name: product_count
+        sql: custitem_gpc_stylenumber
+        type: count_distinct_approx
+        description: >
+          Number of unique products with on-order inventory (parent styles, ignoring size/color) - OOI003b.
+          Use this for "How many products are on order?" queries.
+          Use item_count for "How many SKUs are on order?" queries.
+          GPC has ~25 SKUs per product on average.
 
       - name: avg_pos_per_item
         sql: po_id
@@ -117,6 +127,7 @@ cubes:
           - on_order_value
           - open_po_count
           - item_count
+          - product_count
         dimensions:
           - item
           - po_status
@@ -134,6 +145,7 @@ cubes:
           - on_order_value
           - open_po_count
           - item_count
+          - product_count
         refresh_key:
           every: 1 day
 
@@ -144,6 +156,7 @@ cubes:
           - on_order_value
           - open_po_count
           - item_count
+          - product_count
         dimensions:
           - item
           - po_status
