@@ -125,7 +125,7 @@ cubes:
         dimensions:
           - item
           - purchase_orders.supplier
-          - purchase_orders.vendors.vendor_name
+          - vendors.vendor_name
         time_dimension: trandate
         granularity: day
         refresh_key:
