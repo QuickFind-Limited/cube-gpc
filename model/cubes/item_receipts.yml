@@ -69,3 +69,7 @@ cubes:
       - name: item_receipt_lines
         relationship: one_to_many
         sql: "{CUBE}.id = {item_receipt_lines}.receipt_id"
+
+      - name: vendors
+        relationship: many_to_one
+        sql: "{CUBE}.entity = {vendors}.id"
