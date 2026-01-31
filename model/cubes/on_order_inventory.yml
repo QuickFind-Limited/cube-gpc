@@ -136,3 +136,20 @@ cubes:
           - item_count
         refresh_key:
           every: 1 day
+
+      # OOI002: Rollup by expected receipt date for "units due next week" queries
+      - name: on_order_by_receipt_date
+        measures:
+          - total_on_order_units
+          - on_order_value
+          - open_po_count
+          - item_count
+        dimensions:
+          - item
+          - po_status
+        time_dimension: expected_receipt_date
+        granularity: day
+        build_range_end:
+          sql: SELECT '2026-12-31'
+        refresh_key:
+          every: 1 day
