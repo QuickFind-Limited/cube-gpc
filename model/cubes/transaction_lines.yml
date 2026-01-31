@@ -1042,3 +1042,31 @@ cubes:
       # STORAGE SAVINGS:
       # - ~438K rows per year eliminated
       # - ~0.4 GB saved over 5 years
+
+      # Size-specific return rate analysis (SIZ-002)
+      # Enables calculation of return rate by size (e.g., "What's the return rate for size M?")
+      # Formula: (units_returned / (units_sold + units_returned)) * 100
+      - name: size_return_analysis
+        measures:
+          - units_sold
+          - units_returned
+          - total_revenue
+          - transaction_count
+        dimensions:
+          - size              # Required for size-specific breakdown
+          - transaction_type  # Required to separate returns (RtnAuth, CustCred) from sales
+          - category          # Context: Returns may vary by product category
+          - season            # Context: Seasonal return patterns
+          - channel_type      # Context: Return rates may differ by channel (D2C vs Retail)
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: size_txn_type_idx
+            columns:
+              - size
+              - transaction_type
+        refresh_key:
+          every: 365 days

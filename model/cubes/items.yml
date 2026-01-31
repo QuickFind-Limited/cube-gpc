@@ -155,6 +155,7 @@ cubes:
         sql: "{CUBE}.custitem_gpc_season IS NOT NULL"
 
     pre_aggregations:
+      # REBUILD REQUIRED: v68.2 fix applied (gender dimension added to pre-agg)
       - name: item_analysis
         measures:
           - item_count
@@ -163,7 +164,7 @@ cubes:
           - active_product_count  # LIFE001 fix - active product count
         dimensions:
           - category
-          - gender
+          - gender  # v68.2 fix - added to enable gender-based queries
           - section
           - season
           - size
@@ -173,3 +174,4 @@ cubes:
           - markdown  # LIFE001 - needed for full price vs markdown analysis
         refresh_key:
           every: 1 day
+          # Force rebuild after v68.2 fix (2026-01-31)
