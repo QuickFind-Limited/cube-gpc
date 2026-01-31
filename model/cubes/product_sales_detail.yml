@@ -1,6 +1,6 @@
 cubes:
   - name: product_sales_detail
-    sql_table: gpc.transaction_lines
+    sql_table: gpc.transaction_lines_denormalized_mv
     title: Product Sales Detail
     description: Product-level sales metrics (PRD-001, PRD-002). Limited to product_name + sku dimensions only to avoid cardinality explosion. For category/channel/geography analysis, use transaction_lines cube instead.
 
