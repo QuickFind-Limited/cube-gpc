@@ -27,6 +27,7 @@ cubes:
         sql: id
         type: number
         primary_key: true
+        public: true
         title: Vendor ID
         description: Vendor internal ID
 
