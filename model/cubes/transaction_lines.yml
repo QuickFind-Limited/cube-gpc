@@ -76,6 +76,38 @@ cubes:
         type: sum
         description: Total units returned
 
+      # Time-aligned revenue measures for RET005 (Return Rate by Value)
+      # Uses Feb 2025+ data for consistency with current D2C return workflow
+      - name: returns_revenue_aligned
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type = 'CustCred'
+            AND {CUBE}.transaction_date >= '2025-02-01' THEN
+              (CASE
+                WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount
+                ELSE {CUBE}.rate * {CUBE}.quantity
+              END) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        format: currency
+        description: "Total return revenue from Feb 2025 onwards (CustCred only, time-aligned for RET005). Returns are positive values in NetSuite."
+
+      - name: total_revenue_aligned
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale')
+            AND {CUBE}.transaction_date >= '2025-02-01' THEN
+              (CASE
+                WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1
+                ELSE {CUBE}.rate * {CUBE}.quantity * -1
+              END) * COALESCE({CUBE}.transaction_exchange_rate, 1.0)
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        format: currency
+        description: "Total revenue from Feb 2025 onwards (CustInvc + CashSale, time-aligned for RET005 denominator)"
+
       # Tax Measures
       - name: total_tax
         sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN {CUBE}.taxamount ELSE 0 END AS FLOAT64)"
@@ -676,6 +708,8 @@ cubes:
           - total_discount_amount
           - salesord_revenue    # OM003: Component for average_salesord_value
           - salesord_count      # OM003: Component for average_salesord_value
+          - returns_revenue_aligned    # RET005: Return revenue (Feb 2025+)
+          - total_revenue_aligned      # RET005: Total revenue denominator (Feb 2025+)
           # REMOVED: gl_based_gross_margin (requires JOIN to COGS cube - not allowed in pre-aggs)
         dimensions:
           - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
@@ -697,11 +731,13 @@ cubes:
           every: 365 days
 
       # Geography-focused sales analysis (6 dimensions)
+      # SHP002 ENHANCEMENT: Added line_count for Items Per Order calculation
       - name: sales_geography_analysis
         measures:
           - total_revenue
           - units_sold
           - transaction_count
+          - line_count          # SHP002: For Items Per Order (IPO) calculation
         dimensions:
           - billing_country
           - shipping_country
