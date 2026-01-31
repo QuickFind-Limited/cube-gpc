@@ -5,7 +5,8 @@ cubes:
         *,
         transaction_currency_id as transaction_currency,
         custbody_customer_email as customer_email,
-        baseprice as item_base_price
+        baseprice as item_base_price,
+        ABS(SUM(amount) OVER (PARTITION BY transaction)) as transaction_total_abs
       FROM gpc.transaction_lines_denormalized_mv
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
@@ -426,7 +427,7 @@ cubes:
             -- Priority 0: Bulk D2C orders (>€10k per transaction) should be B2B_CORPORATE
             -- This separates high-value corporate/wholesale orders from consumer D2C
             WHEN ({CUBE}.department = 109 OR ({CUBE}.department IS NULL AND {CUBE}.class IN (101, 102, 103, 106, 215, 220, 216)))
-              AND ABS(SUM({CUBE}.amount) OVER (PARTITION BY {CUBE}.transaction)) > 10000
+              AND {CUBE}.transaction_total_abs > 10000
               THEN 'B2B_CORPORATE'
 
             -- Priority 1: Known department mappings
