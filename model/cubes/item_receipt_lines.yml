@@ -5,7 +5,9 @@ cubes:
         irl.*,
         CAST(ir.trandate AS TIMESTAMP) as receipt_date,
         i.displayname as item_displayname,
-        i.itemid as item_sku
+        i.itemid as item_sku,
+        i.baseprice as item_baseprice,
+        i.cost as item_cost
       FROM gpc.item_receipt_lines irl
       LEFT JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
       LEFT JOIN gpc.items i ON irl.item = i.id
@@ -59,6 +61,12 @@ cubes:
         type: sum
         format: currency
         description: "DC Intake Value at cost (alias for total_receipt_line_value) - Total value of goods received at purchase cost."
+
+      - name: dc_intake_value_at_retail
+        sql: "{CUBE}.quantity * {CUBE}.item_baseprice"
+        type: sum
+        format: currency
+        description: "DC Intake Value at retail - INTAKE002 metric. Total value of goods received valued at retail price (baseprice). Excludes items without baseprice."
 
     dimensions:
       - name: id
@@ -152,6 +160,7 @@ cubes:
           - dc_intake_units
           - total_receipt_line_value
           - dc_intake_value_at_cost
+          - dc_intake_value_at_retail  # INTAKE002 - retail value
           - receipt_line_count
         time_dimension: receipt_date
         granularity: day
@@ -168,6 +177,7 @@ cubes:
         measures:
           - total_received_qty
           - total_receipt_line_value
+          - dc_intake_value_at_retail  # INTAKE002 - retail value
           - receipt_line_count
         dimensions:
           - item
