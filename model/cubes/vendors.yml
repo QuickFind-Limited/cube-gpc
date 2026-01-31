@@ -72,3 +72,18 @@ cubes:
         type: time
         title: Last Modified
         description: Date vendor record was last modified
+
+    pre_aggregations:
+      - name: vendors_summary
+        measures:
+          - vendor_count
+          - active_vendor_count
+          - total_vendor_balance
+        dimensions:
+          - id
+          - vendor_name
+          - is_inactive
+          - is_person
+          - currency
+        refresh_key:
+          every: 1 day
