@@ -139,10 +139,10 @@ cubes:
 
       # Revenue measures (from denormalized view)
       - name: total_revenue
-        sql: amount
+        sql: "CAST(CASE WHEN transaction_type IN ('CustInvc', 'CashSale') THEN amount * -1 ELSE 0 END AS FLOAT64)"
         type: sum
         format: currency
-        description: "Total revenue from transaction line amounts (denormalized in view)"
+        description: "Total revenue from transaction line amounts (denormalized in view). Multiplied by -1 to convert NetSuite's negative amounts to positive revenue. CustInvc + CashSale only."
 
       # Gross Margin measures (MAR001 metric)
       - name: gl_based_gross_margin
