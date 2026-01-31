@@ -147,6 +147,16 @@ cubes:
         type: string
         description: Shipping country
 
+      - name: shipdate
+        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
+        type: time
+        description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
+
+      - name: createddate
+        sql: "CAST({CUBE}.createddate AS TIMESTAMP)"
+        type: time
+        description: Created date (when order was created) - used for FUL-001 fulfillment speed metrics
+
       - name: foreign_total
         sql: "{CUBE}.foreigntotal"
         type: number
