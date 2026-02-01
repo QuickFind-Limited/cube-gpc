@@ -4,7 +4,7 @@ cubes:
       WITH cogs_aggregated AS (
         SELECT
           transaction,
-          SUM(debit) as gl_cogs_total
+          SUM(ABS(amount)) as gl_cogs_total
         FROM gpc.transaction_accounting_lines_cogs
         GROUP BY transaction
       )
