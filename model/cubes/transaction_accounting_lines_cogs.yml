@@ -12,10 +12,10 @@ cubes:
 
     dimensions:
       - name: id
-        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.id AS STRING))"
+        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.transactionline AS STRING))"
         type: string
         primary_key: true
-        description: Composite primary key (transaction-id)
+        description: Composite primary key (transaction-transactionline)
 
       - name: transaction_id
         sql: "{CUBE}.transaction"
