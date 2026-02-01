@@ -1,10 +1,14 @@
 cubes:
   - name: transaction_accounting_lines_cogs
-    sql_table: gpc.transaction_lines_with_cogs
+    sql_table: gpc.transaction_accounting_lines_cogs
     title: COGS Accounting Lines
-    description: GL-based COGS from TransactionAccountingLine (accurate source of truth for cost of goods sold) - using denormalized view
+    description: GL-based COGS from TransactionAccountingLine (accurate source of truth for cost of goods sold) - using external parquet table
 
-    # No joins needed - all data is denormalized in the view
+    # Joins to transaction_lines for additional dimensions if needed
+    joins:
+      - name: transaction_lines
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transaction_lines}.transaction"
 
     dimensions:
       - name: id
@@ -18,117 +22,51 @@ cubes:
         type: number
         description: Transaction ID (for JOIN to transaction_lines)
 
+      - name: transactionline_id
+        sql: "{CUBE}.transactionline"
+        type: number
+        description: Transaction line ID
+
       - name: transaction_date
-        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
-      # Denormalized dimensions from the view
-      - name: transaction_type
-        sql: transaction_type
-        type: string
-        description: Transaction type (CustInvc, CashSale, etc.)
+      - name: account_id
+        sql: "{CUBE}.account"
+        type: number
+        description: COGS account ID
 
-      - name: category
-        sql: category
-        type: string
-        description: Product category
-
-      - name: section
-        sql: section
-        type: string
-        description: Product section
-
-      - name: season
-        sql: season
-        type: string
-        description: Product season
-
-      - name: product_range
-        sql: product_range
-        type: string
-        description: Product range
-
-      - name: collection
-        sql: collection
-        type: string
-        description: Product collection
-
-      - name: department_name
-        sql: department_name
-        type: string
-        description: Department name
-
-      - name: billing_country
-        sql: billing_country
-        type: string
-        description: Billing country
-
-      - name: shipping_country
-        sql: shipping_country
-        type: string
-        description: Shipping country
-
-      - name: classification_name
-        sql: classification_name
-        type: string
-        description: Classification name
-
-      - name: transaction_currency
-        sql: CAST(transaction_currency_id AS STRING)
-        type: string
-        description: Transaction currency ID
-
-      - name: currency_name
-        sql: currency_name
-        type: string
-        description: Currency name
-
-      - name: sku
-        sql: sku
-        type: string
-        description: Product SKU
-
-      - name: product_name
-        sql: product_name
-        type: string
-        description: Product name
-
-      - name: size
-        sql: size
-        type: string
-        description: Product size
-
-      - name: color
-        sql: color
-        type: string
-        description: Product color
-
-      - name: location_name
-        sql: location_name
-        type: string
-        description: Location name
-
-      - name: cogs_account_name
-        sql: gl_cogs_account_name
+      - name: account_name
+        sql: account_name
         type: string
         description: COGS account name
 
+      - name: acctnumber
+        sql: acctnumber
+        type: number
+        description: COGS account number
+
+      - name: accttype
+        sql: accttype
+        type: string
+        description: Account type (should be COGS)
+
     measures:
       - name: gl_cogs
-        sql: gl_cogs_amount
+        sql: debit
         type: sum
         format: currency
-        description: "GL-based COGS (sum of all COGS account postings) - ACCURATE source of truth, replaces corrupt total_cost field"
+        description: "GL-based COGS (sum of all COGS account debit postings) - ACCURATE source of truth, replaces corrupt total_cost field"
 
       - name: gl_cogs_debit
-        sql: gl_cogs_debit
+        sql: debit
         type: sum
         format: currency
         description: Total COGS debit amounts
 
       - name: gl_cogs_credit
-        sql: gl_cogs_credit
+        sql: credit
         type: sum
         format: currency
         description: Total COGS credit amounts
@@ -137,54 +75,16 @@ cubes:
         type: count
         description: Number of COGS GL entries
 
-      # Revenue measures (from denormalized view)
-      - name: total_revenue
-        sql: "CAST(CASE WHEN transaction_type IN ('CustInvc', 'CashSale') THEN amount * -1 ELSE 0 END AS FLOAT64)"
-        type: sum
-        format: currency
-        description: "Total revenue from transaction line amounts (denormalized in view). Multiplied by -1 to convert NetSuite's negative amounts to positive revenue. CustInvc + CashSale only."
-
-      # Gross Margin measures (MAR001 metric)
-      - name: gl_based_gross_margin
-        sql: "{total_revenue} - {gl_cogs}"
-        type: number
-        format: currency
-        description: "MAR001: GL-based Gross Margin (Revenue - GL COGS). Uses accurate GL COGS from accounting lines."
-
-      - name: gl_based_gross_margin_pct
-        sql: "CASE WHEN {total_revenue} = 0 THEN 0 ELSE (({total_revenue} - {gl_cogs}) / {total_revenue}) * 100 END"
-        type: number
-        format: percent
-        description: "MAR001: GL-based Gross Margin % ((Revenue - GL COGS) / Revenue * 100). Uses accurate GL COGS."
-
     pre_aggregations:
-      - name: cogs_analysis
+      - name: cogs_by_account
         measures:
           - gl_cogs
           - gl_cogs_debit
           - gl_cogs_credit
           - cogs_entry_count
-          - total_revenue
-          - gl_based_gross_margin
         dimensions:
-          - transaction_type
-          - category
-          - section
-          - season
-          - product_range
-          - collection
-          - department_name
-          - billing_country
-          - shipping_country
-          - classification_name
-          - transaction_currency
-          - currency_name
-          - sku
-          - product_name
-          - size
-          - color
-          - location_name
-          - cogs_account_name
+          - account_name
+          - acctnumber
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -193,28 +93,15 @@ cubes:
         refresh_key:
           every: 1 day
 
-      # FAST monthly COGS pre-agg - For high-level COGS trending (12+ month queries)
-      # Reduced dimensions (4 vs 18) = 95% smaller partitions + monthly granularity
-      # Fixes COGS_DIRECT timeout (11.33s → <2s expected)
-      # Use this for executive dashboards and long-range COGS analysis
-      - name: cogs_monthly_fast
+      # Monthly rollup for faster queries
+      - name: cogs_monthly_totals
         measures:
           - gl_cogs
           - cogs_entry_count
-        dimensions:
-          - category              # Product category
-          - season                # Seasonal analysis
-          - transaction_type      # Transaction type (CustInvc, CashSale, etc.)
-          - currency_name         # Multi-currency reporting
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
-        indexes:
-          - name: category_season_idx
-            columns:
-              - category
-              - season
         refresh_key:
           every: 1 day
