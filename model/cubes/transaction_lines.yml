@@ -16,7 +16,7 @@ cubes:
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
         t.createddate as transaction_createddate,
-        COALESCE(cogs.gl_cogs_total, 0) as line_gl_cogs_total
+        COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated
       FROM gpc.transaction_lines_denormalized_mv tl
       LEFT JOIN gpc.transactions t ON tl.transaction = t.id
       LEFT JOIN cogs_aggregated cogs ON tl.transaction = cogs.transaction
@@ -279,12 +279,12 @@ cubes:
         description: "❌ DEPRECATED FOR INV-001 - Use gl_based_gmroi instead. This measure uses gross_margin which contains corrupt costestimate data. GMROI numerator component - use gross_margin for specified time period (e.g., YTD). Divide by inventory.inventory_value_at_cost to get GMROI ratio."
 
       # GL-Based COGS Measures (ACCURATE - replaces corrupt costestimate field)
-      # ✅ DENORMALIZED: Uses line_gl_cogs_total from cube SQL (aggregated from transaction_accounting_lines_cogs)
+      # ✅ DENORMALIZED & ALLOCATED: Transaction-level COGS divided across all lines in that transaction
       - name: gl_based_cogs
-        sql: "{CUBE}.line_gl_cogs_total"
+        sql: "{CUBE}.line_gl_cogs_allocated"
         type: sum
         format: currency
-        description: "✅ DENORMALIZED: GL-based COGS from TransactionAccountingLine (ACCURATE - replaces total_cost which uses corrupt costestimate field). This is the authoritative source of truth for cost of goods sold. Now denormalized for pre-aggregation support."
+        description: "✅ DENORMALIZED & ALLOCATED: GL-based COGS from TransactionAccountingLine (ACCURATE - replaces total_cost which uses corrupt costestimate field). Transaction-level COGS is allocated across all lines in that transaction, so SUM gives correct total. This is the authoritative source of truth for cost of goods sold."
 
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
@@ -351,34 +351,34 @@ cubes:
       # ✅ DENORMALIZED: Uses transaction_shipdate and transaction_createddate from cube SQL
       - name: ship_to_order_days_total
         sql: >
-          SUM(CASE
+          CASE
             WHEN {CUBE}.transaction_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
             THEN DATE_DIFF({CUBE}.transaction_shipdate, {CUBE}.transaction_createddate, DAY)
             ELSE 0
-          END)
-        type: number
+          END
+        type: sum
         description: "FUL-001: Total days from order to ship across all transactions (component for avg_ship_to_order_days)"
 
       - name: orders_with_shipdate_count
         sql: >
-          COUNT(DISTINCT CASE
+          CASE
             WHEN {CUBE}.transaction_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
             THEN {CUBE}.transaction
-          END)
-        type: number
+          END
+        type: count_distinct_approx
         description: "FUL-001: Count of orders with valid ship dates (component for avg_ship_to_order_days)"
 
       - name: orders_shipped_2days
         sql: >
-          COUNT(DISTINCT CASE
+          CASE
             WHEN {CUBE}.transaction_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
             AND DATE_DIFF({CUBE}.transaction_shipdate, {CUBE}.transaction_createddate, DAY) <= 2
             THEN {CUBE}.transaction
-          END)
-        type: number
+          END
+        type: count_distinct_approx
         description: "FUL-001: Count of orders shipped within 2 days (component for ship_speed_2day_rate)"
 
     dimensions:
