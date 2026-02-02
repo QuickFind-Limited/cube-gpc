@@ -722,6 +722,9 @@ cubes:
           - returns_revenue_aligned    # RET005: Return revenue (Feb 2025+)
           - total_revenue_aligned      # RET005: Total revenue denominator (Feb 2025+)
           - gl_based_cogs       # INV-001: DENORMALIZED GL-based COGS for GMROI calculation
+          - operating_expenses  # FIN-002: Operating expenses for EBIT calculation (v68.11)
+          # NOTE: ebit measure is calculated client-side from: total_revenue - gl_based_cogs - operating_expenses
+          # Calculated measures (type: number) cannot be pre-aggregated - use component measures instead
           - total_customers     # CUS-004: Component for churn rate calculation
           - ship_to_order_days_total      # FUL-001: Component for avg ship speed
           - orders_with_shipdate_count    # FUL-001: Component for avg ship speed
