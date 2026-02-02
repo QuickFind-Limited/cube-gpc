@@ -148,10 +148,10 @@ cubes:
       - name: customer_tier
         sql: >
           CASE
-            WHEN {CUBE}.lifetime_value >= 500 THEN 'VIP'
-            WHEN {CUBE}.lifetime_value >= 200 THEN 'Regular'
-            WHEN {CUBE}.lifetime_value >= 100 THEN 'Occasional'
-            ELSE 'New'
+            WHEN {CUBE}.lifetime_value >= 500 THEN CAST('VIP' AS STRING)
+            WHEN {CUBE}.lifetime_value >= 200 THEN CAST('Regular' AS STRING)
+            WHEN {CUBE}.lifetime_value >= 100 THEN CAST('Occasional' AS STRING)
+            ELSE CAST('New' AS STRING)
           END
         type: string
         description: Customer tier based on LTV
@@ -159,10 +159,10 @@ cubes:
       - name: recency_bucket
         sql: >
           CASE
-            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) THEN 'Active (30d)'
-            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)) THEN 'Recent (90d)'
-            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)) THEN 'Lapsed (180d)'
-            ELSE 'Dormant (180d+)'
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) THEN CAST('Active (30d)' AS STRING)
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)) THEN CAST('Recent (90d)' AS STRING)
+            WHEN CAST({CUBE}.last_order_date AS TIMESTAMP) >= TIMESTAMP(DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)) THEN CAST('Lapsed (180d)' AS STRING)
+            ELSE CAST('Dormant (180d+)' AS STRING)
           END
         type: string
         description: Customer recency bucket
@@ -170,10 +170,10 @@ cubes:
       - name: purchase_frequency_bucket
         sql: >
           CASE
-            WHEN {CUBE}.order_count = 1 THEN '1x'
-            WHEN {CUBE}.order_count = 2 THEN '2x'
-            WHEN {CUBE}.order_count = 3 THEN '3x'
-            ELSE '4+'
+            WHEN {CUBE}.order_count = 1 THEN CAST('1x' AS STRING)
+            WHEN {CUBE}.order_count = 2 THEN CAST('2x' AS STRING)
+            WHEN {CUBE}.order_count = 3 THEN CAST('3x' AS STRING)
+            ELSE CAST('4+' AS STRING)
           END
         type: string
         description: Purchase frequency bucket for CM059
