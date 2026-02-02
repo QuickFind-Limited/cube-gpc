@@ -16,21 +16,25 @@ cubes:
       FROM gpc.transaction_lines tl
       INNER JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
       WHERE t.type = 'ItemRcpt'
-        AND tl.blandedcost = 'T'
         AND tl.mainline = FALSE
         AND CAST(tl.amount AS FLOAT64) > 0
+        -- NOTE: blandedcost field not extracted - cannot filter for landed cost lines
+        -- This cube will include ALL ItemRcpt lines, not just landed costs
 
-    title: Landed Costs Analysis
+    title: Landed Costs Analysis (INCOMPLETE - Missing blandedcost field)
     description: >
-      Landed costs (freight, duties, customs) from Item Receipts. Identified by blandedcost='T' flag.
+      ⚠️ WARNING: blandedcost field was not extracted from NetSuite transaction_lines.
+      This cube cannot properly identify landed cost lines and will include ALL ItemRcpt lines.
+
+      Original intent: Landed costs (freight, duties, customs) from Item Receipts identified by blandedcost='T' flag.
       These are additional costs added to inventory beyond the base item cost.
-      Use for freight analysis, duty tracking, and total cost of goods calculations.
+
+      Current behavior: Returns ALL Item Receipt lines with amount > 0, not just landed costs.
+      To fix: Extract blandedcost field in transaction_lines extraction and uncomment WHERE clause filter.
 
       NetSuite stores landed costs using double-entry accounting with offsetting positive/negative amounts.
-      This cube filters for positive amounts only (amount > 0) to capture the actual landed cost charges
-      allocated to inventory items. Historical data shows ~€3.8M in total landed costs distributed across
-      ~96,747 item receipt lines. FIX (v66): Added amount > 0 filter to exclude offsetting negative entries
-      that were causing landed cost totals to sum to zero (LAND001).
+      This cube filters for positive amounts only (amount > 0). FIX (v66): Added amount > 0 filter to exclude
+      offsetting negative entries (LAND001).
 
     measures:
       - name: total_landed_costs
