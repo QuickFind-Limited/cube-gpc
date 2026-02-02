@@ -7,7 +7,7 @@ cubes:
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.entity = {transactions.id}"
+        sql: "CAST({CUBE}.entity AS STRING) = {transactions.id}"
 
     measures:
       - name: fulfillment_count

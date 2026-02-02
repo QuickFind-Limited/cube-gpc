@@ -11,7 +11,7 @@ cubes:
 
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.createdfrom = {transactions.id}"
+        sql: "CAST({CUBE}.createdfrom AS STRING) = {transactions.id}"
 
       - name: items
         relationship: many_to_one

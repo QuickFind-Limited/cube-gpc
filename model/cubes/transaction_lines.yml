@@ -38,7 +38,7 @@ cubes:
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {transactions.id}"
+        sql: "CAST({CUBE}.transaction AS STRING) = {transactions.id}"
 
       # NEW: Enable sales vs stock analysis (e.g. "high sales, low stock" reorder alerts)
       # Join to current inventory. Note: Inventory is point-in-time (current stock levels).
