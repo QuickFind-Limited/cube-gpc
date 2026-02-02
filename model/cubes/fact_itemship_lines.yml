@@ -1,0 +1,138 @@
+cubes:
+  - name: fact_itemship_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemship_lines
+    title: Item Fulfillment Lines
+    description: >
+      Item fulfillment line-level detail for shipments to customers.
+      Grain: one row per item fulfillment line.
+
+    joins:
+      - name: fact_itemship_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_itemship_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: itemship_lines_count
+        type: count
+        description: Total number of item fulfillment lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items shipped
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates across lines
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate per line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to item fulfillment transaction header
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity shipped on this line
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit rate for this line
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to location dimension (fulfillment location)
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Class/product line identifier
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header summary lines, includes only detail lines"
+
+      - name: positive_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
+        description: "Lines with positive shipped quantities"
+
+      - name: negative_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
+        description: "Lines with negative quantities (returns or reversals)"
+
+    pre_aggregations:
+      - name: daily_shipments
+        measures:
+          - itemship_lines_count
+          - total_quantity
+        dimensions:
+          - item_id
+          - location_id
+        time_dimension: fact_itemship_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: item_location_rollup
+        measures:
+          - itemship_lines_count
+          - total_quantity
+          - avg_quantity
+        dimensions:
+          - item_id
+          - location_id
+          - department_id
+        refresh_key:
+          every: 1 day

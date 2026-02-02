@@ -1,0 +1,106 @@
+cubes:
+  - name: inventory_calculated
+    sql: SELECT * FROM gpc_data_2026_01_26.inventory_calculated
+    title: Inventory Calculated
+    description: >
+      Inventory snapshot fact table containing calculated inventory levels by item and location.
+      Grain: one row per item-location combination.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.item_id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.location_id}"
+
+    measures:
+      - name: inventory_count
+        type: count
+        description: Total number of item-location inventory records
+
+      - name: total_qty_available
+        sql: "CAST({CUBE}.qty_available AS FLOAT64)"
+        type: sum
+        description: Total quantity available across all items and locations
+
+      - name: total_qty_on_hand
+        sql: "CAST({CUBE}.qty_on_hand AS FLOAT64)"
+        type: sum
+        description: Total quantity on hand across all items and locations
+
+      - name: total_reorder_point
+        sql: "CAST({CUBE}.reorder_point AS FLOAT64)"
+        type: sum
+        description: Sum of reorder points across all items and locations
+
+      - name: avg_qty_available
+        sql: "CAST({CUBE}.qty_available AS FLOAT64)"
+        type: avg
+        description: Average quantity available per item-location
+
+      - name: avg_qty_on_hand
+        sql: "CAST({CUBE}.qty_on_hand AS FLOAT64)"
+        type: avg
+        description: Average quantity on hand per item-location
+
+      - name: items_below_reorder
+        type: count
+        sql: "CASE WHEN {CUBE}.qty_available < {CUBE}.reorder_point THEN 1 END"
+        description: Count of item-locations below reorder point
+
+    dimensions:
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Foreign key to items table
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Foreign key to locations table
+
+      - name: qty_available
+        sql: "CAST({CUBE}.qty_available AS FLOAT64)"
+        type: number
+        description: Quantity available for this item at this location
+
+      - name: qty_on_hand
+        sql: "CAST({CUBE}.qty_on_hand AS FLOAT64)"
+        type: number
+        description: Physical quantity on hand for this item at this location
+
+      - name: reorder_point
+        sql: "CAST({CUBE}.reorder_point AS FLOAT64)"
+        type: number
+        description: Reorder point threshold for this item-location
+
+    segments:
+      - name: below_reorder_point
+        sql: "{CUBE}.qty_available < {CUBE}.reorder_point"
+        description: "Items with available quantity below reorder point"
+
+      - name: out_of_stock
+        sql: "{CUBE}.qty_available <= 0"
+        description: "Items with zero or negative available quantity"
+
+      - name: in_stock
+        sql: "{CUBE}.qty_available > 0"
+        description: "Items with positive available quantity"
+
+      - name: overstocked
+        sql: "{CUBE}.qty_available > ({CUBE}.reorder_point * 3)"
+        description: "Items with quantity significantly above reorder point (3x threshold)"
+
+    pre_aggregations:
+      - name: inventory_summary
+        measures:
+          - inventory_count
+          - total_qty_available
+          - total_qty_on_hand
+        dimensions:
+          - item
+          - location
+        refresh_key:
+          every: 1 hour

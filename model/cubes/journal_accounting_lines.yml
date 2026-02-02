@@ -1,0 +1,145 @@
+cubes:
+  - name: journal_accounting_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.journal_accounting_lines
+    title: Journal Accounting Lines
+    description: >
+      Journal entry line-level detail containing GL distributions for journal entries.
+      Grain: one row per journal entry line.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions.id}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments.department_id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.location_id}"
+
+    measures:
+      - name: journal_lines_count
+        type: count
+        description: Total number of journal entry lines
+
+      - name: total_debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all debit amounts
+
+      - name: total_credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all credit amounts
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all line amounts
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all net amounts
+
+      - name: avg_exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across journal lines
+
+    dimensions:
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        primary_key: true
+        description: Foreign key to transaction header
+
+      - name: account
+        sql: "{CUBE}.account"
+        type: number
+        description: GL account number for this journal line
+
+      - name: debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: number
+        description: Debit amount for this line
+
+      - name: credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: number
+        description: Credit amount for this line
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (signed: positive for debit, negative for credit)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after adjustments
+
+      - name: exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to this line
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department foreign key
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class (business unit/product line) identifier
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location foreign key
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: Line-level memo or description
+
+      - name: trandate
+        sql: "TIMESTAMP({CUBE}.trandate)"
+        type: time
+        description: Transaction date
+
+    segments:
+      - name: debit_lines
+        sql: "{CUBE}.debit > 0"
+        description: "Journal lines with debit amounts"
+
+      - name: credit_lines
+        sql: "{CUBE}.credit > 0"
+        description: "Journal lines with credit amounts"
+
+      - name: with_memo
+        sql: "{CUBE}.memo IS NOT NULL AND {CUBE}.memo != ''"
+        description: "Lines with memo/description populated"
+
+    pre_aggregations:
+      - name: daily_gl_summary
+        measures:
+          - journal_lines_count
+          - total_debit
+          - total_credit
+          - total_amount
+        dimensions:
+          - account
+          - department
+          - class
+        time_dimension: trandate
+        granularity: day
+        refresh_key:
+          every: 1 day

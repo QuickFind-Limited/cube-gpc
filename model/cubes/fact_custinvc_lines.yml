@@ -1,0 +1,135 @@
+cubes:
+  - name: fact_custinvc_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custinvc_lines
+    title: Customer Invoice Lines
+    description: >
+      Customer invoice line-level detail fact table. Contains individual line items from customer invoices.
+      Grain: one row per customer invoice line. NOTE: 99.4% of invoices are from webstore/POS entities.
+      Use segments to filter for real customer transactions.
+
+    joins:
+      - name: fact_custinvc_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_custinvc_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: custinvc_lines_count
+        type: count
+        description: Total number of invoice line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items invoiced
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount across all invoice lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount per invoice line
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line item
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to invoice header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the invoice
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos, etc.)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for business analytics
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header) record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item dimension
+
+      - name: quantity
+        sql: "{CUBE}.quantity"
+        type: number
+        description: Quantity of items on this line
+
+      - name: line_amount
+        sql: "{CUBE}.line_amount"
+        type: number
+        description: Line amount before tax
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class dimension for business segmentation
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore/POS) for accurate customer analytics"
+
+      - name: customer_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Real customer transactions only, excluding all system entities"
+
+      - name: webstore_only
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore system transactions only"
+
+      - name: pos_only
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "POS system transactions only"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Detail lines only, excluding header summary records"
+
+    pre_aggregations:
+      - name: daily_invoice_lines
+        measures:
+          - custinvc_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_custinvc_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

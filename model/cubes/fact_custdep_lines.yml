@@ -1,0 +1,150 @@
+cubes:
+  - name: fact_custdep_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custdep_lines
+    title: Customer Deposit Lines
+    description: >
+      Customer deposit transaction line-level detail.
+      Grain: one row per customer deposit line.
+      Note: 98.7% of deposits are from webstore entities per contamination analysis.
+
+    joins:
+      - name: fact_custdep_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_custdep_headers.transaction_id}"
+
+    measures:
+      - name: custdep_lines_count
+        type: count
+        description: Total number of customer deposit lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of deposit line amounts
+
+      - name: total_net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net deposit amounts (after discounts)
+
+      - name: total_discount
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transaction discounts
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average deposit line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Reference to the deposit transaction header
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos, etc.)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for analysis (excludes system entities)
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header-level) record
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Deposit line amount
+
+      - name: net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: number
+        description: Net deposit amount after discounts
+
+      - name: transaction_discount
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
+        type: number
+        description: Discount applied to the transaction line
+
+      - name: is_tax_line
+        sql: "{CUBE}.is_tax_line"
+        type: boolean
+        description: Indicates if this line represents tax
+
+      - name: is_closed
+        sql: "{CUBE}.is_closed"
+        type: boolean
+        description: Indicates if the deposit line is closed
+
+      - name: is_fully_shipped
+        sql: "{CUBE}.is_fully_shipped"
+        type: boolean
+        description: Indicates if the line is fully shipped
+
+      - name: is_cogs
+        sql: "{CUBE}.is_cogs"
+        type: boolean
+        description: Indicates if this is a cost of goods sold line
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes webstore/POS system entities for customer-focused analysis"
+
+      - name: customer_deposits_only
+        sql: "{CUBE}.entity_type = 'customer' AND {CUBE}.transaction_in_scope = true"
+        description: "Real customer deposits only (excludes webstore/POS)"
+
+      - name: webstore_deposits
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore payment processor deposits only"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Detail lines only (excludes header summary lines)"
+
+      - name: tax_lines_only
+        sql: "{CUBE}.is_tax_line = true"
+        description: "Tax lines only"
+
+      - name: non_tax_lines
+        sql: "{CUBE}.is_tax_line = false"
+        description: "Non-tax deposit lines only"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custdep_lines_count
+          - total_amount
+          - total_net_amount
+          - total_discount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+          - is_tax_line
+        time_dimension: fact_custdep_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

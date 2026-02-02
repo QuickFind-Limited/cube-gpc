@@ -1,30 +1,30 @@
 cubes:
   - name: transactions
-    sql: >
-      SELECT * FROM gpc.transactions_analysis
+    sql: SELECT * FROM gpc_data_2026_01_26.transactions
     title: Transactions
     description: >
-      Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns).
-      FIX (v68.6): Added CAST to foreigntotal - typed Parquet stored numeric fields as STRING (total, foreigntotal, exchangerate all STRING).
+      Transaction headers across all transaction types (orders, invoices, cash sales, returns, payments, etc.).
+      Grain: one row per transaction header.
+      Entity contamination: Contains entity_type and transaction_in_scope fields for filtering system entities (webstore/POS payment processors).
+      Note: Schema updated to new BigQuery dataset - custom fields from old schema (custbody_customer_email, billing_country, etc.) may not be present in base table.
 
     joins:
       - name: currencies
         relationship: many_to_one
-        sql: "{CUBE}.currency = {currencies.id}"
+        sql: "{CUBE}.currency = {currencies.currency_id}"
 
       - name: subsidiaries
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary = {subsidiaries.id}"
+        sql: "{CUBE}.subsidiary = {subsidiaries.subsidiary_id}"
 
     measures:
-      - name: order_count
+      - name: transactions_count
         type: count
         description: Total number of transactions
 
-      - name: unique_customers
-        sql: "{CUBE}.custbody_customer_email"
-        type: count_distinct_approx
-        description: Number of unique customers by email (approximate with HyperLogLog, 10-20% error margin acceptable for analytics)
+      - name: order_count
+        type: count
+        description: Total number of transactions (alias for backwards compatibility)
 
       - name: fulfilled_orders
         type: count
@@ -55,14 +55,26 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type = 'CustCred' AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transaction totals in base currency
+
+      - name: total_foreigntotal
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of foreign totals
 
       - name: total_foreign_amount
         sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
@@ -76,16 +88,72 @@ cubes:
         format: currency
         description: Average transaction total (calculated from components, NOT for use in pre-aggregations)
 
+      - name: total_exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: sum
+        description: Sum of exchange rates (for averaging calculations)
+
     dimensions:
       - name: id
         sql: "{CUBE}.id"
         type: number
         primary_key: true
+        description: Unique transaction identifier
+
+      - name: tranid
+        sql: "{CUBE}.tranid"
+        type: string
+        description: Transaction number/reference (human-readable)
 
       - name: type
         sql: "{CUBE}.type"
         type: string
-        description: "Transaction type: SalesOrd, CustInvc, CashSale"
+        description: "Transaction type: SalesOrd, CustInvc, CashSale, CustCred, CustPymt, VendBill, VendPymt, etc."
+
+      - name: trandate
+        sql: "TIMESTAMP({CUBE}.trandate)"
+        type: time
+        description: Transaction date
+
+      - name: entity
+        sql: "{CUBE}.entity"
+        type: number
+        description: Entity ID (customer or vendor)
+
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: Subsidiary ID (2=Ireland/EUR, 6=UK/GBP)
+
+      - name: currency
+        sql: "{CUBE}.currency"
+        type: number
+        description: Currency ID
+
+      - name: postingperiod
+        sql: "{CUBE}.postingperiod"
+        type: number
+        description: Accounting period ID for posting
+
+      - name: total
+        sql: "CAST({CUBE}.total AS FLOAT64)"
+        type: number
+        description: Transaction total in base currency
+
+      - name: foreigntotal
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
+        type: number
+        description: Transaction total in foreign currency
+
+      - name: foreign_total
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
+        type: number
+        description: Transaction total in foreign currency (alias for backwards compatibility)
+
+      - name: exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to transaction
 
       - name: status
         sql: "{CUBE}.status"
@@ -109,144 +177,120 @@ cubes:
         type: string
         description: Human-readable transaction status
 
-      - name: trandate
-        sql: "CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP)"
+      - name: voided
+        sql: "{CUBE}.voided"
+        type: boolean
+        description: Whether the transaction has been voided
+
+      - name: posting
+        sql: "{CUBE}.posting"
+        type: boolean
+        description: Whether the transaction posts to GL
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: "Entity classification: 'customer', 'webstore', 'pos' - used to filter system entities"
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Whether transaction is in scope for customer analytics (excludes system entities)
+
+      - name: paymentmethod
+        sql: "{CUBE}.paymentmethod"
+        type: number
+        description: Payment method ID
+
+      - name: createdfrom
+        sql: "{CUBE}.createdfrom"
+        type: number
+        description: Source transaction ID (for transactions created from other transactions)
+
+      - name: shipdate
+        sql: "TIMESTAMP({CUBE}.shipdate)"
         type: time
-        description: Transaction date
+        description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
+
+      - name: closedate
+        sql: "TIMESTAMP({CUBE}.closedate)"
+        type: time
+        description: Date when transaction was closed/completed
+
+      - name: duedate
+        sql: "TIMESTAMP({CUBE}.duedate)"
+        type: time
+        description: Due date (for invoices and bills)
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), MONTH)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), YEAR)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), WEEK)"
+        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), WEEK)"
         type: time
         description: Transaction week
 
-      - name: customer_email
-        sql: "{CUBE}.custbody_customer_email"
-        type: string
-        description: Customer email address
-
-      - name: billing_country
-        sql: "{CUBE}.billing_country"
-        type: string
-        description: Billing country
-
-      - name: shipping_country
-        sql: "{CUBE}.shipping_country"
-        type: string
-        description: Shipping country
-
-      - name: shipdate
-        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
-        type: time
-        description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
-
-      - name: createddate
-        sql: "CAST({CUBE}.createddate AS TIMESTAMP)"
-        type: time
-        description: Created date (when order was created) - used for FUL-001 fulfillment speed metrics
-
-      - name: foreign_total
-        sql: "{CUBE}.foreigntotal"
-        type: number
-        description: Transaction total in foreign currency
-
-      - name: currency
-        sql: "{CUBE}.currency"
-        type: number
-        description: Currency ID
-
-      - name: currency_name
-        sql: "{currencies.name}"
-        type: string
-        description: Currency code (EUR, GBP, USD, AUD, etc.)
-
-      - name: subsidiary
-        sql: "{CUBE}.subsidiary"
-        type: number
-        description: Subsidiary ID (2=Ireland/EUR, 6=UK/GBP)
-
-      - name: remote_order_source
-        sql: "{CUBE}.custbody_pwks_remote_order_source"
-        type: string
-        description: Remote order source (e.g., John Lewis)
-
-      - name: shopify_order_name
-        sql: "{CUBE}.custbody_shopify_order_name"
-        type: string
-        description: Shopify order name/number
-
-      - name: is_partner_order
-        sql: "CASE WHEN {CUBE}.custbody_pwks_remote_order_source = 'John Lewis' THEN 'Yes' ELSE 'No' END"
-        type: string
-        description: Whether order is from a partner
-
-      - name: memo
-        sql: "{CUBE}.memo"
-        type: string
-        description: Transaction memo/notes
-
-      # FIXED v58: B2B/Wholesale Customer Segmentation (now based on email presence)
-      - name: customer_type
-        type: string
-        case:
-          when:
-            - sql: "{CUBE}.custbody_customer_email IS NOT NULL AND {CUBE}.custbody_customer_email != ''"
-              label: "Retail/D2C"
-          else:
-            label: "B2B/Wholesale"
-        title: Customer Type
-        description: "Customer segmentation based on email presence: Retail/D2C customers have email addresses (individual consumers, ~66% of transactions), B2B/Wholesale customers do not (POS systems, wholesale accounts, corporate buyers, ~34% of transactions). CRITICAL for pricing analysis - B2B customers receive wholesale bulk pricing (10-30% of retail base price), while Retail/D2C customers pay near full price (70-100% of base price). ALWAYS segment by customer_type when analyzing pricing, discounts, or margins to avoid mixing two completely different business models. Note: customer_type = WHO bought (consumer vs business), channel_type = WHERE they bought (D2C online, RETAIL stores, B2B_WHOLESALE locations)."
-
     segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore/POS payment processors) for accurate customer analytics"
+
+      - name: customer_transactions
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only transactions from real customers (excludes webstore/POS entities)"
+
       - name: revenue_transactions
         sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
+        description: "Revenue-generating transactions (invoices and cash sales)"
 
       - name: sales_orders
         sql: "{CUBE}.type = 'SalesOrd'"
-
-      - name: with_customer_email
-        sql: "{CUBE}.custbody_customer_email IS NOT NULL"
+        description: "Sales orders only"
 
       - name: fulfilled_status
         sql: "{CUBE}.status = 'G'"
+        description: "Billed/fulfilled transactions"
+
+      - name: posted_only
+        sql: "{CUBE}.posting = true AND {CUBE}.voided = false"
+        description: "Posted, non-voided transactions for financial reporting"
 
     pre_aggregations:
-      # Main rollup for order analysis
-      # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
-      - name: orders_analysis
+      # Main rollup for transaction analysis
+      - name: transactions_daily
         measures:
+          - transactions_count
           - order_count
-          - unique_customers
           - fulfilled_orders
           - cancelled_orders
           - customer_credits
           - revenue_transaction_count
           - customer_credits_aligned
           - revenue_transaction_count_aligned
-          - total_foreign_amount          # Component for avg calculation (replaced average_transaction_total)
+          - total_amount
+          - total_foreigntotal
+          - total_foreign_amount
         dimensions:
           - type
           - status
           - status_name
-          - billing_country
-          - shipping_country
+          - entity_type
+          - transaction_in_scope
+          - subsidiary
           - currency
-          - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: trandate
         granularity: day
         refresh_key:
-          every: 365 days
+          every: 1 day
