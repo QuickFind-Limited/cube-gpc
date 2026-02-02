@@ -7,6 +7,13 @@ cubes:
           SUM(ABS(amount)) as gl_cogs_total
         FROM gpc.transaction_accounting_lines_cogs
         GROUP BY transaction
+      ),
+      opex_aggregated AS (
+        SELECT
+          CAST(transaction AS INT64) as transaction,
+          SUM(ABS(CAST(amount AS FLOAT64))) as opex_total
+        FROM gpc.transaction_accounting_lines_opex
+        GROUP BY transaction
       )
       SELECT
         tl.*,
@@ -17,10 +24,12 @@ cubes:
         t.shipdate as transaction_shipdate,
         t.createddate as transaction_createddate,
         PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
-        COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated
+        COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
+        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
       FROM gpc.transaction_lines_denormalized_mv tl
       LEFT JOIN gpc.transactions t ON tl.transaction = t.id
       LEFT JOIN cogs_aggregated cogs ON tl.transaction = cogs.transaction
+      LEFT JOIN opex_aggregated opex ON tl.transaction = opex.transaction
       LEFT JOIN gpc.transaction_lines_itemship itemship_line
         ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
       LEFT JOIN gpc.transactions_itemship itemship
@@ -291,6 +300,29 @@ cubes:
         type: sum
         format: currency
         description: "✅ DENORMALIZED & ALLOCATED: GL-based COGS from TransactionAccountingLine (ACCURATE - replaces total_cost which uses corrupt costestimate field). Transaction-level COGS is allocated across all lines in that transaction, so SUM gives correct total. This is the authoritative source of truth for cost of goods sold."
+
+      # Operating Expenses (OpEx) Measures - Added 2026-02-02 for FIN-002
+      # ✅ DENORMALIZED & ALLOCATED: Transaction-level OpEx divided across all lines in that transaction
+      - name: operating_expenses
+        sql: "{CUBE}.line_opex_allocated"
+        type: sum
+        format: currency
+        description: "✅ DENORMALIZED & ALLOCATED: Operating expenses from GL accounting lines (expense account type). Transaction-level OpEx is allocated across all lines in that transaction, so SUM gives correct total. Used for FIN-002 (EBIT) calculation. Note: Corporate-level only (31% location coding in source data)."
+
+      # EBIT (Operating Income) Measure - Added 2026-02-02 for FIN-002
+      # Formula: Revenue - COGS - OpEx
+      - name: ebit
+        sql: "{transaction_lines.total_revenue} - {transaction_lines.gl_based_cogs} - {transaction_lines.operating_expenses}"
+        type: number
+        format: currency
+        description: "FIN-002: EBIT (Earnings Before Interest and Taxes) = Revenue - COGS - Operating Expenses. Also known as Operating Income. Note: This is EBIT, not EBITDA (Depreciation & Amortization not available). Corporate-level only due to OpEx location coding limitations."
+
+      # Gross Profit Measure (for convenience)
+      - name: gross_profit
+        sql: "{transaction_lines.total_revenue} - {transaction_lines.gl_based_cogs}"
+        type: number
+        format: currency
+        description: "Gross Profit = Revenue - COGS. Component of EBIT calculation."
 
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
