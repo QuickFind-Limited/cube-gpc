@@ -6,6 +6,7 @@ cubes:
     description: >
       Purchase order line items with quantity, cost, and receipt tracking.
       FIX (v68.8): Changed on_order_value and avg_unit_cost measures to reference 'rate' field directly instead of 'unit_cost' dimension name.
+      FIX (v68.10): Added CAST to total_received_qty - quantityshiprecv is STRING type in typed Parquet.
 
     measures:
       - name: line_count
@@ -18,7 +19,7 @@ cubes:
         description: Total quantity ordered
 
       - name: total_received_qty
-        sql: quantityshiprecv
+        sql: "CAST(quantityshiprecv AS INT64)"
         type: sum
         description: Total quantity received
 
