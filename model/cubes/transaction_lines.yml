@@ -19,7 +19,7 @@ cubes:
         tl.*,
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
-        PARSE_DATE('%Y-%m-%d', t.createddate) as transaction_createddate,
+        PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
         PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
         COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
