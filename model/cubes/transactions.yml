@@ -199,6 +199,24 @@ cubes:
         type: string
         description: Transaction memo/notes
 
+      - name: return_reason_cleaned
+        sql: >
+          CASE
+            WHEN {CUBE}.type = 'CustCred'
+              AND {CUBE}.memo IS NOT NULL
+              AND {CUBE}.memo != ''
+              AND UPPER({CUBE}.memo) NOT LIKE '%SALES - EXCHANGE + RETURNS%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%WHOLESALE BULK ADJUSTMENT%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%BULK ADJUSTMENT%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%BULK RETURNS%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%END OF SEASON%'
+              AND LENGTH({CUBE}.memo) > 3
+            THEN {CUBE}.memo
+            ELSE NULL
+          END
+        type: string
+        description: "Cleaned return reasons for customer credits (RET-006). Filters out bulk administrative entries, wholesale adjustments, and internal codes to show only actual customer-facing return reasons. Coverage: ~50% of customer credits (2024+). Use with customer_credits measure for return reason analysis."
+
       # FIXED v58: B2B/Wholesale Customer Segmentation (now based on email presence)
       - name: customer_type
         type: string
@@ -224,9 +242,14 @@ cubes:
       - name: fulfilled_status
         sql: "{CUBE}.status = 'G'"
 
+      - name: customer_credits_with_reason
+        sql: "{CUBE}.type = 'CustCred' AND {CUBE}.memo IS NOT NULL AND {CUBE}.memo != ''"
+        description: "Customer credits that have return reasons recorded (for RET-006 coverage analysis)"
+
     pre_aggregations:
       # Main rollup for order analysis
       # V57: Added customer_type for B2B/Wholesale vs Retail/D2C segmentation
+      # V69: Added memo and return_reason_cleaned for RET-006 Return Reason Tracking
       - name: orders_analysis
         measures:
           - order_count
@@ -246,6 +269,8 @@ cubes:
           - shipping_country
           - currency
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
+          - memo                 # Return reasons (NEW v69 for RET-006)
+          - return_reason_cleaned  # Cleaned return reasons (NEW v69 for RET-006)
         time_dimension: trandate
         granularity: day
         refresh_key:
