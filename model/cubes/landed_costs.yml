@@ -14,7 +14,7 @@ cubes:
         t.tranid as receipt_number,
         t.type as transaction_type
       FROM gpc.transaction_lines tl
-      INNER JOIN gpc.transactions t ON tl.transaction = t.id
+      INNER JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
       WHERE t.type = 'ItemRcpt'
         AND tl.blandedcost = 'T'
         AND tl.mainline = FALSE

@@ -26,7 +26,7 @@ cubes:
         -- Current inventory (aggregated from inventory_calculated)
         COALESCE(MAX(inv.current_stock), 0) as current_stock
       FROM gpc.transaction_lines_clean tl
-      LEFT JOIN gpc.transactions_analysis t ON tl.transaction = t.id
+      LEFT JOIN gpc.transactions_analysis t ON CAST(tl.transaction AS STRING) = t.id
       INNER JOIN gpc.items i ON tl.item = i.id
       LEFT JOIN (
         SELECT

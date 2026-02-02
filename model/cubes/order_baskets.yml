@@ -21,7 +21,7 @@ cubes:
           ELSE 'Retail/D2C'
         END as customer_type
       FROM gpc.transaction_lines_clean tl
-      JOIN gpc.transactions_clean t ON tl.transaction = t.id
+      JOIN gpc.transactions_clean t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN gpc.b2b_customers b2b ON t.entity = b2b.id
       GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country, customer_type
     title: Order Baskets
