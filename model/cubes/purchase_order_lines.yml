@@ -57,10 +57,10 @@ cubes:
         public: false
 
       - name: po_id
-        sql: po_id
+        sql: transaction
         type: number
         title: Purchase Order ID
-        description: Reference to purchase order header
+        description: Reference to purchase order header (transaction field)
 
       - name: item
         sql: item
@@ -93,11 +93,11 @@ cubes:
         description: Quantity not yet received
 
       - name: unit_cost
-        sql: unit_cost
+        sql: rate
         type: number
         format: currency
         title: Unit Cost
-        description: Cost per unit in base currency
+        description: Cost per unit in base currency (rate field)
 
       - name: trandate
         sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
@@ -108,7 +108,7 @@ cubes:
     joins:
       - name: purchase_orders
         relationship: many_to_one
-        sql: "{CUBE}.po_id = {purchase_orders}.id"
+        sql: "{CUBE}.transaction = {purchase_orders}.id"
 
       - name: items
         relationship: many_to_one
