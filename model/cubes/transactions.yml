@@ -3,7 +3,9 @@ cubes:
     sql: >
       SELECT * FROM gpc.transactions_analysis
     title: Transactions
-    description: Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns)
+    description: >
+      Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns).
+      FIX (v68.6): Added CAST to foreigntotal - typed Parquet stored numeric fields as STRING (total, foreigntotal, exchangerate all STRING).
 
     joins:
       - name: currencies
@@ -63,7 +65,7 @@ cubes:
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_foreign_amount
-        sql: "{CUBE}.foreigntotal"
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
         type: sum
         format: currency
         description: Sum of foreign totals for average calculation (component measure for rollup-only mode)
