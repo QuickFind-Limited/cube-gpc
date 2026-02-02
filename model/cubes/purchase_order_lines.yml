@@ -21,7 +21,7 @@ cubes:
         description: Total quantity received
 
       - name: total_outstanding_qty
-        sql: "quantity - COALESCE(quantityshiprecv, 0)"
+        sql: "quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)"
         type: sum
         description: Outstanding quantity not yet received
 
@@ -32,7 +32,7 @@ cubes:
         description: Total PO line value in base currency
 
       - name: on_order_value
-        sql: "(quantity - COALESCE(quantityshiprecv, 0)) * unit_cost"
+        sql: "(quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)) * unit_cost"
         type: sum
         format: currency
         description: Value of outstanding orders (qty outstanding * unit cost)
@@ -44,7 +44,7 @@ cubes:
         description: Average unit cost
 
       - name: fulfillment_rate
-        sql: "CASE WHEN quantity > 0 THEN (COALESCE(quantityshiprecv, 0) / quantity) * 100 ELSE 0 END"
+        sql: "CASE WHEN quantity > 0 THEN (COALESCE(CAST(quantityshiprecv AS INT64), 0) / quantity) * 100 ELSE 0 END"
         type: avg
         format: percent
         description: Average fulfillment rate (received / ordered * 100)
@@ -87,7 +87,7 @@ cubes:
         description: Quantity billed
 
       - name: qty_outstanding
-        sql: "quantity - COALESCE(quantityshiprecv, 0)"
+        sql: "quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)"
         type: number
         title: Quantity Outstanding
         description: Quantity not yet received
