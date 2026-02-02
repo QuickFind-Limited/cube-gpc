@@ -3,7 +3,7 @@ cubes:
     sql: >
       SELECT
         irl.*,
-        CAST(ir.trandate AS TIMESTAMP) as receipt_date,
+        CAST(PARSE_DATE('%d/%m/%Y', ir.trandate) AS TIMESTAMP) as receipt_date,
         i.displayname as item_displayname,
         i.itemid as item_sku,
         CAST(NULL AS FLOAT64) as item_baseprice,
