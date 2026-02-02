@@ -1,0 +1,106 @@
+cubes:
+  - name: fact_custpymt_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custpymt_lines
+    title: Customer Payment Lines
+    description: >
+      Customer payment transaction line-level detail.
+      Grain: one row per customer payment line.
+
+      Note: This table has entity contamination - 99.9% of records are POS system entities.
+      Use the in_scope_only segment for customer-facing analytics.
+
+    joins:
+      - name: fact_custpymt_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_custpymt_headers.transaction_id}"
+
+    measures:
+      - name: custpymt_lines_count
+        type: count
+        description: Total number of customer payment lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of payment amounts
+
+      - name: total_net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net payment amounts
+
+      - name: avg_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average payment amount per line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to customer payment header
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in analytical scope (excludes system entities)
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment amount
+
+      - name: net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: number
+        description: Net payment amount (may include adjustments)
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes POS and webstore system entities for accurate customer payment analytics"
+
+      - name: customer_payments
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Real customer payments only (excludes webstore and POS)"
+
+      - name: webstore_payments
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore system entity payments"
+
+      - name: pos_payments
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "POS system entity payments"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custpymt_lines_count
+          - total_amount
+          - total_net_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_custpymt_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

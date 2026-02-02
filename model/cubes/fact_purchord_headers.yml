@@ -1,0 +1,163 @@
+cubes:
+  - name: fact_purchord_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_purchord_headers
+    title: Purchase Order Headers
+    description: >
+      Purchase order header transactions for procurement tracking.
+      Grain: one row per purchase order header.
+
+    joins:
+      - name: dim_vendor
+        relationship: many_to_one
+        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+    measures:
+      - name: purchord_count
+        type: count
+        description: Total number of purchase orders
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of purchase order amounts in base currency
+
+      - name: avg_po_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average purchase order amount
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of purchase order amounts in transaction currency
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across purchase orders
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique purchase order transaction identifier
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable purchase order number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Purchase order transaction date
+
+      - name: ship_date
+        sql: "TIMESTAMP({CUBE}.ship_date)"
+        type: time
+        description: Expected or actual ship date
+
+      - name: due_date
+        sql: "TIMESTAMP({CUBE}.due_date)"
+        type: time
+        description: Purchase order due date
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date when purchase order was closed
+
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        description: Foreign key to vendor dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Purchase order amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Purchase order amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to the transaction
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the purchase order
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the purchase order is voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to the general ledger
+
+    segments:
+      - name: active_pos
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided purchase orders only"
+
+      - name: closed_pos
+        sql: "{CUBE}.close_date IS NOT NULL"
+        description: "Closed purchase orders only"
+
+      - name: open_pos
+        sql: "{CUBE}.close_date IS NULL AND {CUBE}.is_voided = false"
+        description: "Open purchase orders (not closed, not voided)"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - purchord_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - transaction_status
+          - vendor_id
+          - subsidiary_id
+          - currency_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

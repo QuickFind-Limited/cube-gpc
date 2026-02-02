@@ -1,0 +1,133 @@
+cubes:
+  - name: dim_customer
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer
+    title: Customers
+    description: >
+      Customer dimension containing all customers, including real customers and system entities (webstore, POS).
+      Grain: one row per customer.
+      Note: Use segments to filter out system entities for customer-facing analytics.
+
+    measures:
+      - name: customer_count
+        type: count
+        description: Total number of customer records
+
+    dimensions:
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the customer
+
+      - name: customer_code
+        sql: "{CUBE}.customer_code"
+        type: string
+        description: Customer code or account number
+
+      - name: company_name
+        sql: "{CUBE}.company_name"
+        type: string
+        description: Company name for business customers
+
+      - name: first_name
+        sql: "{CUBE}.first_name"
+        type: string
+        description: First name for individual customers
+
+      - name: last_name
+        sql: "{CUBE}.last_name"
+        type: string
+        description: Last name for individual customers
+
+      - name: full_name
+        sql: "CASE WHEN {CUBE}.is_person THEN CONCAT(COALESCE({CUBE}.first_name, ''), ' ', COALESCE({CUBE}.last_name, '')) ELSE {CUBE}.company_name END"
+        type: string
+        description: Full name or company name
+
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        description: Customer email address
+
+      - name: phone
+        sql: "{CUBE}.phone"
+        type: string
+        description: Customer phone number
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos)
+
+      - name: is_test_entity
+        sql: "{CUBE}.is_test_entity"
+        type: boolean
+        description: Indicates if this is a test entity
+
+      - name: customer_in_scope
+        sql: "{CUBE}.customer_in_scope"
+        type: boolean
+        description: Indicates if customer is in scope for business analytics
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: category_id
+        sql: "{CUBE}.category_id"
+        type: number
+        description: Customer category identifier
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: Indicates if the customer is inactive
+
+      - name: is_person
+        sql: "{CUBE}.is_person"
+        type: boolean
+        description: Indicates if customer is an individual person vs business
+
+      - name: date_created
+        sql: "TIMESTAMP({CUBE}.date_created)"
+        type: time
+        description: Date when customer record was created
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when customer record was last modified
+
+    segments:
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer' AND {CUBE}.customer_in_scope = true"
+        description: "Real customers only - excludes webstore and POS system entities"
+
+      - name: in_scope_only
+        sql: "{CUBE}.customer_in_scope = true"
+        description: "Customers in scope for business analytics"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
+      - name: exclude_test
+        sql: "{CUBE}.is_test_entity = false"
+        description: "Excludes test entities"
+
+      - name: active_customers
+        sql: "{CUBE}.is_inactive = false"
+        description: "Active customers only"
+
+      - name: individual_customers
+        sql: "{CUBE}.is_person = true AND {CUBE}.customer_in_scope = true"
+        description: "Individual person customers only"
+
+      - name: business_customers
+        sql: "{CUBE}.is_person = false AND {CUBE}.customer_in_scope = true"
+        description: "Business/company customers only"

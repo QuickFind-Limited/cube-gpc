@@ -1,0 +1,164 @@
+cubes:
+  - name: fact_rtnauth_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_rtnauth_lines
+    title: Return Authorization Lines
+    description: >
+      Return authorization line-level detail for customer returns.
+      Grain: one row per return authorization line item.
+      Note: Contains entity contamination - use segments to filter to real customer transactions.
+
+    joins:
+      - name: fact_rtnauth_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_rtnauth_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: rtnauth_lines_count
+        type: count
+        description: Total number of return authorization lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity returned across all lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total return amount (negative values represent credits)
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit rate for returned items
+
+      - name: unique_items
+        sql: "{CUBE}.item_id"
+        type: count_distinct
+        description: Number of unique items returned
+
+      - name: unique_transactions
+        sql: "{CUBE}.transaction_id"
+        type: count_distinct
+        description: Number of unique return authorization transactions
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Return authorization transaction ID (foreign key to headers)
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) - used for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for business analysis
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline summary record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Item/product identifier (foreign key)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity returned
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate for the returned item
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Total line amount (quantity × rate)
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Return location identifier (foreign key)
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Department identifier (foreign key)
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Class/product line identifier
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore, POS) for accurate business metrics"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes POS system entities"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer transactions"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Detail lines only, excludes mainline summary records"
+
+    pre_aggregations:
+      - name: rtnauth_lines_rollup
+        measures:
+          - rtnauth_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+          - item_id
+          - location_id
+          - department_id
+        refresh_key:
+          every: 1 day

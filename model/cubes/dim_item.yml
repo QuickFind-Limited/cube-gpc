@@ -1,17 +1,24 @@
 cubes:
-  - name: items
-    sql: SELECT * FROM gpc_data_2026_01_26.items
+  - name: dim_item
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_item
     title: Items
     description: >
-      Product master data dimension.
-      Grain: one row per item/product (SKU).
-      Note: This is the normalized schema. Custom GPC fields (category, season, color, etc.)
-      are not available in this normalized table.
+      Item/product dimension containing SKUs and product master data.
+      Grain: one row per item (product/SKU).
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: accounts
+        relationship: many_to_one
+        sql: "{CUBE}.income_account_id = {accounts.account_id}"
 
     measures:
       - name: item_count
         type: count
-        description: Total number of items/SKUs
+        description: Total number of items
 
       - name: total_quantity_available
         sql: "CAST({CUBE}.quantity_available AS FLOAT64)"
@@ -23,6 +30,18 @@ cubes:
         type: avg
         description: Average quantity available per item
 
+      - name: active_item_count
+        type: count
+        filters:
+          - sql: "{CUBE}.is_inactive = false"
+        description: Count of active items only
+
+      - name: online_item_count
+        type: count
+        filters:
+          - sql: "{CUBE}.is_online = true"
+        description: Count of items available online
+
     dimensions:
       - name: item_id
         sql: "{CUBE}.item_id"
@@ -33,35 +52,32 @@ cubes:
       - name: item_code
         sql: "{CUBE}.item_code"
         type: string
-        title: Item Code / SKU
-        description: Item code/SKU identifier
+        description: Item code/SKU
 
       - name: item_name
         sql: "{CUBE}.item_name"
         type: string
-        title: Item Name
-        description: Item name
+        description: Item display name
 
       - name: item_fullname
         sql: "{CUBE}.item_fullname"
         type: string
-        title: Full Item Name
-        description: Full item name with complete details
+        description: Item full hierarchical name
 
       - name: item_description
         sql: "{CUBE}.item_description"
         type: string
-        description: Item description
+        description: Item detailed description
 
       - name: item_type
         sql: "{CUBE}.item_type"
         type: string
-        description: Item type (e.g., InvtPart, Kit, NonInvtPart)
+        description: Type of item (InvtPart, Service, etc.)
 
       - name: matrix_type
         sql: "{CUBE}.matrix_type"
         type: string
-        description: Matrix type (PARENT, CHILD, or null for standalone items)
+        description: Matrix type for parent/child item relationships (PARENT, CHILD, or null)
 
       - name: costing_method
         sql: "{CUBE}.costing_method"
@@ -71,7 +87,7 @@ cubes:
       - name: costing_method_display
         sql: "{CUBE}.costing_method_display"
         type: string
-        description: Costing method display name (e.g., Average, FIFO)
+        description: Costing method display name (Average, FIFO, etc.)
 
       - name: quantity_available
         sql: "CAST({CUBE}.quantity_available AS FLOAT64)"
@@ -81,82 +97,73 @@ cubes:
       - name: is_inactive
         sql: "{CUBE}.is_inactive"
         type: boolean
-        description: Whether item is inactive
+        description: Indicates if the item is inactive
 
       - name: is_online
         sql: "{CUBE}.is_online"
         type: boolean
-        description: Whether item is available for online purchase
+        description: Indicates if the item is available for online sales
 
       - name: is_dropship_item
         sql: "{CUBE}.is_dropship_item"
         type: boolean
-        description: Whether item is drop-shipped
+        description: Indicates if this is a dropship item
 
       - name: is_special_order_item
         sql: "{CUBE}.is_special_order_item"
         type: boolean
-        description: Whether item is special order only
+        description: Indicates if this is a special order item
 
       - name: is_fulfillable
         sql: "{CUBE}.is_fulfillable"
         type: boolean
-        description: Whether item can be fulfilled
+        description: Indicates if the item can be fulfilled
 
       - name: subsidiary_id
         sql: "{CUBE}.subsidiary_id"
         type: number
-        description: Subsidiary identifier
+        description: Foreign key to subsidiary dimension
 
       - name: income_account_id
         sql: "{CUBE}.income_account_id"
         type: number
-        description: Income account identifier for revenue posting
+        description: Foreign key to income account
 
       - name: last_modified_date
         sql: "TIMESTAMP({CUBE}.last_modified_date)"
         type: time
-        description: Last modification timestamp
+        description: Date when the item was last modified
 
       - name: created_date
         sql: "TIMESTAMP({CUBE}.created_date)"
         type: time
-        description: Item creation timestamp
-
-    joins:
-      - name: subsidiaries
-        relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {subsidiaries.subsidiary_id}"
-
-      - name: accounts
-        relationship: many_to_one
-        sql: "{CUBE}.income_account_id = {accounts.account_id}"
+        description: Date when the item was created
 
     segments:
       - name: active_items
         sql: "{CUBE}.is_inactive = false"
-        description: "Active items only (not inactive)"
+        description: "Active items only (excludes inactive)"
 
       - name: online_items
-        sql: "{CUBE}.is_online = true"
-        description: "Items available for online purchase"
+        sql: "{CUBE}.is_online = true AND {CUBE}.is_inactive = false"
+        description: "Items available for online sales"
 
-      - name: fulfillable_items
-        sql: "{CUBE}.is_fulfillable = true AND {CUBE}.is_inactive = false"
-        description: "Active items that can be fulfilled"
-
-      - name: in_stock
-        sql: "CAST({CUBE}.quantity_available AS FLOAT64) > 0"
-        description: "Items with available inventory"
+      - name: inventory_items
+        sql: "{CUBE}.item_type = 'InvtPart' AND {CUBE}.is_inactive = false"
+        description: "Inventory part items only"
 
       - name: parent_items
         sql: "{CUBE}.matrix_type = 'PARENT'"
-        description: "Parent items in matrix item structures"
+        description: "Parent items in matrix item structure"
 
       - name: child_items
         sql: "{CUBE}.matrix_type = 'CHILD'"
-        description: "Child items (variants) in matrix item structures"
+        description: "Child items in matrix item structure"
 
-      - name: standalone_items
-        sql: "{CUBE}.matrix_type IS NULL"
-        description: "Standalone items not part of a matrix"
+      - name: in_stock_items
+        sql: "{CUBE}.quantity_available > 0 AND {CUBE}.is_inactive = false"
+        description: "Items currently in stock"
+
+      - name: fulfillable_items
+        sql: "{CUBE}.is_fulfillable = true AND {CUBE}.is_inactive = false"
+        description: "Items that can be fulfilled"

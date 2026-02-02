@@ -1,0 +1,101 @@
+cubes:
+  - name: dim_customer_address
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer_address
+    title: Customer Addresses
+    description: >
+      Customer address dimension containing shipping and billing addresses.
+      Grain: one row per customer address.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+    measures:
+      - name: address_count
+        type: count
+        description: Total number of customer addresses
+
+      - name: unique_customers
+        sql: customer_id
+        type: count_distinct
+        description: Number of unique customers with addresses
+
+    dimensions:
+      - name: address_id
+        sql: "{CUBE}.address_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the address
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: address_line_1
+        sql: "{CUBE}.address_line_1"
+        type: string
+        description: Primary address line
+
+      - name: address_line_2
+        sql: "{CUBE}.address_line_2"
+        type: string
+        description: Secondary address line (apt, suite, etc.)
+
+      - name: country
+        sql: "{CUBE}.country"
+        type: string
+        description: Country code or name
+
+      - name: addressee
+        sql: "{CUBE}.addressee"
+        type: string
+        description: Name of the person or entity at this address
+
+      - name: address_label
+        sql: "{CUBE}.address_label"
+        type: string
+        description: User-friendly label for the address (e.g., 'Home', 'Office')
+
+      - name: full_address
+        sql: "{CUBE}.full_address"
+        type: string
+        description: Concatenated full address string
+
+      - name: is_default_billing
+        sql: "{CUBE}.is_default_billing"
+        type: string
+        description: Indicates if this is the default billing address
+
+      - name: is_default_shipping
+        sql: "{CUBE}.is_default_shipping"
+        type: string
+        description: Indicates if this is the default shipping address
+
+      - name: is_residential
+        sql: "{CUBE}.is_residential"
+        type: boolean
+        description: Indicates if this is a residential address
+
+      - name: is_test_address
+        sql: "{CUBE}.is_test_address"
+        type: boolean
+        description: Indicates if this is a test address
+
+    segments:
+      - name: default_billing_addresses
+        sql: "{CUBE}.is_default_billing = 'T'"
+        description: "Default billing addresses only"
+
+      - name: default_shipping_addresses
+        sql: "{CUBE}.is_default_shipping = 'T'"
+        description: "Default shipping addresses only"
+
+      - name: residential_addresses
+        sql: "{CUBE}.is_residential = true"
+        description: "Residential addresses only"
+
+      - name: production_addresses
+        sql: "{CUBE}.is_test_address = false"
+        description: "Exclude test addresses for production reporting"

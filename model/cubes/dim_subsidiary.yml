@@ -1,8 +1,10 @@
 cubes:
-  - name: subsidiaries
-    sql: SELECT * FROM gpc_data_2026_01_26.subsidiaries
+  - name: dim_subsidiary
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_subsidiary
     title: Subsidiaries
-    description: Legal entity reference data for multi-entity accounting
+    description: >
+      Subsidiary dimension containing legal entities for multi-entity reporting.
+      Grain: one row per subsidiary.
 
     measures:
       - name: subsidiary_count
@@ -19,12 +21,12 @@ cubes:
       - name: subsidiary_name
         sql: "{CUBE}.subsidiary_name"
         type: string
-        description: Subsidiary name
+        description: Display name of the subsidiary
 
       - name: subsidiary_legal_name
         sql: "{CUBE}.subsidiary_legal_name"
         type: string
-        description: Legal company name
+        description: Legal name of the subsidiary entity
 
       - name: federal_id_number
         sql: "{CUBE}.federal_id_number"
@@ -34,12 +36,12 @@ cubes:
       - name: country_code
         sql: "{CUBE}.country_code"
         type: string
-        description: Country code (IE, GB)
+        description: Country code where the subsidiary is registered
 
       - name: currency_id
         sql: "{CUBE}.currency_id"
         type: number
-        description: Currency ID for the subsidiary's base currency
+        description: Base currency for the subsidiary
 
       - name: parent_subsidiary_id
         sql: "{CUBE}.parent_subsidiary_id"
@@ -67,15 +69,9 @@ cubes:
         description: "Active subsidiaries only"
 
       - name: operating_subsidiaries
-        sql: "{CUBE}.is_elimination = false AND {CUBE}.is_inactive = false"
-        description: "Operating subsidiaries excluding elimination entities"
+        sql: "{CUBE}.is_inactive = false AND {CUBE}.is_elimination = false"
+        description: "Active operating subsidiaries (excludes elimination entities)"
 
-    pre_aggregations:
-      - name: subsidiary_analysis
-        measures:
-          - subsidiary_count
-        dimensions:
-          - subsidiary_name
-          - country_code
-        refresh_key:
-          every: 1 day
+      - name: elimination_entities
+        sql: "{CUBE}.is_elimination = true"
+        description: "Elimination subsidiaries used for consolidation purposes"

@@ -1,0 +1,102 @@
+cubes:
+  - name: fact_vendbill_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendbill_lines
+    title: Vendor Bill Lines
+    description: >
+      Vendor bill line-level detail for accounts payable.
+      Grain: one row per vendor bill line.
+
+    joins:
+      - name: fact_vendbill_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_vendbill_headers.transaction_id}"
+
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {transactions.id}"
+
+    measures:
+      - name: vendbill_lines_count
+        type: count
+        description: Total number of vendor bill lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line amounts across all vendor bill lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount per vendor bill line
+
+      - name: min_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum line amount
+
+      - name: max_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to vendor bill transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number for ordering lines within a transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line (typically false for detail lines)
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Line amount for expense or item
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class dimension for expense classification
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline summary records, shows only detail lines"
+
+      - name: positive_amounts
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) > 0"
+        description: "Lines with positive amounts (standard expenses)"
+
+      - name: negative_amounts
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) < 0"
+        description: "Lines with negative amounts (credits or reversals)"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - vendbill_lines_count
+          - total_line_amount
+        dimensions:
+          - is_mainline
+        time_dimension: fact_vendbill_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

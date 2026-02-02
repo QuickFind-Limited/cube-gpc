@@ -1,0 +1,79 @@
+cubes:
+  - name: entity_classification
+    sql: SELECT * FROM gpc_data_2026_01_26.entity_classification
+    title: Entity Classification
+    description: >
+      Entity classification lookup dimension for identifying entity types (customer, vendor, webstore, POS, etc.)
+      and filtering test entities. Used to classify entities across all transaction types.
+      Grain: one row per entity.
+
+    measures:
+      - name: entity_count
+        type: count
+        description: Total number of entities
+
+      - name: customer_count
+        type: count
+        sql: "CASE WHEN {CUBE}.entity_type = 'customer' THEN {CUBE}.entity_id END"
+        description: Count of customer entities
+
+      - name: webstore_count
+        type: count
+        sql: "CASE WHEN {CUBE}.entity_type = 'webstore' THEN {CUBE}.entity_id END"
+        description: Count of webstore entities
+
+      - name: pos_count
+        type: count
+        sql: "CASE WHEN {CUBE}.entity_type = 'pos' THEN {CUBE}.entity_id END"
+        description: Count of POS entities
+
+      - name: test_entity_count
+        type: count
+        sql: "CASE WHEN {CUBE}.is_test_entity = true THEN {CUBE}.entity_id END"
+        description: Count of test entities
+
+    dimensions:
+      - name: entity_id
+        sql: "{CUBE}.entity_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the entity
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, vendor, webstore, pos)
+
+      - name: is_test_entity
+        sql: "{CUBE}.is_test_entity"
+        type: boolean
+        description: Indicates if this is a test entity that should be excluded from production analytics
+
+    segments:
+      - name: real_customers
+        sql: "{CUBE}.entity_type = 'customer' AND {CUBE}.is_test_entity = false"
+        description: "Real customer entities only (excludes test, webstore, and POS)"
+
+      - name: system_entities
+        sql: "{CUBE}.entity_type IN ('webstore', 'pos')"
+        description: "System entities (webstore and POS) for operational reporting"
+
+      - name: webstore_entities
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore payment processor entities only"
+
+      - name: pos_entities
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "POS system entities only"
+
+      - name: test_entities
+        sql: "{CUBE}.is_test_entity = true"
+        description: "Test entities that should be excluded from production analytics"
+
+      - name: production_entities
+        sql: "{CUBE}.is_test_entity = false"
+        description: "Production entities only (excludes test entities)"
+
+      - name: customer_entities
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "All customer entities (may include test customers)"

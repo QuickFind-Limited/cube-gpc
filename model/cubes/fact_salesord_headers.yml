@@ -1,0 +1,164 @@
+cubes:
+  - name: fact_salesord_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_salesord_headers
+    title: Sales Order Headers
+    description: >
+      Sales order transaction headers containing order-level information.
+      Grain: one row per sales order header. Note: 99.2% of orders are from webstore entities
+      (not real customers) per contamination analysis. Use in_scope_only segment for customer analytics.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+    measures:
+      - name: salesord_count
+        type: count
+        description: Total number of sales orders
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total amounts in transaction currency
+
+      - name: avg_order_value
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average order value
+
+      - name: exchange_rate_avg
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the sales order transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date the sales order was created
+
+      - name: ship_date
+        sql: "TIMESTAMP({CUBE}.ship_date)"
+        type: time
+        description: Scheduled or actual ship date
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date the order was closed
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for customer analytics
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Total order amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Total order amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to the transaction
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the sales order
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the order has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to GL
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes webstore/POS system entities for accurate customer metrics"
+
+      - name: customer_orders
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Orders from real customers only"
+
+      - name: webstore_orders
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Orders from webstore payment processor entities"
+
+      - name: active_orders
+        sql: "{CUBE}.is_voided = false AND {CUBE}.is_posting = true"
+        description: "Active, posted orders only"
+
+    pre_aggregations:
+      - name: daily_orders
+        measures:
+          - salesord_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+          - currency_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

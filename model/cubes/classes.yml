@@ -1,0 +1,39 @@
+cubes:
+  - name: classes
+    sql: SELECT * FROM gpc_data_2026_01_26.classes
+    title: Classes
+    description: >
+      Class dimension for segmenting transactions by product line or business unit.
+      Grain: one row per class.
+
+    measures:
+      - name: class_count
+        type: count
+        description: Total number of classes
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the class
+
+      - name: name
+        sql: "{CUBE}.name"
+        type: string
+        description: Short name of the class
+
+      - name: fullname
+        sql: "{CUBE}.fullname"
+        type: string
+        description: Full hierarchical name of the class
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: Indicates if the class is inactive
+
+    segments:
+      - name: active_classes
+        sql: "{CUBE}.is_inactive = false"
+        description: "Only active classes for current reporting"

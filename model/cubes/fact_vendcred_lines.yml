@@ -1,0 +1,76 @@
+cubes:
+  - name: fact_vendcred_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendcred_lines
+    title: Vendor Credit Lines
+    description: >
+      Vendor credit memo line-level detail. Contains individual line items for vendor credits.
+      Grain: one row per vendor credit line.
+
+    joins:
+      - name: fact_vendcred_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_vendcred_headers.transaction_id}"
+
+    measures:
+      - name: vendcred_lines_count
+        type: count
+        description: Total number of vendor credit lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line amounts across vendor credit lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor credit line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        description: Foreign key to vendor credit header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Line item amount
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class dimension for product line/business unit segmentation
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline summary records, includes only detail lines"
+
+    pre_aggregations:
+      - name: vendcred_lines_rollup
+        measures:
+          - vendcred_lines_count
+          - total_line_amount
+        dimensions:
+          - class_id
+          - is_mainline
+        refresh_key:
+          every: 1 day

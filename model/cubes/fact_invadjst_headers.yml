@@ -1,0 +1,143 @@
+cubes:
+  - name: fact_invadjst_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_headers
+    title: Inventory Adjustment Headers
+    description: >
+      Inventory adjustment transaction headers. These represent adjustments to inventory quantities
+      and values for reasons such as physical counts, shrinkage, damage, or corrections.
+      Grain: one row per inventory adjustment transaction header.
+
+    joins:
+      - name: subsidiaries
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {subsidiaries.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+    measures:
+      - name: invadjst_count
+        type: count
+        description: Total number of inventory adjustment transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of adjustment amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of adjustment amounts in transaction currency
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate for adjustments
+
+      - name: total_adjustments_absolute
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute adjustment amounts (ignoring sign)
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the inventory adjustment transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date the inventory adjustment was recorded
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Reference to the subsidiary (legal entity)
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Reference to the transaction currency
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Reference to the accounting period
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Total adjustment amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Total adjustment amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the transaction (e.g., pending, approved)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the transaction has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to the general ledger
+
+    segments:
+      - name: active_adjustments
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided inventory adjustments"
+
+      - name: posted_adjustments
+        sql: "{CUBE}.is_posting = true AND {CUBE}.is_voided = false"
+        description: "Adjustments that post to GL and are not voided"
+
+      - name: negative_adjustments
+        sql: "CAST({CUBE}.total_amount AS FLOAT64) < 0"
+        description: "Adjustments that reduce inventory value"
+
+      - name: positive_adjustments
+        sql: "CAST({CUBE}.total_amount AS FLOAT64) > 0"
+        description: "Adjustments that increase inventory value"
+
+    pre_aggregations:
+      - name: daily_adjustments
+        measures:
+          - invadjst_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - subsidiary_id
+          - currency_id
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
