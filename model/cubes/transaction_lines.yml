@@ -33,7 +33,7 @@ cubes:
         ON itemship.id = itemship_line.transaction
         AND itemship.type = 'ItemShip'
     title: Transaction Lines
-    description: Line items from all transactions - the main fact table for metrics (denormalized, Parquet types fixed and verified 2026-02-02)
+    description: Line items from all transactions - the main fact table for metrics (denormalized with JOINs restored 2026-02-02)
 
     joins:
       - name: transactions
