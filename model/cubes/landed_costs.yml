@@ -16,7 +16,7 @@ cubes:
       FROM gpc.transaction_lines tl
       INNER JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
       WHERE t.type = 'ItemRcpt'
-        AND tl.mainline = FALSE
+        AND tl.mainline = 'F'
         AND CAST(tl.amount AS FLOAT64) > 0
         -- NOTE: blandedcost field not extracted - cannot filter for landed cost lines
         -- This cube will include ALL ItemRcpt lines, not just landed costs
