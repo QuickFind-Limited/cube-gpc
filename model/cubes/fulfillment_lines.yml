@@ -1,6 +1,10 @@
 cubes:
   - name: fulfillment_lines
-    sql: SELECT * FROM gpc.fulfillment_lines
+    sql: >
+      SELECT
+        *,
+        PARSE_DATE('%d/%m/%Y', shipdate) as shipdate_parsed
+      FROM gpc.fulfillment_lines
     title: Fulfillment Lines
     description: Individual line items for fulfillments tracking what products were shipped
 
@@ -47,7 +51,7 @@ cubes:
         description: Number of shipping locations (approximate with HyperLogLog)
 
       - name: total_fulfillment_days
-        sql: "CAST(DATE_DIFF(CAST({CUBE}.shipdate AS DATE), CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
+        sql: "CAST(DATE_DIFF({CUBE}.shipdate_parsed, CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
         type: sum
         description: >
           Total days from order to ship (for averaging - FD002).
@@ -112,12 +116,12 @@ cubes:
         description: Quantity shipped/received
 
       - name: shipdate
-        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
+        sql: "CAST({CUBE}.shipdate_parsed AS TIMESTAMP)"
         type: time
         description: Ship date
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.shipdate AS TIMESTAMP), MONTH)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.shipdate_parsed AS TIMESTAMP), MONTH)"
         type: time
         description: Ship month
 
