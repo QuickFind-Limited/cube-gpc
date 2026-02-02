@@ -19,16 +19,16 @@ cubes:
         END) AS INT64) as order_count,
         CAST(SUM(CASE
           WHEN t.type IN ('CustInvc', 'CashSale')
-          THEN t.foreigntotal
+          THEN CAST(t.foreigntotal AS FLOAT64)
           ELSE 0.0
         END) AS FLOAT64) as lifetime_value,
         -- Transaction type breakdown (separate measures)
         CAST(COUNT(DISTINCT CASE WHEN t.type = 'CustInvc' THEN t.id END) AS INT64) as invoice_orders,
         CAST(COUNT(DISTINCT CASE WHEN t.type = 'CashSale' THEN t.id END) AS INT64) as cash_sale_orders,
         CAST(COUNT(DISTINCT CASE WHEN t.type = 'SalesOrd' THEN t.id END) AS INT64) as salesord_orders,
-        CAST(SUM(CASE WHEN t.type = 'CustInvc' THEN t.foreigntotal ELSE 0.0 END) AS FLOAT64) as invoice_revenue,
-        CAST(SUM(CASE WHEN t.type = 'CashSale' THEN t.foreigntotal ELSE 0.0 END) AS FLOAT64) as cash_sale_revenue,
-        CAST(SUM(CASE WHEN t.type = 'SalesOrd' THEN t.foreigntotal ELSE 0.0 END) AS FLOAT64) as salesord_revenue
+        CAST(SUM(CASE WHEN t.type = 'CustInvc' THEN CAST(t.foreigntotal AS FLOAT64) ELSE 0.0 END) AS FLOAT64) as invoice_revenue,
+        CAST(SUM(CASE WHEN t.type = 'CashSale' THEN CAST(t.foreigntotal AS FLOAT64) ELSE 0.0 END) AS FLOAT64) as cash_sale_revenue,
+        CAST(SUM(CASE WHEN t.type = 'SalesOrd' THEN CAST(t.foreigntotal AS FLOAT64) ELSE 0.0 END) AS FLOAT64) as salesord_revenue
       FROM gpc.transactions_analysis t
       WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
