@@ -2,11 +2,17 @@ cubes:
   - name: fulfillment_lines
     sql: >
       SELECT
-        *,
-        PARSE_DATE('%Y-%m-%d', shipdate) as shipdate_parsed
-      FROM gpc.fulfillment_lines
+        fl.*,
+        PARSE_DATE('%Y-%m-%d', fl.shipdate) as shipdate_parsed,
+        t.trandate as order_date
+      FROM gpc.fulfillment_lines fl
+      LEFT JOIN gpc.transactions_analysis t
+        ON CAST(fl.createdfrom AS STRING) = t.id
     title: Fulfillment Lines
-    description: Individual line items for fulfillments tracking what products were shipped
+    description: >
+      Individual line items for fulfillments tracking what products were shipped.
+      FD002 FIX (v68.2): Denormalized order_date from transactions into cube SQL to enable
+      pre-aggregation of fulfillment days metrics without cross-cube JOIN issues.
 
     joins:
       - name: fulfillments
@@ -51,21 +57,23 @@ cubes:
         description: Number of shipping locations (approximate with HyperLogLog)
 
       - name: total_fulfillment_days
-        sql: "CAST(DATE_DIFF({CUBE}.shipdate_parsed, CAST({transactions.trandate} AS DATE), DAY) AS FLOAT64)"
+        sql: "CAST(DATE_DIFF({CUBE}.shipdate_parsed, CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.order_date) AS DATE), DAY) AS FLOAT64)"
         type: sum
         description: >
           Total days from order to ship (for averaging - FD002).
           FD002 FIX (FD002-fix-1): Changed join from fulfillments.entity to createdfrom field.
           Old path (98.3% NULL): fulfillment_lines → fulfillments.entity → transactions (1,146 days avg - wrong!)
           New path (83.7% coverage): fulfillment_lines.createdfrom → transactions (20.5 days avg, 2 days median - correct!)
+          FD002 FIX (FD002-fix-3): Denormalized order_date into cube SQL to avoid cross-cube JOIN in pre-aggregation.
 
       - name: lines_with_order_date
-        sql: "CASE WHEN {transactions.trandate} IS NOT NULL THEN 1 END"
+        sql: "CASE WHEN {CUBE}.order_date IS NOT NULL THEN 1 END"
         type: count
         description: >
           Count of fulfillment lines with valid order date (FD002).
           Used as denominator for average_fulfillment_days calculation.
           Sept 2025: 78,230 of 93,436 lines (83.7%) have valid order dates.
+          FD002 FIX (FD002-fix-3): Uses denormalized order_date field instead of cross-cube JOIN.
 
       - name: average_fulfillment_days
         sql: "1.0 * {total_fulfillment_days} / NULLIF({lines_with_order_date}, 0)"
@@ -139,6 +147,11 @@ cubes:
           END
         type: string
         description: "Labeled location name with type prefix and ID for FD002. DC (Distribution Center), Store (Retail), B2B (Wholesale/Partners), LOC (Other)."
+
+      - name: order_date
+        sql: "CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.order_date) AS TIMESTAMP)"
+        type: time
+        description: "Order date from source transaction (denormalized from transactions table via createdfrom)"
 
     segments:
       - name: shipped_lines
