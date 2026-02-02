@@ -2,14 +2,14 @@ cubes:
   - name: on_order_inventory
     sql: >
       SELECT
-        pol.id,
-        pol.po_id,
-        pol.item,
-        pol.quantity,
-        pol.quantityshiprecv,
-        pol.unit_cost,
-        (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) as qty_on_order,
-        (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) * pol.unit_cost as line_on_order_value,
+        CAST(pol.id AS INT64) as id,
+        CAST(pol.po_id AS INT64) as po_id,
+        CAST(pol.item AS INT64) as item,
+        CAST(pol.quantity AS INT64) as quantity,
+        CAST(pol.quantityshiprecv AS INT64) as quantityshiprecv,
+        CAST(pol.unit_cost AS FLOAT64) as unit_cost,
+        (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) as qty_on_order,
+        (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.unit_cost AS FLOAT64) as line_on_order_value,
         po.status as po_status,
         CAST(po.trandate AS TIMESTAMP) as po_date,
         CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,

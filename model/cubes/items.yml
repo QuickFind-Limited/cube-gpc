@@ -1,6 +1,10 @@
 cubes:
   - name: items
-    sql: SELECT * FROM gpc.items
+    sql: >
+      SELECT
+        *,
+        CAST(isinactive AS BOOL) as isinactive
+      FROM gpc.items
     title: Items
     description: Product master data with dimensions like category, season, size, color
 
