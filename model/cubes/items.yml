@@ -2,7 +2,7 @@ cubes:
   - name: items
     sql: >
       SELECT
-        *,
+        * EXCEPT(isinactive),
         CAST(isinactive AS BOOL) as isinactive
       FROM gpc.items
     title: Items
