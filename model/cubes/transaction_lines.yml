@@ -422,6 +422,12 @@ cubes:
         type: number
         primary_key: true
 
+      # Item base price (from items.baseprice via denormalization)
+      - name: item_base_price
+        sql: "{CUBE}.baseprice"
+        type: number
+        description: Item base price from product master
+
       - name: transaction
         sql: "{CUBE}.transaction"
         type: number
