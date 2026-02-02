@@ -911,7 +911,9 @@ cubes:
         refresh_key:
           every: 365 days
 
-      # Daily granularity for recent trends
+      # Catch-all pre-agg for single-dimension queries (v68.3)
+      # Enables querying channel_type, location_name, or section alone
+      # Cube supports subset matching: queries with 1 dimension can match this 3-dimension pre-agg
       - name: daily_metrics
         measures:
           - total_revenue
@@ -919,6 +921,8 @@ cubes:
           - transaction_count
         dimensions:
           - channel_type
+          - location_name
+          - section
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
