@@ -10,31 +10,26 @@ cubes:
         CAST(tl.estgrossprofit AS FLOAT64) as estimated_gross_profit,
         CAST(tl.estgrossprofitpercent AS FLOAT64) as estimated_gp_percent,
         CAST(tl.subsidiary AS INT64) as subsidiary_id,
-        t.trandate as receipt_date,
-        t.tranid as receipt_number,
-        t.type as transaction_type
-      FROM gpc.transaction_lines tl
-      INNER JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
-      WHERE t.type = 'ItemRcpt'
+        tl.transaction_date as receipt_date,
+        tl.transaction_type,
+        tl.blandedcost
+      FROM gpc.transaction_lines_denormalized_mv tl
+      WHERE tl.transaction_type = 'ItemRcpt'
         AND tl.mainline = 'F'
         AND CAST(tl.amount AS FLOAT64) > 0
-        -- NOTE: blandedcost field not extracted - cannot filter for landed cost lines
-        -- This cube will include ALL ItemRcpt lines, not just landed costs
+        AND tl.blandedcost = 'T'
 
-    title: Landed Costs Analysis (INCOMPLETE - Missing blandedcost field)
+    title: Landed Costs Analysis
     description: >
-      ⚠️ WARNING: blandedcost field was not extracted from NetSuite transaction_lines.
-      This cube cannot properly identify landed cost lines and will include ALL ItemRcpt lines.
-
-      Original intent: Landed costs (freight, duties, customs) from Item Receipts identified by blandedcost='T' flag.
+      Landed costs (freight, duties, customs) from Item Receipts identified by blandedcost='T' flag.
       These are additional costs added to inventory beyond the base item cost.
 
-      Current behavior: Returns ALL Item Receipt lines with amount > 0, not just landed costs.
-      To fix: Extract blandedcost field in transaction_lines extraction and uncomment WHERE clause filter.
+      Uses transaction_lines_denormalized_mv which includes foreignamount, subsidiary, and blandedcost fields
+      not available in the base transaction_lines table.
 
       NetSuite stores landed costs using double-entry accounting with offsetting positive/negative amounts.
-      This cube filters for positive amounts only (amount > 0). FIX (v66): Added amount > 0 filter to exclude
-      offsetting negative entries (LAND001).
+      This cube filters for positive amounts only (amount > 0) and blandedcost='T' to get only actual
+      landed cost lines, not regular item receipt lines.
 
     measures:
       - name: total_landed_costs
@@ -81,11 +76,6 @@ cubes:
         type: number
         description: "Item ID (for landed cost allocation)"
 
-      - name: receipt_number
-        sql: "{CUBE}.receipt_number"
-        type: string
-        description: "Item Receipt document number"
-
       - name: transaction_type
         sql: "{CUBE}.transaction_type"
         type: string
@@ -112,7 +102,7 @@ cubes:
 
     pre_aggregations:
       # Monthly landed costs by item
-      # REBUILD REQUIRED: v66 fix applied (amount > 0 filter added to cube SQL)
+      # REBUILD REQUIRED: v67 fix - switched to transaction_lines_denormalized_mv for foreignamount, subsidiary, blandedcost fields
       - name: monthly_landed_costs
         measures:
           - total_landed_costs
