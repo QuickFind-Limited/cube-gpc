@@ -3,7 +3,7 @@ cubes:
     sql: >
       SELECT
         * EXCEPT(isinactive),
-        CAST(isinactive AS BOOL) as isinactive
+        CASE WHEN isinactive = 'T' THEN TRUE ELSE FALSE END as isinactive
       FROM gpc.items
     title: Items
     description: Product master data with dimensions like category, season, size, color
