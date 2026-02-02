@@ -33,7 +33,7 @@ cubes:
         ON itemship.id = itemship_line.transaction
         AND itemship.type = 'ItemShip'
     title: Transaction Lines
-    description: "Line items from all transactions - the main fact table for metrics (denormalized with JOINs + NULL fields: billing_country, shipping_country, customer_email - 2026-02-02 17h15)"
+    description: "Line items from all transactions - the main fact table for metrics (denormalized with JOINs + 7 NULL fields not extracted for gpc: billing_country, shipping_country, customer_email, blandedcost, foreignamount, landedcostperline, subsidiary)"
 
     joins:
       - name: transactions
