@@ -7,6 +7,7 @@ cubes:
       Vendor/supplier master data from NetSuite (Schema updated 2026-02-02 - now includes 62 fields from typed Parquet conversion).
       FIX (v68.4): Corrected field names to camelCase (Parquet native format): entityId, isInactive, isPerson, dateCreated, lastModifiedDate.
       FIX (v68.5): Changed currency from nested object to JOIN - typed Parquet extracted currency as INTEGER ID, not STRUCT with refName.
+      FIX (v68.9): Fixed active_vendor_count filter to use isInactive instead of is_inactive (missed in v68.4).
 
     measures:
       - name: vendor_count
@@ -16,7 +17,7 @@ cubes:
       - name: active_vendor_count
         type: count
         filters:
-          - sql: "{CUBE}.is_inactive = false"
+          - sql: "{CUBE}.isInactive = false"
         description: Number of active vendors
 
       - name: total_vendor_balance
