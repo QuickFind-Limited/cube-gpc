@@ -6,6 +6,7 @@ cubes:
     description: >
       Vendor/supplier master data from NetSuite (Schema updated 2026-02-02 - now includes 62 fields from typed Parquet conversion).
       FIX (v68.4): Corrected field names to camelCase (Parquet native format): entityId, isInactive, isPerson, dateCreated, lastModifiedDate.
+      FIX (v68.5): Changed currency from nested object to JOIN - typed Parquet extracted currency as INTEGER ID, not STRUCT with refName.
 
     measures:
       - name: vendor_count
@@ -58,11 +59,17 @@ cubes:
         title: Balance
         description: Current outstanding balance
 
+      - name: currency_id
+        sql: "currency"
+        type: number
+        title: Currency ID
+        description: Vendor's default currency ID (reference to currencies table)
+
       - name: currency_name
-        sql: "currency.refName"
+        sql: "{currencies.name}"
         type: string
         title: Currency
-        description: Vendor's default currency code
+        description: Vendor's default currency code (from currencies table)
 
       - name: date_created
         sql: "dateCreated"
@@ -75,6 +82,11 @@ cubes:
         type: time
         title: Last Modified
         description: Date vendor record was last modified
+
+    joins:
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency = {currencies.id}"
 
     pre_aggregations:
       - name: vendors_summary
