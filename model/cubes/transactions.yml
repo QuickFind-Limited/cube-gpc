@@ -281,6 +281,8 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
           - memo                 # Return reasons (NEW v69 for RET-006)
           - return_reason_cleaned  # Cleaned return reasons (NEW v69 for RET-006)
+        segments:
+          - customer_credits_with_reason  # Coverage analysis for RET-006 (NEW v69.2)
         time_dimension: trandate
         granularity: day
         refresh_key:
