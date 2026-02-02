@@ -16,10 +16,16 @@ cubes:
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
         t.createddate as transaction_createddate,
+        PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated
       FROM gpc.transaction_lines_denormalized_mv tl
       LEFT JOIN gpc.transactions t ON tl.transaction = t.id
       LEFT JOIN cogs_aggregated cogs ON tl.transaction = cogs.transaction
+      LEFT JOIN gpc.transaction_lines_itemship itemship_line
+        ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
+      LEFT JOIN gpc.transactions_itemship itemship
+        ON itemship.id = itemship_line.transaction
+        AND itemship.type = 'ItemShip'
     title: Transaction Lines
     description: Line items from all transactions - the main fact table for metrics (denormalized)
 
@@ -348,38 +354,38 @@ cubes:
 
       # Ship Speed Measures (FUL-001 Alternative)
       # Instead of OTD (requires promised date), measure fulfillment speed
-      # ✅ DENORMALIZED: Uses transaction_shipdate and transaction_createddate from cube SQL
+      # ✅ DENORMALIZED: Uses itemship_actual_shipdate (from ItemShip fulfillment) and transaction_createddate
       - name: ship_to_order_days_total
         sql: >
           CASE
-            WHEN {CUBE}.transaction_shipdate IS NOT NULL
+            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
-            THEN DATE_DIFF({CUBE}.transaction_shipdate, {CUBE}.transaction_createddate, DAY)
+            THEN DATE_DIFF({CUBE}.itemship_actual_shipdate, {CUBE}.transaction_createddate, DAY)
             ELSE 0
           END
         type: sum
-        description: "FUL-001: Total days from order to ship across all transactions (component for avg_ship_to_order_days)"
+        description: "FUL-001: Total days from order to actual ship (via ItemShip fulfillment) - component for avg_ship_to_order_days"
 
       - name: orders_with_shipdate_count
         sql: >
           CASE
-            WHEN {CUBE}.transaction_shipdate IS NOT NULL
+            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
             THEN {CUBE}.transaction
           END
         type: count_distinct_approx
-        description: "FUL-001: Count of orders with valid ship dates (component for avg_ship_to_order_days)"
+        description: "FUL-001: Count of orders with ItemShip fulfillment dates - component for avg_ship_to_order_days"
 
       - name: orders_shipped_2days
         sql: >
           CASE
-            WHEN {CUBE}.transaction_shipdate IS NOT NULL
+            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
             AND {CUBE}.transaction_createddate IS NOT NULL
-            AND DATE_DIFF({CUBE}.transaction_shipdate, {CUBE}.transaction_createddate, DAY) <= 2
+            AND DATE_DIFF({CUBE}.itemship_actual_shipdate, {CUBE}.transaction_createddate, DAY) <= 2
             THEN {CUBE}.transaction
           END
         type: count_distinct_approx
-        description: "FUL-001: Count of orders shipped within 2 days (component for ship_speed_2day_rate)"
+        description: "FUL-001: Count of orders fulfilled and shipped within 2 days - component for ship_speed_2day_rate"
 
     dimensions:
       - name: id
