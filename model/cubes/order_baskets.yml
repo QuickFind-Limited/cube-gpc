@@ -5,8 +5,8 @@ cubes:
         tl.transaction as order_id,
         CAST(t.trandate AS TIMESTAMP) as trandate,
         t.type,
-        t.custbody_customer_email as customer_email,
-        t.billing_country,
+        tl.customer_email,
+        tl.billing_country,
         CAST(COUNT(*) AS FLOAT64) as line_count,
         CAST(SUM(CASE WHEN tl.quantity < 0 THEN ABS(tl.quantity) ELSE 0 END) AS FLOAT64) as units,
         CAST(SUM(tl.amount * -1) AS FLOAT64) as order_total,
@@ -20,12 +20,15 @@ cubes:
           WHEN b2b.id IS NOT NULL THEN 'B2B/Wholesale'
           ELSE 'Retail/D2C'
         END as customer_type
-      FROM gpc.transaction_lines_clean tl
+      FROM gpc.transaction_lines_denormalized_mv tl
       JOIN gpc.transactions_clean t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
-      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, t.custbody_customer_email, t.billing_country, customer_type
+      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
     title: Order Baskets
-    description: Order-level basket analysis with line count buckets (BASK003)
+    description: >
+      Order-level basket analysis with line count buckets (BASK003).
+      FIX (v68.3): Switched from transaction_lines_clean to transaction_lines_denormalized_mv
+      to access customer_email and billing_country fields (not available in transactions table).
 
     measures:
       - name: order_count
