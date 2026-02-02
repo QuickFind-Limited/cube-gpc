@@ -3,7 +3,7 @@ cubes:
     sql: >
       SELECT
         *,
-        PARSE_DATE('%d/%m/%Y', shipdate) as shipdate_parsed
+        PARSE_DATE('%Y-%m-%d', shipdate) as shipdate_parsed
       FROM gpc.fulfillment_lines
     title: Fulfillment Lines
     description: Individual line items for fulfillments tracking what products were shipped
