@@ -14,6 +14,26 @@ cubes:
           SUM(ABS(CAST(amount AS FLOAT64))) as opex_total
         FROM gpc.transaction_accounting_lines_opex
         GROUP BY transaction
+      ),
+      transaction_ship_days AS (
+        SELECT
+          CAST(tl.transaction AS INT64) as transaction_id,
+          DATE_DIFF(
+            PARSE_DATE('%Y-%m-%d', MIN(itemship.trandate)),
+            PARSE_DATE('%d/%m/%Y', MIN(t.createddate)),
+            DAY
+          ) as days_to_ship
+        FROM gpc.transaction_lines_denormalized_mv tl
+        LEFT JOIN gpc.transactions t
+          ON CAST(tl.transaction AS STRING) = t.id
+        LEFT JOIN gpc.transaction_lines_itemship itemship_line
+          ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
+        LEFT JOIN gpc.transactions_itemship itemship
+          ON itemship.id = itemship_line.transaction
+          AND itemship.type = 'ItemShip'
+        WHERE itemship.trandate IS NOT NULL
+          AND t.createddate IS NOT NULL
+        GROUP BY tl.transaction
       )
       SELECT
         tl.*,
@@ -21,12 +41,14 @@ cubes:
         t.shipdate as transaction_shipdate,
         PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
         PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
+        ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
         COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
       FROM gpc.transaction_lines_denormalized_mv tl
       LEFT JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
+      LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
       LEFT JOIN gpc.transaction_lines_itemship itemship_line
         ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
       LEFT JOIN gpc.transactions_itemship itemship
@@ -385,36 +407,28 @@ cubes:
       # Instead of OTD (requires promised date), measure fulfillment speed
       # ✅ DENORMALIZED: Uses itemship_actual_shipdate (from ItemShip fulfillment) and transaction_createddate
       - name: ship_to_order_days_total
-        sql: >
-          CASE
-            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
-            AND {CUBE}.transaction_createddate IS NOT NULL
-            THEN DATE_DIFF({CUBE}.itemship_actual_shipdate, {CUBE}.transaction_createddate, DAY)
-            ELSE 0
-          END
+        sql: "{CUBE}.days_to_ship"
         type: sum
-        description: "FUL-001: Total days from order to actual ship (via ItemShip fulfillment) - component for avg_ship_to_order_days"
+        description: "FUL-001: Total days from order to actual ship (via ItemShip fulfillment) - pre-aggregated at transaction level in CTE, avoids double-counting for multi-line orders"
 
       - name: orders_with_shipdate_count
         sql: >
           CASE
-            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
-            AND {CUBE}.transaction_createddate IS NOT NULL
+            WHEN {CUBE}.days_to_ship IS NOT NULL
             THEN {CUBE}.transaction
           END
         type: count_distinct_approx
-        description: "FUL-001: Count of orders with ItemShip fulfillment dates - component for avg_ship_to_order_days"
+        description: "FUL-001: Count of orders with ItemShip fulfillment dates - uses pre-aggregated days_to_ship from CTE"
 
       - name: orders_shipped_2days
         sql: >
           CASE
-            WHEN {CUBE}.itemship_actual_shipdate IS NOT NULL
-            AND {CUBE}.transaction_createddate IS NOT NULL
-            AND DATE_DIFF({CUBE}.itemship_actual_shipdate, {CUBE}.transaction_createddate, DAY) <= 2
+            WHEN {CUBE}.days_to_ship IS NOT NULL
+            AND {CUBE}.days_to_ship <= 2
             THEN {CUBE}.transaction
           END
         type: count_distinct_approx
-        description: "FUL-001: Count of orders fulfilled and shipped within 2 days - component for ship_speed_2day_rate"
+        description: "FUL-001: Count of orders fulfilled within 2 days - uses pre-aggregated days_to_ship from CTE"
 
     dimensions:
       - name: id
