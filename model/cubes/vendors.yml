@@ -3,7 +3,9 @@ cubes:
     sql_table: gpc.vendors
 
     title: Vendors
-    description: Vendor/supplier master data from NetSuite (Schema updated 2026-02-02 - now includes 62 fields from typed Parquet conversion)
+    description: >
+      Vendor/supplier master data from NetSuite (Schema updated 2026-02-02 - now includes 62 fields from typed Parquet conversion).
+      FIX (v68.4): Corrected field names to camelCase (Parquet native format): entityId, isInactive, isPerson, dateCreated, lastModifiedDate.
 
     measures:
       - name: vendor_count
@@ -32,19 +34,19 @@ cubes:
         description: Vendor internal ID
 
       - name: vendor_name
-        sql: vendor_name
+        sql: "entityId"
         type: string
         title: Vendor Name
         description: Vendor company name (entityId from NetSuite)
 
       - name: is_inactive
-        sql: is_inactive
+        sql: "isInactive"
         type: boolean
         title: Is Inactive
         description: Whether the vendor is inactive
 
       - name: is_person
-        sql: is_person
+        sql: "isPerson"
         type: boolean
         title: Is Person
         description: Whether the vendor is a person (vs company)
@@ -63,13 +65,13 @@ cubes:
         description: Vendor's default currency code
 
       - name: date_created
-        sql: date_created
+        sql: "dateCreated"
         type: time
         title: Date Created
         description: Date vendor record was created
 
       - name: last_modified_date
-        sql: last_modified_date
+        sql: "lastModifiedDate"
         type: time
         title: Last Modified
         description: Date vendor record was last modified
