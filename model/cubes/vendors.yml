@@ -3,7 +3,7 @@ cubes:
     sql_table: gpc.vendors
 
     title: Vendors
-    description: Vendor/supplier master data from NetSuite
+    description: Vendor/supplier master data from NetSuite (Schema updated 2026-02-02 - now includes 62 fields from typed Parquet conversion)
 
     measures:
       - name: vendor_count
