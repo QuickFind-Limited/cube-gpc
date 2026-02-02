@@ -3,7 +3,7 @@ cubes:
     sql: >
       WITH cogs_aggregated AS (
         SELECT
-          transaction,
+          CAST(transaction AS INT64) as transaction,
           SUM(ABS(amount)) as gl_cogs_total
         FROM gpc.transaction_accounting_lines_cogs
         GROUP BY transaction
@@ -17,19 +17,16 @@ cubes:
       )
       SELECT
         tl.*,
-        tl.transaction_currency_id as transaction_currency,
-        tl.custbody_customer_email as customer_email,
-        tl.baseprice as item_base_price,
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
-        t.createddate as transaction_createddate,
+        PARSE_DATE('%Y-%m-%d', t.createddate) as transaction_createddate,
         PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
         COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
       FROM gpc.transaction_lines_denormalized_mv tl
-      LEFT JOIN gpc.transactions t ON tl.transaction = t.id
-      LEFT JOIN cogs_aggregated cogs ON tl.transaction = cogs.transaction
-      LEFT JOIN opex_aggregated opex ON tl.transaction = opex.transaction
+      LEFT JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
+      LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
+      LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
       LEFT JOIN gpc.transaction_lines_itemship itemship_line
         ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
       LEFT JOIN gpc.transactions_itemship itemship
