@@ -52,6 +52,17 @@ cubes:
         format: percent
         description: Average fulfillment rate (received / ordered * 100)
 
+      # SEA-003: In-Season Reorder Rate measures (NEW v71)
+      - name: unique_items
+        sql: item
+        type: count_distinct
+        description: "SEA-003: Number of unique items ordered (for reorder rate calculation)"
+
+      - name: unique_pos
+        sql: transaction
+        type: count_distinct
+        description: "SEA-003: Number of unique purchase orders (for reorder rate calculation)"
+
     dimensions:
       - name: id
         sql: id
@@ -108,6 +119,19 @@ cubes:
         title: PO Date
         description: Purchase order transaction date (from header via denormalization)
 
+      # SEA-003: Product attributes from items join (NEW v71)
+      - name: season
+        sql: "{items.custitem_gpc_season}"
+        type: string
+        title: Product Season
+        description: "SEA-003: Product season code (e.g., AW24, SS25) from items table. Use for calculating in-season reorder rates."
+
+      - name: category
+        sql: "{items.custitem_gpc_category}"
+        type: string
+        title: Product Category
+        description: "Product category from items table (Men, Women, Unisex, Accessories, etc.)"
+
     joins:
       - name: purchase_orders
         relationship: many_to_one
@@ -125,8 +149,13 @@ cubes:
           - line_count
           - total_ordered_qty
           - total_received_qty
+          - unique_items        # SEA-003 v71
+          - unique_pos          # SEA-003 v71
         dimensions:
           - item
+          - po_id               # SEA-003 v71
+          - season              # SEA-003 v71
+          - category            # SEA-003 v71
           - purchase_orders.supplier
           - vendors.vendor_name
         time_dimension: trandate
