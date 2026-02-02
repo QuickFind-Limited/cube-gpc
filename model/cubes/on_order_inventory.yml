@@ -3,13 +3,13 @@ cubes:
     sql: >
       SELECT
         CAST(pol.id AS INT64) as id,
-        CAST(pol.po_id AS INT64) as po_id,
+        CAST(pol.transaction AS INT64) as po_id,
         CAST(pol.item AS INT64) as item,
         CAST(pol.quantity AS INT64) as quantity,
         CAST(pol.quantityshiprecv AS INT64) as quantityshiprecv,
-        CAST(pol.unit_cost AS FLOAT64) as unit_cost,
+        CAST(pol.rate AS FLOAT64) as unit_cost,
         (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) as qty_on_order,
-        (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.unit_cost AS FLOAT64) as line_on_order_value,
+        (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.rate AS FLOAT64) as line_on_order_value,
         po.status as po_status,
         CAST(po.trandate AS TIMESTAMP) as po_date,
         CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,
@@ -17,10 +17,10 @@ cubes:
         i.displayname,
         i.custitem_gpc_stylenumber
       FROM gpc.purchase_order_lines pol
-      LEFT JOIN gpc.purchase_orders po ON pol.po_id = po.id
+      LEFT JOIN gpc.purchase_orders po ON pol.transaction = po.id
       LEFT JOIN gpc.items i ON pol.item = i.id
       WHERE po.status IN ('B', 'D', 'E')
-        AND (pol.quantity - COALESCE(pol.quantityshiprecv, 0)) > 0
+        AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
 
     title: On-Order Inventory
     description: Real-time outstanding PO quantities by item (calculated from open POs)
