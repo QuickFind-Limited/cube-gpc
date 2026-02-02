@@ -343,6 +343,12 @@ cubes:
         format: currency
         description: "Gross Profit = Revenue - COGS. Component of EBIT calculation."
 
+      # Gross Margin Percentage - Added 2026-02-02 for SEA-005
+      - name: gl_based_gross_margin_pct
+        sql: "100.0 * ({transaction_lines.gross_profit}) / NULLIF({transaction_lines.total_revenue}, 0)"
+        type: number
+        description: "SEA-005: GL-based Gross Margin % = (Revenue - COGS) / Revenue * 100. Uses accurate gl_based_cogs from accounting lines. This is sales/gross profit margin - the actual margin achieved on sales after all costs and discounts. Industry benchmark for apparel retail: 40-60%. Use with season, category, or channel dimensions to track seasonal margin achievement against targets."
+
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
         sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'ItemRcpt' AND {CUBE}.blandedcost = 'T' THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
