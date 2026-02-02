@@ -1,0 +1,149 @@
+cubes:
+  - name: fact_vendcred_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendcred_headers
+    title: Vendor Credit Headers
+    description: >
+      Vendor credit memo headers tracking credits received from vendors.
+      Grain: one row per vendor credit transaction header.
+
+    joins:
+      - name: dim_vendor
+        relationship: many_to_one
+        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+    measures:
+      - name: vendcred_count
+        type: count
+        description: Total number of vendor credit memos
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor credit amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor credit amounts in transaction currency
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across vendor credits
+
+      - name: avg_credit_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor credit amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the vendor credit transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date of the vendor credit transaction
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date when the vendor credit was closed
+
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        description: Foreign key to vendor dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Vendor credit amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Vendor credit amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate for currency conversion
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the vendor credit transaction
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the vendor credit has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the vendor credit is posted to GL
+
+    segments:
+      - name: active_credits
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided vendor credits only"
+
+      - name: posted_credits
+        sql: "{CUBE}.is_posting = true AND {CUBE}.is_voided = false"
+        description: "Posted, non-voided vendor credits"
+
+    pre_aggregations:
+      - name: vendor_credits_daily
+        measures:
+          - vendcred_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - vendor_id
+          - subsidiary_id
+          - currency_id
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

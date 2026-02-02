@@ -1,0 +1,89 @@
+cubes:
+  - name: dim_vendor
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_vendor
+    title: Vendors
+    description: >
+      Vendor dimension for accounts payable and procurement analysis.
+      Grain: one row per vendor.
+
+    measures:
+      - name: vendor_count
+        type: count
+        description: Total number of vendors
+
+      - name: active_vendor_count
+        type: count
+        sql: "{CUBE}.vendor_id"
+        filters:
+          - sql: "{CUBE}.is_inactive = false"
+        description: Count of active vendors only
+
+    dimensions:
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the vendor
+
+      - name: vendor_code
+        sql: "{CUBE}.vendor_code"
+        type: string
+        description: Vendor code or short identifier
+
+      - name: company_name
+        sql: "{CUBE}.company_name"
+        type: string
+        description: Vendor company name
+
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        description: Vendor email address
+
+      - name: phone
+        sql: "{CUBE}.phone"
+        type: string
+        description: Vendor phone number
+
+      - name: vendor_category_id
+        sql: "{CUBE}.vendor_category_id"
+        type: number
+        description: Foreign key to vendor category
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: Indicates if the vendor is inactive
+
+      - name: is_person
+        sql: "{CUBE}.is_person"
+        type: boolean
+        description: Indicates if the vendor is an individual person vs a company
+
+      - name: date_created
+        sql: "TIMESTAMP({CUBE}.date_created)"
+        type: time
+        description: Date the vendor record was created
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date the vendor record was last modified
+
+    segments:
+      - name: active_vendors
+        sql: "{CUBE}.is_inactive = false"
+        description: "Active vendors only"
+
+      - name: corporate_vendors
+        sql: "{CUBE}.is_person = false"
+        description: "Corporate/company vendors (not individuals)"
+
+      - name: individual_vendors
+        sql: "{CUBE}.is_person = true"
+        description: "Individual person vendors"

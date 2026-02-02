@@ -1,0 +1,65 @@
+cubes:
+  - name: dim_pricing
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_pricing
+    title: Item Pricing
+    description: >
+      Item pricing dimension containing prices by item and price level.
+      Grain: one row per item-price level combination.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {items.item_id}"
+
+    measures:
+      - name: pricing_count
+        type: count
+        description: Total number of pricing records
+
+      - name: avg_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: avg
+        description: Average unit price across pricing records
+
+      - name: min_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: min
+        description: Minimum unit price
+
+      - name: max_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: max
+        description: Maximum unit price
+
+      - name: total_price_quantity
+        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
+        type: sum
+        description: Sum of price quantities
+
+    dimensions:
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        primary_key: true
+        description: Item identifier (foreign key to items)
+
+      - name: price_level_id
+        sql: "{CUBE}.price_level_id"
+        type: number
+        primary_key: true
+        description: Price level identifier (part of composite key)
+
+      - name: unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: number
+        description: Unit price for this item at this price level
+
+      - name: price_quantity
+        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
+        type: number
+        description: Quantity threshold for this price
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Currency identifier for this price

@@ -1,0 +1,61 @@
+cubes:
+  - name: fact_vendpymt_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendpymt_lines
+    title: Vendor Payment Lines
+    description: >
+      Vendor payment line-level detail for accounts payable payments.
+      Grain: one row per vendor payment line.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {transactions.id}"
+
+    measures:
+      - name: vendpymt_lines_count
+        type: count
+        description: Total number of vendor payment lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor payment amounts
+
+      - name: avg_payment_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor payment line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the payment transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to parent transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline entry
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment line amount
+
+    pre_aggregations:
+      - name: vendpymt_lines_rollup
+        measures:
+          - vendpymt_lines_count
+          - total_amount
+        dimensions:
+          - is_mainline
+        refresh_key:
+          every: 1 day

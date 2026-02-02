@@ -1,0 +1,152 @@
+cubes:
+  - name: fact_custpymt_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custpymt_headers
+    title: Customer Payment Headers
+    description: >
+      Customer payment transaction headers. Contains payment records from customers.
+      Grain: one row per customer payment transaction.
+      Note: This table has 99.9% POS system entity contamination. Use in_scope_only segment for customer analytics.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+    measures:
+      - name: custpymt_count
+        type: count
+        description: Total number of customer payment transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of payment amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of payment amounts in transaction currency
+
+      - name: avg_payment_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average payment amount
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the payment transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date of the payment transaction
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Classification of entity (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for customer analytics
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the payment transaction
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the payment has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the payment posts to GL
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes POS and webstore system entities for accurate customer payment metrics"
+
+      - name: customer_payments
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only payments from real customers, excluding POS/webstore"
+
+      - name: pos_payments
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only POS system payments"
+
+      - name: webstore_payments
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only webstore system payments"
+
+      - name: active_payments
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided payments only"
+
+    pre_aggregations:
+      - name: daily_payments
+        measures:
+          - custpymt_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+          - currency_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

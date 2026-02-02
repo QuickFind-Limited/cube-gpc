@@ -1,0 +1,125 @@
+cubes:
+  - name: dim_customer_in_scope
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer_in_scope
+    title: Customers (In Scope)
+    description: >
+      Customer dimension filtered to include only in-scope customers (excludes webstore, POS, and test entities).
+      Grain: one row per in-scope customer.
+
+    measures:
+      - name: customer_count
+        type: count
+        description: Total number of in-scope customers
+
+      - name: active_customer_count
+        type: count
+        sql: "CASE WHEN {CUBE}.is_inactive = false THEN 1 ELSE NULL END"
+        description: Count of active customers only
+
+    dimensions:
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the customer
+
+      - name: customer_code
+        sql: "{CUBE}.customer_code"
+        type: string
+        description: Customer reference code
+
+      - name: company_name
+        sql: "{CUBE}.company_name"
+        type: string
+        description: Company or business name
+
+      - name: first_name
+        sql: "{CUBE}.first_name"
+        type: string
+        description: Customer first name (for individual customers)
+
+      - name: last_name
+        sql: "{CUBE}.last_name"
+        type: string
+        description: Customer last name (for individual customers)
+
+      - name: full_name
+        sql: "COALESCE({CUBE}.company_name, CONCAT(COALESCE({CUBE}.first_name, ''), ' ', COALESCE({CUBE}.last_name, '')))"
+        type: string
+        description: Full customer name (company name or concatenated first/last name)
+
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        description: Customer email address
+
+      - name: phone
+        sql: "{CUBE}.phone"
+        type: string
+        description: Customer phone number
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos, etc.)
+
+      - name: is_test_entity
+        sql: "{CUBE}.is_test_entity"
+        type: boolean
+        description: Indicates if this is a test entity
+
+      - name: customer_in_scope
+        sql: "{CUBE}.customer_in_scope"
+        type: boolean
+        description: Indicates if customer is in scope for business analytics
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: category_id
+        sql: "{CUBE}.category_id"
+        type: number
+        description: Foreign key to customer category dimension
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: Indicates if customer is inactive
+
+      - name: is_person
+        sql: "{CUBE}.is_person"
+        type: boolean
+        description: Indicates if customer is an individual person (true) or business (false)
+
+      - name: date_created
+        sql: "TIMESTAMP({CUBE}.date_created)"
+        type: time
+        description: Date when customer record was created
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when customer record was last modified
+
+    segments:
+      - name: active_customers
+        sql: "{CUBE}.is_inactive = false"
+        description: "Active customers only (excludes inactive)"
+
+      - name: individual_customers
+        sql: "{CUBE}.is_person = true"
+        description: "Individual person customers only"
+
+      - name: business_customers
+        sql: "{CUBE}.is_person = false"
+        description: "Business/company customers only"
+
+      - name: real_customers_only
+        sql: "{CUBE}.customer_in_scope = true AND {CUBE}.is_test_entity = false"
+        description: "Real in-scope customers only (excludes test entities)"
+
+      - name: exclude_test_entities
+        sql: "{CUBE}.is_test_entity = false"
+        description: "Excludes test entities for accurate business metrics"

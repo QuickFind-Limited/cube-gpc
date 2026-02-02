@@ -1,0 +1,158 @@
+cubes:
+  - name: fact_salesord_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_salesord_lines
+    title: Sales Order Lines
+    description: >
+      Sales order line-level detail containing item quantities and amounts for each sales order.
+      Grain: one row per sales order line item.
+      Note: This table contains entity contamination - use segments to filter to real customer transactions.
+
+    joins:
+      - name: fact_salesord_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_salesord_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {departments.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: salesord_lines_count
+        type: count
+        description: Total number of sales order line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items ordered
+        format: number
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount across all sales order lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount per order line
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line item
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to sales order header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for customer analytics
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header) record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items on this line
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Line amount in base currency
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class dimension
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore, POS) for accurate customer metrics"
+
+      - name: customer_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer transactions, excluding all system entities"
+
+      - name: webstore_only
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only webstore system entity transactions"
+
+      - name: pos_only
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only POS system entity transactions"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline header records, includes only detail lines"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - salesord_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_salesord_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: by_item_daily
+        measures:
+          - salesord_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - item_id
+          - entity_type
+        time_dimension: fact_salesord_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

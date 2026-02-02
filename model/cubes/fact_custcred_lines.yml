@@ -1,0 +1,159 @@
+cubes:
+  - name: fact_custcred_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custcred_lines
+    title: Customer Credit Lines
+    description: >
+      Customer credit memo line items with details of returned products and amounts.
+      Grain: one row per customer credit line item.
+      Note: This table contains entity contamination - use in_scope_only segment for customer analytics.
+
+    joins:
+      - name: fact_custcred_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_custcred_headers.transaction_id}"
+
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {items.item_id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {locations.location_id}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {departments.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: custcred_lines_count
+        type: count
+        description: Total number of customer credit line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity credited (sum of all line quantities)
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total credit amount across all lines
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit rate across credit lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount per credit line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to customer credit header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for customer analytics
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header) record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to items/products dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items credited
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate for the credited item
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Total amount for this line item
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to warehouse/location dimension
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/product line dimension
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.entity_type = 'customer' AND {CUBE}.transaction_in_scope = true"
+        description: "Excludes webstore and POS system entities for accurate customer analytics"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor transactions"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system transactions"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer transactions"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header summary lines, includes only detail lines"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custcred_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_custcred_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

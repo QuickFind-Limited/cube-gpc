@@ -1,0 +1,170 @@
+cubes:
+  - name: fact_rtnauth_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_rtnauth_headers
+    title: Return Authorization Headers
+    description: >
+      Return authorization transaction headers containing customer returns and RMAs.
+      Grain: one row per return authorization header.
+      Note: Contains entity contamination - 100% webstore/POS system entities per analysis.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+    measures:
+      - name: rtnauth_count
+        type: count
+        description: Total number of return authorizations
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of return authorization amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of return authorization amounts in transaction currency
+
+      - name: avg_return_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average return authorization amount
+
+      - name: exchange_rate_avg
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the return authorization transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible return authorization number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date of the return authorization
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity type classification (customer/webstore/pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for customer analytics
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Return authorization amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Return authorization amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to the transaction
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the return authorization transaction
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the transaction is voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to GL
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entity transactions for accurate customer return metrics"
+
+      - name: customer_returns_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer returns, excluding webstore/POS system entities"
+
+      - name: webstore_returns
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore system entity returns only"
+
+      - name: pos_returns
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "POS system entity returns only"
+
+      - name: active_returns
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided return authorizations only"
+
+      - name: posted_returns
+        sql: "{CUBE}.is_posting = true AND {CUBE}.is_voided = false"
+        description: "Posted, non-voided return authorizations"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - rtnauth_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

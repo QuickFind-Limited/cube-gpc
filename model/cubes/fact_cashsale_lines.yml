@@ -1,0 +1,151 @@
+cubes:
+  - name: fact_cashsale_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashsale_lines
+    title: Cash Sale Lines
+    description: >
+      Cash sale transaction line items with detail for each item sold.
+      Grain: one row per cash sale line item.
+      Note: This table contains 100% POS system transactions. Use segments to filter for in-scope transactions.
+
+    joins:
+      - name: fact_cashsale_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_cashsale_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+    measures:
+      - name: cashsale_lines_count
+        type: count
+        description: Total number of cash sale line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Sum of quantities sold across all lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line amounts (revenue)
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line item identifier (part of composite key)
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Transaction identifier (part of composite key)
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for business analysis
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a header line vs detail line
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to items/products
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items sold on this line
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Line amount (revenue) for this line
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to location (store/warehouse)
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class (product line/business unit)
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore/POS processing) for accurate customer business metrics"
+
+      - name: customer_transactions
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Real customer transactions only, excluding webstore and POS system entities"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Detail lines only, excluding header summary lines"
+
+      - name: positive_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
+        description: "Lines with positive quantity (sales, not returns)"
+
+      - name: negative_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
+        description: "Lines with negative quantity (returns/adjustments)"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - cashsale_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+          - location_id
+          - department_id
+        time_dimension: fact_cashsale_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

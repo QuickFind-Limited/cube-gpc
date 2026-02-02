@@ -1,0 +1,200 @@
+cubes:
+  - name: fact_cashsale_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashsale_headers
+    title: Cash Sale Headers
+    description: >
+      Cash sale transaction headers representing point-of-sale and direct payment transactions.
+      Grain: one row per cash sale transaction header.
+      Note: This table contains 100% POS/system entity transactions. Use entity_type and transaction_in_scope
+      segments to filter for analysis.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+
+      - name: accounting_periods
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+      - name: dim_payment_method
+        relationship: many_to_one
+        sql: "{CUBE}.payment_method_id = {dim_payment_method.payment_method_id}"
+
+    measures:
+      - name: cashsale_count
+        type: count
+        description: Total number of cash sale transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total transaction amounts in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of total transaction amounts in foreign currency
+
+      - name: avg_transaction_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average transaction amount
+
+      - name: exchange_rate_avg
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the cash sale transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date of the cash sale transaction
+
+      - name: ship_date
+        sql: "TIMESTAMP({CUBE}.ship_date)"
+        type: time
+        description: Date items were shipped
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date the transaction was closed
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period
+
+      - name: payment_method_id
+        sql: "{CUBE}.payment_method_id"
+        type: number
+        description: Foreign key to payment method
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos)
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: Indicates if transaction is in scope for business analysis
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Total transaction amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Total transaction amount in foreign currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Currency exchange rate applied
+
+      - name: record_type
+        sql: "{CUBE}.record_type"
+        type: string
+        description: NetSuite record type identifier
+
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: Type of transaction (CashSale)
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the transaction
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: Indicates if the transaction is voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: Indicates if the transaction posts to GL
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entity transactions for accurate business metrics"
+
+      - name: real_customer_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only transactions from real customers (excludes webstore/POS system entities)"
+
+      - name: webstore_only
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only webstore payment processor transactions"
+
+      - name: pos_only
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only POS system transactions"
+
+      - name: non_voided
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided transactions"
+
+      - name: posted_only
+        sql: "{CUBE}.is_posting = true"
+        description: "Only transactions that post to the general ledger"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - cashsale_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

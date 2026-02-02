@@ -1,0 +1,42 @@
+cubes:
+  - name: fact_transfer_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_transfer_lines
+    title: Transfer Order Lines
+    description: >
+      Transfer order line-level detail for inventory transfers between locations or subsidiaries.
+      Grain: one row per transfer order line.
+
+    joins:
+      - name: fact_transfer_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_transfer_headers.transaction_id}"
+
+    measures:
+      - name: transfer_lines_count
+        type: count
+        description: Total number of transfer order lines
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transfer order
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        description: Foreign key to transfer order header
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is a mainline (header summary) record
+
+    pre_aggregations:
+      - name: transfer_lines_rollup
+        measures:
+          - transfer_lines_count
+        dimensions:
+          - is_mainline
+        refresh_key:
+          every: 1 day

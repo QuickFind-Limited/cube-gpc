@@ -1,0 +1,130 @@
+cubes:
+  - name: dim_location
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_location
+    title: Locations
+    description: >
+      Location dimension containing warehouses, stores, and distribution centers.
+      Grain: one row per location.
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+    measures:
+      - name: location_count
+        type: count
+        description: Total number of locations
+
+      - name: avg_latitude
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
+        type: avg
+        description: Average latitude of locations
+
+      - name: avg_longitude
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
+        type: avg
+        description: Average longitude of locations
+
+    dimensions:
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the location
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+        description: Short name of the location
+
+      - name: location_fullname
+        sql: "{CUBE}.location_fullname"
+        type: string
+        description: Full hierarchical name of the location
+
+      - name: location_external_id
+        sql: "{CUBE}.location_external_id"
+        type: string
+        description: External system identifier for the location
+
+      - name: location_type_id
+        sql: "{CUBE}.location_type_id"
+        type: number
+        description: Location type identifier
+
+      - name: location_type
+        sql: "{CUBE}.location_type"
+        type: string
+        description: Type of location (e.g., Retail Store, Warehouse)
+
+      - name: is_sellable_location
+        sql: "{CUBE}.is_sellable_location"
+        type: boolean
+        description: Indicates if inventory at this location can be sold
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Subsidiary to which this location belongs
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: Indicates if the location is inactive
+
+      - name: make_inventory_available
+        sql: "{CUBE}.make_inventory_available"
+        type: boolean
+        description: Indicates if inventory is available at this location
+
+      - name: include_in_control_tower
+        sql: "{CUBE}.include_in_control_tower"
+        type: boolean
+        description: Indicates if location is included in control tower visibility
+
+      - name: geolocation_method
+        sql: "{CUBE}.geolocation_method"
+        type: string
+        description: Method used for geolocation (e.g., POSTALCODE, LATLONG)
+
+      - name: latitude
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
+        type: number
+        description: Geographic latitude coordinate
+
+      - name: longitude
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
+        type: number
+        description: Geographic longitude coordinate
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when the location was last modified
+
+      - name: main_address_id
+        sql: "{CUBE}.main_address_id"
+        type: number
+        description: Reference to the main address for this location
+
+    segments:
+      - name: active_locations
+        sql: "{CUBE}.is_inactive = false"
+        description: "Active locations only"
+
+      - name: sellable_locations
+        sql: "{CUBE}.is_sellable_location = true AND {CUBE}.is_inactive = false"
+        description: "Active locations where inventory can be sold"
+
+      - name: warehouse_locations
+        sql: "LOWER({CUBE}.location_type) LIKE '%warehouse%' OR LOWER({CUBE}.location_type) LIKE '%distribution%'"
+        description: "Warehouse and distribution center locations"
+
+      - name: retail_locations
+        sql: "LOWER({CUBE}.location_type) LIKE '%retail%' OR LOWER({CUBE}.location_type) LIKE '%store%'"
+        description: "Retail store locations"
+
+      - name: inventory_available_locations
+        sql: "{CUBE}.make_inventory_available = true AND {CUBE}.is_inactive = false"
+        description: "Active locations with available inventory"

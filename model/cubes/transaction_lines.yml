@@ -5,14 +5,14 @@ cubes:
         SELECT
           CAST(transaction AS INT64) as transaction,
           SUM(ABS(amount)) as gl_cogs_total
-        FROM gpc.transaction_accounting_lines_cogs
+        FROM gpc_data_2026_01_26.transaction_accounting_lines_cogs
         GROUP BY transaction
       ),
       opex_aggregated AS (
         SELECT
           CAST(transaction AS INT64) as transaction,
           SUM(ABS(CAST(amount AS FLOAT64))) as opex_total
-        FROM gpc.transaction_accounting_lines_opex
+        FROM gpc_data_2026_01_26.transaction_accounting_lines_opex
         GROUP BY transaction
       ),
       transaction_ship_days AS (
@@ -23,12 +23,12 @@ cubes:
             PARSE_DATE('%d/%m/%Y', MIN(t.createddate)),
             DAY
           ) as days_to_ship
-        FROM gpc.transaction_lines_denormalized_mv tl
-        LEFT JOIN gpc.transactions t
+        FROM gpc_data_2026_01_26.transaction_lines tl
+        LEFT JOIN gpc_data_2026_01_26.transactions t
           ON CAST(tl.transaction AS STRING) = t.id
-        LEFT JOIN gpc.transaction_lines_itemship itemship_line
+        LEFT JOIN gpc_data_2026_01_26.transaction_lines_itemship itemship_line
           ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
-        LEFT JOIN gpc.transactions_itemship itemship
+        LEFT JOIN gpc_data_2026_01_26.transactions_itemship itemship
           ON itemship.id = itemship_line.transaction
           AND itemship.type = 'ItemShip'
         WHERE itemship.trandate IS NOT NULL
@@ -44,14 +44,14 @@ cubes:
         ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
         COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
-      FROM gpc.transaction_lines_denormalized_mv tl
-      LEFT JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
+      FROM gpc_data_2026_01_26.transaction_lines tl
+      LEFT JOIN gpc_data_2026_01_26.transactions t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
       LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
-      LEFT JOIN gpc.transaction_lines_itemship itemship_line
+      LEFT JOIN gpc_data_2026_01_26.transaction_lines_itemship itemship_line
         ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
-      LEFT JOIN gpc.transactions_itemship itemship
+      LEFT JOIN gpc_data_2026_01_26.transactions_itemship itemship
         ON itemship.id = itemship_line.transaction
         AND itemship.type = 'ItemShip'
     title: Transaction Lines
