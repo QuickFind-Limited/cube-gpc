@@ -6,7 +6,7 @@ cubes:
         CAST(ir.trandate AS TIMESTAMP) as receipt_date,
         i.displayname as item_displayname,
         i.itemid as item_sku,
-        i.baseprice as item_baseprice,
+        CAST(NULL AS FLOAT64) as item_baseprice,
         i.cost as item_cost
       FROM gpc.item_receipt_lines irl
       LEFT JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
@@ -66,7 +66,7 @@ cubes:
         sql: "{CUBE}.quantity * {CUBE}.item_baseprice"
         type: sum
         format: currency
-        description: "DC Intake Value at retail - INTAKE002 metric. Total value of goods received valued at retail price (baseprice). Excludes items without baseprice."
+        description: "DC Intake Value at retail - INTAKE002 metric. Returns NULL - baseprice field was not extracted for items table. To enable this metric, extract a retail/base price field for items."
 
     dimensions:
       - name: id
