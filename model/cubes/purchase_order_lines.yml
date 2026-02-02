@@ -3,7 +3,9 @@ cubes:
     sql_table: gpc.purchase_order_lines
 
     title: Purchase Order Lines
-    description: Purchase order line items with quantity, cost, and receipt tracking
+    description: >
+      Purchase order line items with quantity, cost, and receipt tracking.
+      FIX (v68.8): Changed on_order_value and avg_unit_cost measures to reference 'rate' field directly instead of 'unit_cost' dimension name.
 
     measures:
       - name: line_count
@@ -32,13 +34,13 @@ cubes:
         description: Total PO line value in base currency
 
       - name: on_order_value
-        sql: "(quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)) * unit_cost"
+        sql: "(quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)) * rate"
         type: sum
         format: currency
         description: Value of outstanding orders (qty outstanding * unit cost)
 
       - name: avg_unit_cost
-        sql: unit_cost
+        sql: rate
         type: avg
         format: currency
         description: Average unit cost
