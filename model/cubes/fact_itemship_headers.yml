@@ -1,0 +1,117 @@
+cubes:
+  - name: fact_itemship_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemship_headers
+    title: Item Shipment Headers
+    description: >
+      Item shipment fulfillment transactions showing when orders were shipped to customers.
+      Grain: one row per item shipment header.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: itemship_count
+        type: count
+        description: Total number of item shipments
+
+      - name: distinct_customers
+        sql: "customer_id"
+        type: count_distinct
+        description: Number of unique customers with shipments
+
+      - name: distinct_shipments
+        sql: "transaction_id"
+        type: count_distinct
+        description: Number of distinct shipment transactions
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the shipment transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable shipment transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date when the shipment was processed
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the shipment transaction (e.g., 'C' for shipped/closed)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if the shipment was voided/cancelled
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if the shipment posts to general ledger
+
+    segments:
+      - name: completed_shipments
+        sql: "{CUBE}.transaction_status = 'C'"
+        description: "Shipments that have been completed/closed"
+
+      - name: non_voided_shipments
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided/cancelled shipments"
+
+      - name: posting_shipments
+        sql: "{CUBE}.is_posting = true"
+        description: "Shipments that post to the general ledger"
+
+    pre_aggregations:
+      - name: daily_shipments
+        measures:
+          - itemship_count
+          - distinct_customers
+        dimensions:
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

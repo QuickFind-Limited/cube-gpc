@@ -1,0 +1,140 @@
+cubes:
+  - name: cogs_accounting_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.cogs_accounting_lines
+    title: COGS Accounting Lines
+    description: >
+      Cost of Goods Sold (COGS) accounting entry lines with debits and credits.
+      Grain: one row per COGS accounting entry line.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions.id}"
+
+      - name: accounts
+        relationship: many_to_one
+        sql: "{CUBE}.account = {accounts.account_id}"
+
+    measures:
+      - name: cogs_lines_count
+        type: count
+        description: Total number of COGS accounting lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total COGS amount (sum of all entries)
+
+      - name: total_debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total debit amount for COGS entries
+
+      - name: total_credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total credit amount for COGS entries
+
+      - name: net_amount
+        sql: "CAST({CUBE}.debit AS FLOAT64) - CAST({CUBE}.credit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Net amount (debits minus credits)
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average COGS amount per line
+
+    dimensions:
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Foreign key to transaction header
+        primary_key: true
+
+      - name: transactionline
+        sql: "{CUBE}.transactionline"
+        type: number
+        description: Transaction line identifier
+        primary_key: true
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: COGS entry amount
+
+      - name: debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: number
+        description: Debit amount for this COGS entry
+
+      - name: credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: number
+        description: Credit amount for this COGS entry
+
+      - name: trandate
+        sql: "TIMESTAMP({CUBE}.trandate)"
+        type: time
+        description: Transaction date
+
+      - name: account
+        sql: "{CUBE}.account"
+        type: number
+        description: Foreign key to GL account
+
+      - name: posting
+        sql: "{CUBE}.posting"
+        type: boolean
+        description: True if this is a posting transaction
+
+    segments:
+      - name: posting_entries_only
+        sql: "{CUBE}.posting = true"
+        description: "Only posting COGS entries (excludes non-posting entries)"
+
+      - name: debit_entries
+        sql: "CAST({CUBE}.debit AS FLOAT64) > 0"
+        description: "COGS entries with debit amounts"
+
+      - name: credit_entries
+        sql: "CAST({CUBE}.credit AS FLOAT64) > 0"
+        description: "COGS entries with credit amounts"
+
+    pre_aggregations:
+      - name: daily_cogs
+        measures:
+          - cogs_lines_count
+          - total_amount
+          - total_debit
+          - total_credit
+        time_dimension: trandate
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 day
+        indexes:
+          - name: by_account
+            columns:
+              - account
+          - name: by_posting
+            columns:
+              - posting
+
+      - name: monthly_cogs_by_account
+        measures:
+          - cogs_lines_count
+          - total_amount
+          - total_debit
+          - total_credit
+        dimensions:
+          - account
+        time_dimension: trandate
+        granularity: month
+        refresh_key:
+          every: 1 day

@@ -1,0 +1,170 @@
+cubes:
+  - name: fact_cashrfnd_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashrfnd_lines
+    title: Cash Refund Lines
+    description: >
+      Line-level detail for cash refund transactions, including items, quantities, and amounts.
+      Grain: one row per cash refund line item.
+      Note: This table contains significant system entity contamination (100% POS entities).
+      Use segments to filter to in-scope transactions only.
+
+    joins:
+      - name: fact_cashrfnd_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_cashrfnd_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+    measures:
+      - name: cashrfnd_lines_count
+        type: count
+        description: Total number of cash refund line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items refunded
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount for cash refunds
+
+      - name: total_line_amount_abs
+        sql: "ABS(CAST({CUBE}.line_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total line amount (refunds are typically negative)
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit rate per item
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Unique identifier for the line within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to cash refund header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) - used for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for customer analytics (excludes system entities)
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a header summary line (should be false for all detail lines)
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items on this line (typically negative for refunds)
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate for the item
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        format: currency
+        description: Total amount for this line (quantity × rate)
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to location/warehouse dimension
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/product line dimension
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore, POS) for accurate customer metrics"
+
+      - name: customer_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer transactions, excludes webstore and POS system entities"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor transactions"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system transactions"
+
+      - name: webstore_only
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only webstore payment processor transactions"
+
+      - name: pos_only
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only POS system transactions"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header summary lines, keeps only detail lines"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - cashrfnd_lines_count
+          - total_line_amount
+          - total_quantity
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_cashrfnd_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

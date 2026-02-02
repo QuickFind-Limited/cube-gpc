@@ -1,0 +1,207 @@
+cubes:
+  - name: fact_depappl_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_depappl_lines
+    title: Deposit Application Lines
+    description: >
+      Line-level detail for deposit applications to invoices. Represents automated applications
+      of customer deposits (prepayments) to outstanding invoices, typically from webstore payment processors.
+      Grain: one row per deposit application line.
+
+    joins:
+      - name: fact_depappl_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_depappl_headers.transaction_id}"
+
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {transactions.id}"
+
+    measures:
+      - name: depappl_lines_count
+        type: count
+        description: Total number of deposit application lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount of deposit applications (typically negative)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total absolute value of deposit application amounts
+
+      - name: total_net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount after discounts
+
+      - name: total_net_amount_abs
+        sql: "ABS(CAST({CUBE}.net_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total absolute value of net amounts
+
+      - name: total_discount
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total transaction discounts applied
+
+      - name: avg_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average deposit application amount per line
+
+      - name: avg_net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average net amount per line
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier (not globally unique, scoped to transaction)
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to transaction header
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: >
+          Classification of the entity: 'webstore' for payment processor entities,
+          'pos' for point-of-sale systems, 'customer' for real customers
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for business analytics (excludes system entities)
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a mainline (header-level) record
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Gross deposit application amount (typically negative)
+
+      - name: net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: number
+        description: Net amount after discounts
+
+      - name: transaction_discount
+        sql: "CAST({CUBE}.transaction_discount AS FLOAT64)"
+        type: number
+        description: Discount amount applied to this line
+
+      - name: created_from_transaction_id
+        sql: "{CUBE}.created_from_transaction_id"
+        type: number
+        description: Reference to the source customer deposit transaction
+
+      - name: is_tax_line
+        sql: "{CUBE}.is_tax_line"
+        type: boolean
+        description: True if this line represents a tax calculation
+
+      - name: is_closed
+        sql: "{CUBE}.is_closed"
+        type: boolean
+        description: True if the line is closed
+
+      - name: is_fully_shipped
+        sql: "{CUBE}.is_fully_shipped"
+        type: boolean
+        description: True if the line is fully shipped
+
+      - name: is_cogs
+        sql: "{CUBE}.is_cogs"
+        type: boolean
+        description: True if this is a cost of goods sold line
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore, POS) for accurate business metrics"
+
+      - name: webstore_only
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only webstore payment processor deposit applications"
+
+      - name: pos_only
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only point-of-sale system deposit applications"
+
+      - name: customer_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer deposit applications (excludes system entities)"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Only detail lines (excludes header summary records)"
+
+      - name: non_tax_lines
+        sql: "{CUBE}.is_tax_line = false"
+        description: "Excludes tax calculation lines"
+
+      - name: closed_lines
+        sql: "{CUBE}.is_closed = true"
+        description: "Only closed deposit application lines"
+
+      - name: open_lines
+        sql: "{CUBE}.is_closed = false"
+        description: "Only open (not closed) deposit application lines"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - depappl_lines_count
+          - total_amount
+          - total_net_amount
+          - total_discount
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+          - is_closed
+        time_dimension: fact_depappl_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: by_entity_type
+        measures:
+          - depappl_lines_count
+          - total_amount_abs
+          - total_net_amount_abs
+        dimensions:
+          - entity_type
+        time_dimension: fact_depappl_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

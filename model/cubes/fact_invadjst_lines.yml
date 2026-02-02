@@ -1,0 +1,172 @@
+cubes:
+  - name: fact_invadjst_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_lines
+    title: Inventory Adjustment Lines
+    description: >
+      Line-level detail for inventory adjustment transactions showing item quantities, costs, and locations.
+      Grain: one row per inventory adjustment line item.
+
+    joins:
+      - name: fact_invadjst_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_invadjst_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: invadjst_lines_count
+        type: count
+        description: Total number of inventory adjustment line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Sum of inventory quantity adjustments (positive = increase, negative = decrease)
+
+      - name: total_quantity_absolute
+        sql: "ABS(CAST({CUBE}.quantity AS FLOAT64))"
+        type: sum
+        description: Sum of absolute value of quantity adjustments
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates (item costs) for adjustments
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate (item cost) across adjustments
+
+      - name: total_adjustment_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Total value of inventory adjustments (quantity × unit rate)
+
+      - name: lines_with_increases
+        type: count
+        filters:
+          - sql: "{CUBE}.quantity > 0"
+        description: Number of adjustment lines with quantity increases
+
+      - name: lines_with_decreases
+        type: count
+        filters:
+          - sql: "{CUBE}.quantity < 0"
+        description: Number of adjustment lines with quantity decreases
+
+      - name: unique_items_adjusted
+        sql: "{CUBE}.item_id"
+        type: count_distinct
+        description: Number of unique items adjusted
+
+      - name: unique_locations
+        sql: "{CUBE}.location_id"
+        type: count_distinct
+        description: Number of unique locations with adjustments
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to inventory adjustment header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a main summary line (typically false for detail lines)
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product being adjusted
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity adjustment (positive for increases, negative for decreases)
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit cost/rate for the adjusted item
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to warehouse/location where adjustment occurred
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class (product line or business segment)
+
+      - name: adjustment_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Calculated adjustment value (quantity × unit rate)
+
+    segments:
+      - name: quantity_increases
+        sql: "{CUBE}.quantity > 0"
+        description: "Inventory adjustments that increase stock levels"
+
+      - name: quantity_decreases
+        sql: "{CUBE}.quantity < 0"
+        description: "Inventory adjustments that decrease stock levels"
+
+      - name: zero_quantity
+        sql: "{CUBE}.quantity = 0"
+        description: "Adjustments with zero quantity (non-inventory adjustments)"
+
+      - name: high_value_adjustments
+        sql: "ABS(CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)) > 1000"
+        description: "Adjustments with absolute value exceeding 1000"
+
+    pre_aggregations:
+      - name: daily_adjustments_by_item
+        measures:
+          - invadjst_lines_count
+          - total_quantity
+          - total_adjustment_value
+        dimensions:
+          - item_id
+          - location_id
+        time_dimension: fact_invadjst_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: daily_adjustments_by_location
+        measures:
+          - invadjst_lines_count
+          - total_quantity
+          - unique_items_adjusted
+        dimensions:
+          - location_id
+          - class_id
+        time_dimension: fact_invadjst_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

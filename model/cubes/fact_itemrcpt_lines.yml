@@ -1,0 +1,175 @@
+cubes:
+  - name: fact_itemrcpt_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemrcpt_lines
+    title: Item Receipt Lines
+    description: >
+      Item receipt transaction line details for vendor receiving transactions.
+      Grain: one row per item receipt line.
+
+    joins:
+      - name: fact_itemrcpt_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_itemrcpt_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: itemrcpt_lines_count
+        type: count
+        description: Total number of item receipt lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity received across all lines
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity received per line
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates (cost per item)
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate (cost per item)
+
+      - name: total_line_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total value of all receipt lines (quantity × unit rate)
+
+      - name: avg_line_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average value per receipt line
+
+      - name: min_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: min
+        description: Minimum quantity received on a single line
+
+      - name: max_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: max
+        description: Maximum quantity received on a single line
+
+      - name: distinct_items
+        sql: "{CUBE}.item_id"
+        type: count_distinct
+        description: Number of distinct items received
+
+      - name: distinct_locations
+        sql: "{CUBE}.location_id"
+        type: count_distinct
+        description: Number of distinct receiving locations
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the receipt
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        description: Foreign key to item receipt header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the receipt
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a mainline (header summary) record
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items received
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Cost per unit for received items
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to receiving location/warehouse
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/product line dimension
+
+      - name: line_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Calculated line value (quantity × unit rate)
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline header records, only detail lines"
+
+      - name: positive_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
+        description: "Only receipts with positive quantities (excludes returns/adjustments)"
+
+      - name: negative_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
+        description: "Only negative quantities (returns or adjustments)"
+
+      - name: has_cost
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64) > 0"
+        description: "Only lines with positive unit cost"
+
+    pre_aggregations:
+      - name: daily_receipts
+        measures:
+          - itemrcpt_lines_count
+          - total_quantity
+          - total_line_value
+        dimensions:
+          - item_id
+          - location_id
+          - class_id
+        time_dimension: fact_itemrcpt_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: item_location_summary
+        measures:
+          - itemrcpt_lines_count
+          - total_quantity
+          - avg_unit_rate
+        dimensions:
+          - item_id
+          - location_id
+        refresh_key:
+          every: 1 hour

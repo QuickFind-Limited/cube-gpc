@@ -1,0 +1,190 @@
+cubes:
+  - name: fact_rtnauth_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_rtnauth_headers
+    title: Return Authorization Headers
+    description: >
+      Return authorization transaction headers tracking customer returns and refund requests.
+      Grain: one row per return authorization transaction.
+      Note: This table contains system entity contamination (webstore/POS entities).
+      Use in_scope_only or customers_only segments for customer-facing analytics.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: rtnauth_count
+        type: count
+        description: Total number of return authorization transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total return amount in base currency (typically negative for returns)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total return amount (positive)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total return amount in transaction currency
+
+      - name: avg_return_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average return authorization amount
+
+      - name: max_return_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: max
+        format: currency
+        description: Maximum return authorization amount
+
+      - name: min_return_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: min
+        format: currency
+        description: Minimum return authorization amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the return authorization transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable return authorization number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date the return authorization was created
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope (excludes system entities)
+
+      - name: exchange_rate
+        sql: "{CUBE}.exchange_rate"
+        type: number
+        description: Exchange rate applied to convert foreign currency to base currency
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the return authorization (e.g., Pending, Approved, Refunded)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if the return authorization has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if the transaction posts to the general ledger
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore/POS) for accurate customer return metrics"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer return authorizations, excludes all system entities"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor returns"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system returns"
+
+      - name: active_returns
+        sql: "{CUBE}.is_voided = false"
+        description: "Non-voided return authorizations only"
+
+      - name: voided_returns
+        sql: "{CUBE}.is_voided = true"
+        description: "Voided return authorizations only"
+
+      - name: posting_transactions
+        sql: "{CUBE}.is_posting = true"
+        description: "Return authorizations that post to GL"
+
+    pre_aggregations:
+      - name: daily_returns
+        measures:
+          - rtnauth_count
+          - total_amount_abs
+          - avg_return_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - is_voided
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_returns_by_customer
+        measures:
+          - rtnauth_count
+          - total_amount_abs
+        dimensions:
+          - customer_id
+          - entity_type
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day

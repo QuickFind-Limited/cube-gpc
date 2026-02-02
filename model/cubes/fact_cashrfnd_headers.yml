@@ -1,0 +1,188 @@
+cubes:
+  - name: fact_cashrfnd_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashrfnd_headers
+    title: Cash Refund Headers
+    description: >
+      Cash refund transaction headers with amounts and customer attribution.
+      Grain: one row per cash refund transaction header.
+      Note: Contains 100% POS system entities. Use in_scope_only segment for customer refund analysis.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: cashrfnd_count
+        type: count
+        description: Total number of cash refund transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of refund amounts in base currency (negative values)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute refund amounts (positive values for reporting)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of refund amounts in transaction currency
+
+      - name: avg_refund_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average refund amount per transaction
+
+      - name: min_refund_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: min
+        format: currency
+        description: Minimum refund amount
+
+      - name: max_refund_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: max
+        format: currency
+        description: Maximum refund amount
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the cash refund transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date of the cash refund transaction
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for customer analytics (excludes system entities)
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Total refund amount in base currency (stored as negative)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Total refund amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to convert foreign to base currency
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the transaction (e.g., completed, pending)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if transaction has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if transaction posts to the general ledger
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore, POS) for accurate customer refund metrics"
+
+      - name: customer_refunds
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only refunds from real customers (excludes webstore and POS system entities)"
+
+      - name: webstore_refunds
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Only refunds from webstore system entities"
+
+      - name: pos_refunds
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "Only refunds from POS system entities"
+
+      - name: active_refunds
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided transactions"
+
+      - name: posted_refunds
+        sql: "{CUBE}.is_posting = true"
+        description: "Only transactions that post to GL"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - cashrfnd_count
+          - total_amount_abs
+          - foreign_total_amount
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

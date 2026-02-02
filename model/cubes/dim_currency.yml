@@ -1,8 +1,10 @@
 cubes:
-  - name: currencies
-    sql: SELECT * FROM gpc_data_2026_01_26.currencies
-    title: Currencies
-    description: Currency reference data with exchange rates for multi-currency support
+  - name: dim_currency
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_currency
+    title: Currency
+    description: >
+      Currency reference dimension for multi-currency transactions.
+      Grain: one row per currency.
 
     measures:
       - name: currency_count
@@ -19,17 +21,17 @@ cubes:
       - name: currency_name
         sql: "{CUBE}.currency_name"
         type: string
-        description: Currency name (EUR, GBP, USD, etc.)
+        description: Full name of the currency (e.g., 'Euro', 'US Dollar', 'British Pound')
 
       - name: currency_symbol
         sql: "{CUBE}.currency_symbol"
         type: string
-        description: Currency symbol (€, £, $, etc.)
+        description: Currency symbol (e.g., '€', '$', '£')
 
       - name: is_base_currency
         sql: "{CUBE}.is_base_currency"
         type: boolean
-        description: True if this is the organization's base/home currency
+        description: True if this is the base/home currency for the organization
 
       - name: is_inactive
         sql: "{CUBE}.is_inactive"
@@ -39,17 +41,12 @@ cubes:
     segments:
       - name: active_currencies
         sql: "{CUBE}.is_inactive = false"
-        description: "Excludes inactive currencies for current transaction analysis"
+        description: "Excludes inactive currencies"
 
-      - name: base_currency_only
+      - name: base_currency
         sql: "{CUBE}.is_base_currency = true"
-        description: "Only the organization's base currency"
+        description: "The organization's base/home currency"
 
-    pre_aggregations:
-      - name: currency_analysis
-        measures:
-          - currency_count
-        dimensions:
-          - currency_name
-        refresh_key:
-          every: 1 day
+      - name: foreign_currencies
+        sql: "{CUBE}.is_base_currency = false AND {CUBE}.is_inactive = false"
+        description: "Active foreign (non-base) currencies only"

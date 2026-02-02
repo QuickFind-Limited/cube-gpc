@@ -1,0 +1,158 @@
+cubes:
+  - name: dim_account
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_account
+    title: Chart of Accounts
+    description: >
+      Chart of accounts dimension with account hierarchy and attributes.
+      Grain: one row per chart of accounts entry.
+
+    measures:
+      - name: account_count
+        type: count
+        description: Total number of accounts
+
+    dimensions:
+      - name: account_id
+        sql: "{CUBE}.account_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the account
+
+      - name: account_number
+        sql: "{CUBE}.account_number"
+        type: string
+        description: Account number (may contain duplicates for inactive accounts)
+
+      - name: account_name
+        sql: "{CUBE}.account_name"
+        type: string
+        description: Name of the account
+
+      - name: account_display_name
+        sql: "{CUBE}.account_display_name"
+        type: string
+        description: Display name for the account (user-facing)
+
+      - name: account_hierarchy_name
+        sql: "{CUBE}.account_hierarchy_name"
+        type: string
+        description: Full hierarchical path name including parent accounts
+
+      - name: account_type
+        sql: "{CUBE}.account_type"
+        type: string
+        description: Account type (Asset, Liability, Equity, Revenue, Expense, etc.)
+
+      - name: external_id
+        sql: "{CUBE}.external_id"
+        type: string
+        description: External system identifier for integration
+
+      - name: subsidiary_ids
+        sql: "{CUBE}.subsidiary_ids"
+        type: string
+        description: Comma-separated list of subsidiary IDs (requires parsing for joins)
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Currency ID for multi-currency accounts (Bank, Credit Card)
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the account is inactive
+
+      - name: is_summary
+        sql: "{CUBE}.is_summary"
+        type: boolean
+        description: True if this is a summary/parent account (no direct postings)
+
+      - name: include_children
+        sql: "{CUBE}.include_children"
+        type: boolean
+        description: True if account includes child account balances
+
+      - name: is_eliminate
+        sql: "{CUBE}.is_eliminate"
+        type: boolean
+        description: True if account is used for intercompany eliminations
+
+      - name: reconcile_with_matching
+        sql: "{CUBE}.reconcile_with_matching"
+        type: boolean
+        description: True if account requires transaction matching for reconciliation
+
+      - name: is_revalue
+        sql: "{CUBE}.is_revalue"
+        type: boolean
+        description: True if account is subject to currency revaluation
+
+      - name: is_inventory
+        sql: "{CUBE}.is_inventory"
+        type: boolean
+        description: True if this is an inventory account
+
+      - name: cashflow_rate
+        sql: "{CUBE}.cashflow_rate"
+        type: string
+        description: Cash flow statement exchange rate treatment
+
+      - name: general_rate
+        sql: "{CUBE}.general_rate"
+        type: string
+        description: General ledger exchange rate treatment
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when the account was last modified
+
+    segments:
+      - name: active_accounts
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive accounts"
+
+      - name: posting_accounts
+        sql: "{CUBE}.is_summary = false"
+        description: "Only posting-level accounts (excludes summary/parent accounts)"
+
+      - name: summary_accounts
+        sql: "{CUBE}.is_summary = true"
+        description: "Summary/parent accounts only"
+
+      - name: inventory_accounts
+        sql: "{CUBE}.is_inventory = true"
+        description: "Inventory-related accounts only"
+
+      - name: elimination_accounts
+        sql: "{CUBE}.is_eliminate = true"
+        description: "Intercompany elimination accounts"
+
+      - name: multi_currency_accounts
+        sql: "{CUBE}.currency_id IS NOT NULL"
+        description: "Accounts with specific currency assignments (Bank, Credit Card)"
+
+      - name: reconcilable_accounts
+        sql: "{CUBE}.reconcile_with_matching = true"
+        description: "Accounts that require transaction matching for reconciliation"
+
+      - name: asset_accounts
+        sql: "{CUBE}.account_type IN ('Bank', 'AcctRec', 'OthCurrAsset', 'FixedAsset', 'OthAsset')"
+        description: "Asset accounts only"
+
+      - name: liability_accounts
+        sql: "{CUBE}.account_type IN ('AcctPay', 'CredCard', 'OthCurrLiab', 'LongTermLiab')"
+        description: "Liability accounts only"
+
+      - name: equity_accounts
+        sql: "{CUBE}.account_type = 'Equity'"
+        description: "Equity accounts only"
+
+      - name: revenue_accounts
+        sql: "{CUBE}.account_type = 'Income'"
+        description: "Revenue/Income accounts only"
+
+      - name: expense_accounts
+        sql: "{CUBE}.account_type IN ('Expense', 'COGS', 'OthExpense')"
+        description: "Expense and COGS accounts only"

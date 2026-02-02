@@ -1,0 +1,34 @@
+cubes:
+  - name: dim_classification
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_classification
+    title: Classifications
+    description: >
+      Business classifications for categorizing entities (e.g., store types, location categories).
+      Grain: one row per classification.
+
+    measures:
+      - name: classification_count
+        type: count
+        description: Total number of classifications
+
+    dimensions:
+      - name: classification_id
+        sql: "{CUBE}.classification_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the classification
+
+      - name: classification_name
+        sql: "{CUBE}.classification_name"
+        type: string
+        description: Name of the classification category
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the classification is inactive
+
+    segments:
+      - name: active_only
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive classifications"

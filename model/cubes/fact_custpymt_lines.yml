@@ -1,0 +1,120 @@
+cubes:
+  - name: fact_custpymt_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custpymt_lines
+    title: Customer Payment Lines
+    description: >
+      Customer payment transaction line items. Contains payment application details.
+      Grain: one row per customer payment line (typically 1:1 with payment headers).
+      Note: 99.9% of payments are from POS system entities per contamination analysis.
+
+    joins:
+      - name: fact_custpymt_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_custpymt_headers.transaction_id}"
+
+    measures:
+      - name: custpymt_lines_count
+        type: count
+        description: Total number of customer payment lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total payment amount (all amounts are negative in source)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total payment amount (absolute value)
+
+      - name: total_net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net payment amount after fees/adjustments
+
+      - name: total_net_amount_abs
+        sql: "ABS(CAST({CUBE}.net_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total net payment amount (absolute value)
+
+      - name: avg_payment_line_amount
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average payment line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line item identifier within the payment transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to customer payment header transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: "Entity classification: 'customer', 'webstore', or 'pos'"
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for customer analytics (excludes system entities)
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is the main summary line (always false in payment lines)
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment line amount (negative values represent payments reducing AR balance)
+
+      - name: net_amount
+        sql: "CAST({CUBE}.net_amount AS FLOAT64)"
+        type: number
+        description: Net payment amount after fees or adjustments
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes system entities (webstore/POS) for customer analytics"
+
+      - name: customer_payments_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer payments, excludes webstore and POS entities"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor transactions"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system payment transactions"
+
+      - name: system_entities_only
+        sql: "{CUBE}.entity_type IN ('webstore', 'pos')"
+        description: "Only webstore and POS system entities for operational reporting"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custpymt_lines_count
+          - total_amount_abs
+          - total_net_amount_abs
+        dimensions:
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_custpymt_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

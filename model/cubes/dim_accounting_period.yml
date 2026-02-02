@@ -1,0 +1,123 @@
+cubes:
+  - name: dim_accounting_period
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_accounting_period
+    title: Accounting Periods (Dimension)
+    description: >
+      Financial accounting periods including months, quarters, years, and adjustment periods.
+      Grain: one row per accounting period.
+      Note: This is a denormalized dimension view of accounting_periods.
+
+    measures:
+      - name: period_count
+        type: count
+        description: Total number of accounting periods
+
+    dimensions:
+      - name: period_id
+        sql: "{CUBE}.period_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the accounting period
+
+      - name: period_name
+        sql: "{CUBE}.period_name"
+        type: string
+        description: Name of the accounting period (e.g., 'Jan 2024', 'Q1 2024', 'FY 2024')
+
+      - name: is_adjustment_period
+        sql: "{CUBE}.is_adjustment_period"
+        type: boolean
+        description: True if this is an adjustment period for closing entries
+
+      - name: is_quarter
+        sql: "{CUBE}.is_quarter"
+        type: boolean
+        description: True if this period represents a fiscal quarter
+
+      - name: is_year
+        sql: "{CUBE}.is_year"
+        type: boolean
+        description: True if this period represents a fiscal year
+
+      - name: is_closed
+        sql: "{CUBE}.is_closed"
+        type: boolean
+        description: True if the accounting period has been closed
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if transactions can be posted to this period
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the accounting period is inactive
+
+      - name: start_date
+        sql: "TIMESTAMP({CUBE}.start_date)"
+        type: time
+        description: Start date of the accounting period
+
+      - name: end_date
+        sql: "TIMESTAMP({CUBE}.end_date)"
+        type: time
+        description: End date of the accounting period
+
+      - name: closed_on_date
+        sql: "TIMESTAMP({CUBE}.closed_on_date)"
+        type: time
+        description: Date when the period was closed (null if not closed)
+
+      - name: is_all_locked
+        sql: "{CUBE}.is_all_locked"
+        type: boolean
+        description: True if all transactions in this period are locked
+
+      - name: is_ap_locked
+        sql: "{CUBE}.is_ap_locked"
+        type: boolean
+        description: True if accounts payable transactions are locked for this period
+
+      - name: is_ar_locked
+        sql: "{CUBE}.is_ar_locked"
+        type: boolean
+        description: True if accounts receivable transactions are locked for this period
+
+      - name: allow_non_gl_changes
+        sql: "{CUBE}.allow_non_gl_changes"
+        type: boolean
+        description: True if non-GL changes are allowed after period close
+
+    segments:
+      - name: active_periods
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive accounting periods"
+
+      - name: open_periods
+        sql: "{CUBE}.is_closed = false"
+        description: "Only open (not yet closed) accounting periods"
+
+      - name: closed_periods
+        sql: "{CUBE}.is_closed = true"
+        description: "Only closed accounting periods"
+
+      - name: posting_periods
+        sql: "{CUBE}.is_posting = true"
+        description: "Periods that accept transaction postings"
+
+      - name: month_periods
+        sql: "{CUBE}.is_quarter = false AND {CUBE}.is_year = false AND {CUBE}.is_adjustment_period = false"
+        description: "Regular monthly accounting periods only"
+
+      - name: quarter_periods
+        sql: "{CUBE}.is_quarter = true"
+        description: "Quarterly accounting periods only"
+
+      - name: year_periods
+        sql: "{CUBE}.is_year = true"
+        description: "Annual accounting periods only"
+
+      - name: adjustment_periods
+        sql: "{CUBE}.is_adjustment_period = true"
+        description: "Adjustment periods for year-end closing entries"

@@ -1,0 +1,38 @@
+cubes:
+  - name: payment_methods
+    sql: SELECT * FROM gpc_data_2026_01_26.payment_methods
+    title: Payment Methods
+    description: >
+      Payment method reference table including credit cards, cash, check, and electronic payment types.
+      Grain: one row per payment method.
+
+    measures:
+      - name: payment_method_count
+        type: count
+        description: Total number of payment methods
+
+    dimensions:
+      - name: payment_method_id
+        sql: "{CUBE}.payment_method_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the payment method
+
+      - name: payment_method_name
+        sql: "{CUBE}.payment_method_name"
+        type: string
+        description: Name of the payment method (e.g., Visa, Mastercard, Cash, Check)
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the payment method is inactive and no longer accepted
+
+    segments:
+      - name: active_methods
+        sql: "{CUBE}.is_inactive = false"
+        description: "Only active payment methods currently accepted"
+
+      - name: inactive_methods
+        sql: "{CUBE}.is_inactive = true"
+        description: "Inactive payment methods no longer accepted"

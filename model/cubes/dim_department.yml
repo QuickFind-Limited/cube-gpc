@@ -1,0 +1,44 @@
+cubes:
+  - name: dim_department
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_department
+    title: Departments
+    description: >
+      Department dimension for organizational hierarchy and cost center reporting.
+      Grain: one row per department.
+
+    measures:
+      - name: department_count
+        type: count
+        description: Total number of departments
+
+    dimensions:
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the department
+
+      - name: department_name
+        sql: "{CUBE}.department_name"
+        type: string
+        description: Short name of the department
+
+      - name: department_fullname
+        sql: "{CUBE}.department_fullname"
+        type: string
+        description: Full hierarchical name of the department
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the department is inactive
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when the department record was last modified
+
+    segments:
+      - name: active_departments
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive departments for active reporting"

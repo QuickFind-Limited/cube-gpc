@@ -1,0 +1,111 @@
+cubes:
+  - name: fact_vendcred_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendcred_lines
+    title: Vendor Credit Lines
+    description: >
+      Line-level detail for vendor credit memos.
+      Grain: one row per vendor credit line.
+
+    joins:
+      - name: fact_vendcred_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_vendcred_headers.transaction_id}"
+
+    measures:
+      - name: vendcred_lines_count
+        type: count
+        description: Total number of vendor credit lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of all vendor credit line amounts (positive values represent credits from vendors)
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor credit line amount
+
+      - name: min_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum vendor credit line amount
+
+      - name: max_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum vendor credit line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier (unique within transaction)
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to vendor credit header transaction
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequence number of the line within the transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a header summary line (should be false for all line-level records)
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Amount of the vendor credit line (positive for credits received from vendor)
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/department dimension for expense categorization
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header summary lines, showing only detail lines"
+
+      - name: positive_amounts
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) > 0"
+        description: "Lines with positive credit amounts"
+
+      - name: negative_amounts
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) < 0"
+        description: "Lines with negative amounts (if any)"
+
+      - name: zero_amounts
+        sql: "CAST({CUBE}.line_amount AS FLOAT64) = 0"
+        description: "Lines with zero amounts"
+
+    pre_aggregations:
+      - name: vendcred_lines_by_class_daily
+        measures:
+          - vendcred_lines_count
+          - total_line_amount
+        dimensions:
+          - class_id
+        time_dimension: fact_vendcred_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: vendcred_lines_daily_summary
+        measures:
+          - vendcred_lines_count
+          - total_line_amount
+        time_dimension: fact_vendcred_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

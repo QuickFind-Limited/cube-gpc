@@ -1,41 +1,74 @@
 cubes:
   - name: locations
-    sql: SELECT * FROM gpc.locations
+    sql: SELECT * FROM gpc_data_2026_01_26.locations
     title: Locations
-    description: Warehouse and store locations with centralized channel type logic
+    description: >
+      Warehouse and store locations with centralized channel type logic.
+      Grain: one row per location.
+
+    joins:
+      - name: subsidiaries
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {subsidiaries.subsidiary_id}"
 
     measures:
       - name: location_count
         type: count
         description: Total number of locations
 
+      - name: avg_latitude
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
+        type: avg
+        description: Average latitude of locations
+
+      - name: avg_longitude
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
+        type: avg
+        description: Average longitude of locations
+
     dimensions:
-      - name: id
-        sql: "{CUBE}.id"
+      - name: location_id
+        sql: "{CUBE}.location_id"
         type: number
         primary_key: true
+        description: Unique identifier for the location
 
-      - name: name
-        sql: "{CUBE}.name"
+      - name: location_name
+        sql: "{CUBE}.location_name"
         type: string
         description: Location name
+
+      - name: location_fullname
+        sql: "{CUBE}.location_fullname"
+        type: string
+        description: Full hierarchical location name
+
+      - name: location_external_id
+        sql: "{CUBE}.location_external_id"
+        type: string
+        description: External system identifier for the location
+
+      - name: location_type_id
+        sql: "{CUBE}.location_type_id"
+        type: number
+        description: Location type identifier (1=Retail, 2=Warehouse)
 
       # CRITICAL: Centralized channel type logic - Rule 4
       - name: channel_type
         sql: >
           CASE
-            WHEN {CUBE}.name IS NULL THEN 'D2C'
-            WHEN {CUBE}.name LIKE 'Bleckmann%' AND {CUBE}.name NOT LIKE '%Quarantine%' AND {CUBE}.name NOT LIKE '%Miscellaneous%' THEN 'D2C'
-            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'D2C'
-            WHEN {CUBE}.name IN (
+            WHEN {CUBE}.location_name IS NULL THEN 'D2C'
+            WHEN {CUBE}.location_name LIKE 'Bleckmann%' AND {CUBE}.location_name NOT LIKE '%Quarantine%' AND {CUBE}.location_name NOT LIKE '%Miscellaneous%' THEN 'D2C'
+            WHEN {CUBE}.location_name IN ('Meteor Space', '2Flow') THEN 'D2C'
+            WHEN {CUBE}.location_name IN (
               'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
               'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
               'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
             ) THEN 'RETAIL'
-            WHEN {CUBE}.name LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
-            WHEN {CUBE}.name LIKE 'Lifestyle Sports%' AND {CUBE}.name NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
-            WHEN {CUBE}.name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
-            WHEN {CUBE}.name LIKE 'Events%' THEN 'EVENTS'
+            WHEN {CUBE}.location_name LIKE 'Wholesale%' THEN 'B2B_WHOLESALE'
+            WHEN {CUBE}.location_name LIKE 'Lifestyle Sports%' AND {CUBE}.location_name NOT LIKE '%Quarantine%' THEN 'B2B_WHOLESALE'
+            WHEN {CUBE}.location_name IN ('Otrium', 'The Very Group', 'Digme', 'Academy Crests') THEN 'PARTNER'
+            WHEN {CUBE}.location_name LIKE 'Events%' THEN 'EVENTS'
             ELSE 'OTHER'
           END
         type: string
@@ -44,21 +77,21 @@ cubes:
       - name: location_type
         sql: >
           CASE
-            WHEN {CUBE}.name IN (
+            WHEN {CUBE}.location_name IN (
               'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
               'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
               'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
             ) THEN 'RETAIL'
-            WHEN {CUBE}.name LIKE 'Bleckmann%' AND {CUBE}.name NOT LIKE '%Quarantine%' AND {CUBE}.name NOT LIKE '%Miscellaneous%' THEN 'FULFILLMENT'
-            WHEN {CUBE}.name IN ('Meteor Space', '2Flow') THEN 'FULFILLMENT'
-            WHEN {CUBE}.name LIKE 'Wholesale%' THEN 'WHOLESALE'
-            WHEN {CUBE}.name LIKE 'Lifestyle Sports B2B%' THEN 'B2B_PARTNER'
-            WHEN {CUBE}.name IN ('The Very Group', '2Flow') THEN 'B2B_PARTNER'
-            WHEN {CUBE}.name IN ('Otrium', 'Digme', 'Academy Crests', 'PCH-UK') THEN 'MARKETPLACE'
-            WHEN {CUBE}.name LIKE '%Quarantine%' OR {CUBE}.name LIKE '%Miscellaneous%' OR {CUBE}.name = 'Kildare B Stock' THEN 'RETURNS_QC'
-            WHEN {CUBE}.name LIKE 'Events%' THEN 'EVENTS'
-            WHEN {CUBE}.name LIKE 'Headquarters%' THEN 'HQ_ADMIN'
-            WHEN {CUBE}.name LIKE 'PCH China%' THEN 'SOURCING'
+            WHEN {CUBE}.location_name LIKE 'Bleckmann%' AND {CUBE}.location_name NOT LIKE '%Quarantine%' AND {CUBE}.location_name NOT LIKE '%Miscellaneous%' THEN 'FULFILLMENT'
+            WHEN {CUBE}.location_name IN ('Meteor Space', '2Flow') THEN 'FULFILLMENT'
+            WHEN {CUBE}.location_name LIKE 'Wholesale%' THEN 'WHOLESALE'
+            WHEN {CUBE}.location_name LIKE 'Lifestyle Sports B2B%' THEN 'B2B_PARTNER'
+            WHEN {CUBE}.location_name IN ('The Very Group', '2Flow') THEN 'B2B_PARTNER'
+            WHEN {CUBE}.location_name IN ('Otrium', 'Digme', 'Academy Crests', 'PCH-UK') THEN 'MARKETPLACE'
+            WHEN {CUBE}.location_name LIKE '%Quarantine%' OR {CUBE}.location_name LIKE '%Miscellaneous%' OR {CUBE}.location_name = 'Kildare B Stock' THEN 'RETURNS_QC'
+            WHEN {CUBE}.location_name LIKE 'Events%' THEN 'EVENTS'
+            WHEN {CUBE}.location_name LIKE 'Headquarters%' THEN 'HQ_ADMIN'
+            WHEN {CUBE}.location_name LIKE 'PCH China%' THEN 'SOURCING'
             ELSE 'OTHER'
           END
         type: string
@@ -67,23 +100,107 @@ cubes:
       - name: region
         sql: >
           CASE
-            WHEN {CUBE}.subsidiary = 2
-              AND {CUBE}.name NOT LIKE 'Bleckmann%'
-              AND {CUBE}.name NOT LIKE 'PCH China%'
+            WHEN {CUBE}.subsidiary_id = 2
+              AND {CUBE}.location_name NOT LIKE 'Bleckmann%'
+              AND {CUBE}.location_name NOT LIKE 'PCH China%'
             THEN 'IRELAND'
-            WHEN {CUBE}.subsidiary = 6
-              AND {CUBE}.name NOT LIKE 'Bleckmann Australia%'
-              AND {CUBE}.name NOT LIKE 'Bleckmann Aussie%'
-              AND {CUBE}.name NOT LIKE 'Bleckmann USA%'
+            WHEN {CUBE}.subsidiary_id = 6
+              AND {CUBE}.location_name NOT LIKE 'Bleckmann Australia%'
+              AND {CUBE}.location_name NOT LIKE 'Bleckmann Aussie%'
+              AND {CUBE}.location_name NOT LIKE 'Bleckmann USA%'
             THEN 'UK'
-            WHEN {CUBE}.name LIKE 'Bleckmann BE%' THEN 'EU'
-            WHEN {CUBE}.name = 'Bleckmann UK' THEN 'UK'
-            WHEN {CUBE}.name LIKE 'Bleckmann UK%' THEN 'UK'
-            WHEN {CUBE}.name = 'Bleckmann Swindon' THEN 'UK'
+            WHEN {CUBE}.location_name LIKE 'Bleckmann BE%' THEN 'EU'
+            WHEN {CUBE}.location_name = 'Bleckmann UK' THEN 'UK'
+            WHEN {CUBE}.location_name LIKE 'Bleckmann UK%' THEN 'UK'
+            WHEN {CUBE}.location_name = 'Bleckmann Swindon' THEN 'UK'
             ELSE 'GLOBAL'
           END
         type: string
         description: "Location region: IRELAND (sub 2), UK (sub 6), EU (Bleckmann BE), GLOBAL (overseas warehouses)"
+
+      - name: is_sellable_location
+        sql: "{CUBE}.is_sellable_location"
+        type: boolean
+        description: True if location can fulfill sellable inventory
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Subsidiary (legal entity) identifier
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if location is inactive/closed
+
+      - name: make_inventory_available
+        sql: "{CUBE}.make_inventory_available"
+        type: boolean
+        description: True if location's inventory is available for allocation
+
+      - name: include_in_control_tower
+        sql: "{CUBE}.include_in_control_tower"
+        type: boolean
+        description: True if location is tracked in control tower system
+
+      - name: geolocation_method
+        sql: "{CUBE}.geolocation_method"
+        type: string
+        description: Method used to determine location coordinates (e.g., POSTALCODE, LATLONG)
+
+      - name: latitude
+        sql: "CAST({CUBE}.latitude AS FLOAT64)"
+        type: number
+        description: Latitude coordinate of location
+
+      - name: longitude
+        sql: "CAST({CUBE}.longitude AS FLOAT64)"
+        type: number
+        description: Longitude coordinate of location
+
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Date when location record was last modified
+
+      - name: main_address_id
+        sql: "{CUBE}.main_address_id"
+        type: number
+        description: Foreign key to main address record
+
+    segments:
+      - name: active_locations
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive/closed locations"
+
+      - name: sellable_locations
+        sql: "{CUBE}.is_sellable_location = true"
+        description: "Locations that can fulfill sellable inventory"
+
+      - name: retail_stores
+        sql: >
+          {CUBE}.location_name IN (
+            'Dundrum Town Centre', 'Mahon Point', 'Crescent Centre', 'Liffey Valley',
+            'Kildare Village', 'Blanchardstown Centre', 'Galway', 'Swords Pavillon', 'Jervis Centre',
+            'Westfield London', 'Manchester', 'Belfast', 'Liverpool'
+          )
+        description: "Physical retail store locations only"
+
+      - name: fulfillment_centers
+        sql: >
+          ({CUBE}.location_name LIKE 'Bleckmann%' AND {CUBE}.location_name NOT LIKE '%Quarantine%' AND {CUBE}.location_name NOT LIKE '%Miscellaneous%')
+          OR {CUBE}.location_name IN ('Meteor Space', '2Flow')
+        description: "D2C and B2B fulfillment centers"
+
+      - name: d2c_channel
+        sql: >
+          CASE
+            WHEN {CUBE}.location_name IS NULL THEN TRUE
+            WHEN {CUBE}.location_name LIKE 'Bleckmann%' AND {CUBE}.location_name NOT LIKE '%Quarantine%' AND {CUBE}.location_name NOT LIKE '%Miscellaneous%' THEN TRUE
+            WHEN {CUBE}.location_name IN ('Meteor Space', '2Flow') THEN TRUE
+            ELSE FALSE
+          END
+        description: "D2C channel locations (fulfillment centers)"
 
     pre_aggregations:
       - name: location_analysis

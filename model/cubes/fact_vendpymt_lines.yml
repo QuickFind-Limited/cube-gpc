@@ -1,0 +1,74 @@
+cubes:
+  - name: fact_vendpymt_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendpymt_lines
+    title: Vendor Payment Lines
+    description: >
+      Line-level detail for vendor payment transactions. Appears to be single-line payments (1:1 with headers).
+      Grain: one row per vendor payment line.
+
+    joins:
+      - name: fact_vendpymt_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_vendpymt_headers.transaction_id}"
+
+    measures:
+      - name: vendpymt_lines_count
+        type: count
+        description: Total number of vendor payment lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total payment amount (stored as negative in source)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total payment amount (absolute value)
+
+      - name: avg_payment_amount
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average payment amount per line
+
+      - name: min_payment_amount
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: min
+        format: currency
+        description: Minimum payment amount
+
+      - name: max_payment_amount
+        sql: "ABS(CAST({CUBE}.amount AS FLOAT64))"
+        type: max
+        format: currency
+        description: Maximum payment amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the payment transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to vendor payment header transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: Indicates if this is the main summary line (always false for line-level data)
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment line amount (negative values represent outbound payments)
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline summary records (if any exist)"

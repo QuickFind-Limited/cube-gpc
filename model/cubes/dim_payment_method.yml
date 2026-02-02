@@ -1,0 +1,38 @@
+cubes:
+  - name: dim_payment_method
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_payment_method
+    title: Payment Methods
+    description: >
+      Payment method reference dimension including credit cards, cash, checks, and electronic payment methods.
+      Grain: one row per payment method.
+
+    measures:
+      - name: payment_method_count
+        type: count
+        description: Total number of payment methods
+
+    dimensions:
+      - name: payment_method_id
+        sql: "{CUBE}.payment_method_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the payment method
+
+      - name: payment_method_name
+        sql: "{CUBE}.payment_method_name"
+        type: string
+        description: Name of the payment method (e.g., 'Visa', 'Mastercard', 'Cash', 'Check')
+
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if the payment method is no longer active
+
+    segments:
+      - name: active_methods
+        sql: "{CUBE}.is_inactive = false"
+        description: "Excludes inactive payment methods for current transaction analysis"
+
+      - name: inactive_methods
+        sql: "{CUBE}.is_inactive = true"
+        description: "Only inactive payment methods for historical reference"

@@ -1,0 +1,154 @@
+cubes:
+  - name: fact_transfer_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_transfer_headers
+    title: Transfer Order Headers
+    description: >
+      Transfer order headers for internal inventory transfers between locations or subsidiaries.
+      Grain: one row per transfer order header.
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: transfer_count
+        type: count
+        description: Total number of transfer orders
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transfer amounts in base currency
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute transfer amounts (for volume analysis)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transfer amounts in transaction currency
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across transfers
+
+      - name: avg_transfer_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average transfer amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the transfer transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible transfer order number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date when the transfer was created
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Transfer amount in base currency
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Transfer amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to the transfer
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the transfer transaction
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if the transfer has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if the transfer posts to the general ledger
+
+    segments:
+      - name: active_transfers
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided transfers for accurate business metrics"
+
+      - name: posting_transfers
+        sql: "{CUBE}.is_posting = true"
+        description: "Transfers that post to GL"
+
+      - name: multi_currency
+        sql: "{CUBE}.exchange_rate != 1.0 AND {CUBE}.exchange_rate IS NOT NULL"
+        description: "Transfers involving currency conversion"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - transfer_count
+          - total_amount
+          - foreign_total_amount
+        dimensions:
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_by_subsidiary
+        measures:
+          - transfer_count
+          - total_amount
+        dimensions:
+          - subsidiary_id
+          - transaction_status
+        time_dimension: transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day

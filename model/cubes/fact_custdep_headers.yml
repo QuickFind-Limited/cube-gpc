@@ -1,0 +1,201 @@
+cubes:
+  - name: fact_custdep_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_custdep_headers
+    title: Customer Deposits
+    description: >
+      Customer deposit transactions (prepayments applied to future invoices).
+      Grain: one row per customer deposit transaction.
+      NOTE: 98.7% of deposits are from webstore payment processor entities. Use segments to filter.
+
+    joins:
+      - name: dim_customer
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+      - name: dim_payment_method
+        relationship: many_to_one
+        sql: "{CUBE}.payment_method_id = {dim_payment_method.payment_method_id}"
+
+    measures:
+      - name: custdep_count
+        type: count
+        description: Total number of customer deposit transactions
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of deposit amounts in base currency (negative values represent deposits)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of deposit amounts for volume reporting
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of deposit amounts in transaction currency
+
+      - name: avg_deposit_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average deposit amount (absolute value)
+
+      - name: min_deposit_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: min
+        format: currency
+        description: Minimum deposit amount
+
+      - name: max_deposit_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: max
+        format: currency
+        description: Maximum deposit amount
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique transaction identifier
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: Human-readable transaction number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date the deposit was recorded
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date the deposit transaction was closed/applied
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customer dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: payment_method_id
+        sql: "{CUBE}.payment_method_id"
+        type: number
+        description: Foreign key to payment method dimension
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) - use for filtering contamination
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for customer analytics
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Deposit amount in base currency (stored as negative)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Deposit amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status of the deposit transaction (B=Billed, C=Closed)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if the transaction has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if the transaction posts to GL
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes webstore/POS system entities for accurate customer metrics"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Only real customer deposits (excludes webstore and POS)"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor deposits"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system deposits"
+
+      - name: closed_deposits
+        sql: "{CUBE}.transaction_status = 'C'"
+        description: "Only closed/applied deposits"
+
+      - name: open_deposits
+        sql: "{CUBE}.transaction_status = 'B'"
+        description: "Only open/unapplied deposits"
+
+      - name: active_deposits
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided transactions"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - custdep_count
+          - total_amount
+          - total_amount_abs
+        dimensions:
+          - entity_type
+          - transaction_status
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

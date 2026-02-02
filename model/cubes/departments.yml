@@ -1,6 +1,6 @@
 cubes:
   - name: departments
-    sql: SELECT * FROM gpc.departments
+    sql: SELECT * FROM gpc_data_2026_01_26.departments
     title: Departments
     description: Department reference data (eCommerce, Retail, Wholesale, etc.)
 
@@ -12,38 +12,44 @@ cubes:
       - name: active_department_count
         type: count
         filters:
-          - sql: "{CUBE}.isinactive = 'F'"
+          - sql: "{CUBE}.is_inactive = false"
         description: Number of active departments
 
     dimensions:
-      - name: id
-        sql: "{CUBE}.id"
+      - name: department_id
+        sql: "{CUBE}.department_id"
         type: number
         primary_key: true
+        description: Unique identifier for the department
 
-      - name: name
-        sql: "{CUBE}.name"
+      - name: department_name
+        sql: "{CUBE}.department_name"
         type: string
         description: Department name (eCommerce, Retail, Wholesale)
 
-      - name: fullname
-        sql: "{CUBE}.fullname"
+      - name: department_fullname
+        sql: "{CUBE}.department_fullname"
         type: string
-        description: Full department name
+        description: Full department name with hierarchy path
 
-      - name: parent
-        sql: "{CUBE}.parent"
-        type: number
-        description: Parent department ID
+      - name: is_inactive
+        sql: "{CUBE}.is_inactive"
+        type: boolean
+        description: True if department is inactive
 
-      - name: isinactive
-        sql: "{CUBE}.isinactive"
-        type: string
-        description: Whether department is inactive (T/F)
+      - name: last_modified_date
+        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        type: time
+        description: Last date this department record was modified
 
     segments:
       - name: active
-        sql: "{CUBE}.isinactive = 'F'"
+        sql: "{CUBE}.is_inactive = false"
+        description: "Active departments only"
+
+      - name: inactive
+        sql: "{CUBE}.is_inactive = true"
+        description: "Inactive departments only"
 
     pre_aggregations:
       - name: department_analysis
@@ -51,6 +57,6 @@ cubes:
           - department_count
           - active_department_count
         dimensions:
-          - name
+          - department_name
         refresh_key:
           every: 1 day

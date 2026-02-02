@@ -1,0 +1,179 @@
+cubes:
+  - name: fact_purchord_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_purchord_lines
+    title: Purchase Order Lines
+    description: >
+      Purchase order line items with quantities, rates, and amounts.
+      Grain: one row per purchase order line.
+
+    joins:
+      - name: fact_purchord_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_purchord_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: purchord_lines_count
+        type: count
+        description: Total number of purchase order lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity ordered across all lines
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates (for analysis, not typically aggregated)
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate across lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total purchase amount across all lines
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount
+
+      - name: min_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum line amount
+
+      - name: max_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum line amount
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        primary_key: true
+        description: Line identifier (part of composite primary key with transaction_id)
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Purchase order transaction ID (foreign key to fact_purchord_headers)
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the purchase order
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a main line (header summary), false for detail lines
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Item/product ID (foreign key to dim_item)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity ordered
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Total line amount (quantity × unit_rate)
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Receiving location ID (foreign key to dim_location)
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Department ID (foreign key to dim_department)
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Class/product line ID (foreign key to classes)
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes main/header lines, includes only detail lines"
+
+      - name: with_location
+        sql: "{CUBE}.location_id IS NOT NULL"
+        description: "Lines with a specified receiving location"
+
+      - name: with_department
+        sql: "{CUBE}.department_id IS NOT NULL"
+        description: "Lines with a specified department"
+
+      - name: positive_quantity
+        sql: "{CUBE}.quantity > 0"
+        description: "Lines with positive quantity (excludes cancellations/adjustments)"
+
+    pre_aggregations:
+      - name: by_item_daily
+        measures:
+          - purchord_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - item_id
+          - location_id
+        time_dimension: fact_purchord_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: by_vendor_daily
+        measures:
+          - purchord_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - location_id
+          - department_id
+        time_dimension: fact_purchord_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

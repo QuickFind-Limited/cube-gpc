@@ -1,0 +1,201 @@
+cubes:
+  - name: fact_rtnauth_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_rtnauth_lines
+    title: Return Authorization Lines
+    description: >
+      Return authorization transaction line items with item quantities and amounts.
+      Grain: one row per return authorization line item.
+      Note: This table contains 100% webstore/POS system entity transactions per contamination analysis.
+
+    joins:
+      - name: fact_rtnauth_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_rtnauth_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+    measures:
+      - name: rtnauth_lines_count
+        type: count
+        description: Total number of return authorization line items
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items returned
+        format: decimal
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per return line
+        format: decimal
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates across all return lines
+        format: currency
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate per return line
+        format: currency
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        description: Total line amount for all returns
+        format: currency
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        description: Average line amount per return
+        format: currency
+
+      - name: total_line_amount_abs
+        sql: "ABS(CAST({CUBE}.line_amount AS FLOAT64))"
+        type: sum
+        description: Total absolute value of line amounts (for positive reporting)
+        format: currency
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the transaction
+        primary_key: true
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        description: Foreign key to return authorization header transaction
+        primary_key: true
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos) for contamination filtering
+
+      - name: transaction_in_scope
+        sql: "{CUBE}.transaction_in_scope"
+        type: boolean
+        description: True if transaction is in scope for business analytics
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a header summary line (should be false for detail lines)
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items being returned
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate for the returned item
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Total line amount (quantity × unit_rate)
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to warehouse/store location dimension
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/product line dimension
+
+    segments:
+      - name: in_scope_only
+        sql: "{CUBE}.transaction_in_scope = true"
+        description: "Excludes out-of-scope transactions for accurate business metrics"
+
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header summary lines, includes only detail line items"
+
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Real customer returns only, excludes webstore and POS system entities"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
+      - name: system_entities_only
+        sql: "{CUBE}.entity_type IN ('webstore', 'pos')"
+        description: "Only webstore and POS system entities for reconciliation"
+
+      - name: has_item
+        sql: "{CUBE}.item_id IS NOT NULL"
+        description: "Lines with item references (excludes non-item lines like tax/shipping)"
+
+      - name: has_location
+        sql: "{CUBE}.location_id IS NOT NULL"
+        description: "Lines with location information"
+
+    pre_aggregations:
+      - name: daily_returns_by_item
+        measures:
+          - rtnauth_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - item_id
+          - entity_type
+          - transaction_in_scope
+        time_dimension: fact_rtnauth_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: daily_returns_by_location
+        measures:
+          - rtnauth_lines_count
+          - total_quantity
+          - total_line_amount
+        dimensions:
+          - location_id
+          - entity_type
+        time_dimension: fact_rtnauth_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

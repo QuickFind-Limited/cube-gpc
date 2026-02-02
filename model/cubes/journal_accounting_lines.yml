@@ -1,0 +1,155 @@
+cubes:
+  - name: journal_accounting_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.journal_accounting_lines
+    title: Journal Accounting Lines
+    description: >
+      General ledger accounting entries from journal transactions with account distributions.
+      Grain: one row per journal entry accounting line.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions.id}"
+
+      - name: accounts
+        relationship: many_to_one
+        sql: "{CUBE}.account = {accounts.account_id}"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments.department_id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.location_id}"
+
+    measures:
+      - name: journal_lines_count
+        type: count
+        description: Total number of journal accounting lines
+
+      - name: total_debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of debit amounts
+
+      - name: total_credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of credit amounts
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net amounts (debit - credit)
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net amounts after adjustments
+
+      - name: avg_exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across journal lines
+
+    dimensions:
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Foreign key to transaction header
+
+      - name: account
+        sql: "{CUBE}.account"
+        type: number
+        description: General ledger account number
+
+      - name: debit
+        sql: "CAST({CUBE}.debit AS FLOAT64)"
+        type: number
+        description: Debit amount for this line
+
+      - name: credit
+        sql: "CAST({CUBE}.credit AS FLOAT64)"
+        type: number
+        description: Credit amount for this line
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Net amount (positive for debit, negative for credit)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after adjustments
+
+      - name: exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied to foreign currency amounts
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/segment for management reporting
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Foreign key to location dimension
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: Line-level memo or description
+
+      - name: trandate
+        sql: "TIMESTAMP({CUBE}.trandate)"
+        type: time
+        description: Transaction date for the journal entry
+
+    segments:
+      - name: debit_lines
+        sql: "{CUBE}.debit > 0"
+        description: "Journal lines with debit amounts"
+
+      - name: credit_lines
+        sql: "{CUBE}.credit > 0"
+        description: "Journal lines with credit amounts"
+
+      - name: has_department
+        sql: "{CUBE}.department IS NOT NULL"
+        description: "Lines with department assignment"
+
+      - name: has_location
+        sql: "{CUBE}.location IS NOT NULL"
+        description: "Lines with location assignment"
+
+      - name: multi_currency
+        sql: "{CUBE}.exchangerate IS NOT NULL AND {CUBE}.exchangerate != 1"
+        description: "Lines involving foreign currency conversion"
+
+    pre_aggregations:
+      - name: daily_gl_summary
+        measures:
+          - journal_lines_count
+          - total_debit
+          - total_credit
+          - total_amount
+          - total_netamount
+        dimensions:
+          - account
+        time_dimension: trandate
+        granularity: day
+        refresh_key:
+          every: 1 day

@@ -1,0 +1,180 @@
+cubes:
+  - name: fact_itemship_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemship_lines
+    title: Item Shipment Lines
+    description: >
+      Line-level detail for item shipments/fulfillments.
+      Grain: one row per item shipment line.
+
+    joins:
+      - name: fact_itemship_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_itemship_headers.transaction_id}"
+
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_location
+        relationship: many_to_one
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
+
+      - name: dim_department
+        relationship: many_to_one
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: itemship_lines_count
+        type: count
+        description: Total number of item shipment lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity shipped across all lines
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per shipment line
+
+      - name: total_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Sum of unit rates (for cost analysis)
+
+      - name: avg_unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate per line
+
+      - name: total_line_value
+        sql: "CAST({CUBE}.quantity AS FLOAT64) * CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: sum
+        description: Total value of shipments (quantity × unit rate)
+
+      - name: distinct_items_shipped
+        sql: "{CUBE}.item_id"
+        type: count_distinct
+        description: Number of unique items shipped
+
+      - name: distinct_locations
+        sql: "{CUBE}.location_id"
+        type: count_distinct
+        description: Number of unique fulfillment locations
+
+      - name: distinct_transactions
+        sql: "{CUBE}.transaction_id"
+        type: count_distinct
+        description: Number of unique shipment transactions
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the shipment transaction
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Foreign key to item shipment header transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is a mainline summary record (should be false for detail lines)
+
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        description: Foreign key to item/product dimension
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity of items shipped on this line
+
+      - name: unit_rate
+        sql: "CAST({CUBE}.unit_rate AS FLOAT64)"
+        type: number
+        description: Unit rate or cost for the shipped item
+
+      - name: location_id
+        sql: "{CUBE}.location_id"
+        type: number
+        description: Foreign key to fulfillment location/warehouse
+
+      - name: department_id
+        sql: "{CUBE}.department_id"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class/product line dimension
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes mainline summary records, includes only detail lines"
+
+      - name: positive_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
+        description: "Lines with positive quantity (outbound shipments)"
+
+      - name: negative_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
+        description: "Lines with negative quantity (returns or reversals)"
+
+      - name: has_unit_rate
+        sql: "{CUBE}.unit_rate IS NOT NULL AND CAST({CUBE}.unit_rate AS FLOAT64) != 0"
+        description: "Lines with non-zero unit rate/cost"
+
+    pre_aggregations:
+      - name: daily_shipments
+        measures:
+          - itemship_lines_count
+          - total_quantity
+          - total_line_value
+          - distinct_items_shipped
+          - distinct_locations
+        dimensions:
+          - item_id
+          - location_id
+          - department_id
+          - class_id
+        time_dimension: fact_itemship_headers.transaction_date
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_shipments_by_item
+        measures:
+          - itemship_lines_count
+          - total_quantity
+          - total_line_value
+        dimensions:
+          - item_id
+        time_dimension: fact_itemship_headers.transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day
+
+      - name: monthly_shipments_by_location
+        measures:
+          - itemship_lines_count
+          - total_quantity
+          - distinct_items_shipped
+        dimensions:
+          - location_id
+        time_dimension: fact_itemship_headers.transaction_date
+        granularity: month
+        refresh_key:
+          every: 1 day

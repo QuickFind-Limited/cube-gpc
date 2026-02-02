@@ -1,0 +1,87 @@
+cubes:
+  - name: dim_pricing
+    sql: SELECT * FROM gpc_data_2026_01_26.dim_pricing
+    title: Item Pricing
+    description: >
+      Item pricing by price level and quantity breaks.
+      Grain: one row per item-price_level-quantity combination.
+
+    joins:
+      - name: dim_item
+        relationship: many_to_one
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+    measures:
+      - name: pricing_record_count
+        type: count
+        description: Total number of pricing records
+
+      - name: avg_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: avg
+        description: Average unit price across all pricing records
+
+      - name: min_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: min
+        description: Minimum unit price
+
+      - name: max_unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: max
+        description: Maximum unit price
+
+      - name: total_price_value
+        sql: "CAST({CUBE}.unit_price AS FLOAT64) * CAST({CUBE}.price_quantity AS FLOAT64)"
+        type: sum
+        description: Total extended price value (unit_price * price_quantity)
+
+    dimensions:
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        primary_key: true
+        description: Foreign key to items table
+
+      - name: price_level_id
+        sql: "{CUBE}.price_level_id"
+        type: number
+        primary_key: true
+        description: Price level identifier (e.g., base price, VIP, wholesale)
+
+      - name: price_quantity
+        sql: "{CUBE}.price_quantity"
+        type: number
+        primary_key: true
+        description: Quantity break for this price (minimum quantity to receive this price)
+
+      - name: unit_price
+        sql: "CAST({CUBE}.unit_price AS FLOAT64)"
+        type: number
+        description: Price per unit at this price level and quantity break
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Currency for this price (foreign key to currencies)
+
+    segments:
+      - name: base_price_level
+        sql: "{CUBE}.price_level_id = 1"
+        description: "Base/standard pricing only (assuming price_level_id=1 is base)"
+
+      - name: quantity_one
+        sql: "{CUBE}.price_quantity = 1"
+        description: "Single unit pricing only (no quantity breaks)"
+
+      - name: volume_pricing
+        sql: "{CUBE}.price_quantity > 1"
+        description: "Volume/quantity break pricing only"
+
+      - name: positive_prices
+        sql: "{CUBE}.unit_price > 0"
+        description: "Excludes zero or negative prices (filters out invalid/placeholder records)"

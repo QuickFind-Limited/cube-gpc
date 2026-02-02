@@ -1,0 +1,187 @@
+cubes:
+  - name: fact_vendbill_headers
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendbill_headers
+    title: Vendor Bills
+    description: >
+      Vendor bill transaction headers representing accounts payable invoices from vendors.
+      Grain: one row per vendor bill.
+
+    joins:
+      - name: dim_vendor
+        relationship: many_to_one
+        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
+
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
+      - name: dim_accounting_period
+        relationship: many_to_one
+        sql: "{CUBE}.posting_period_id = {dim_accounting_period.period_id}"
+
+    measures:
+      - name: vendbill_count
+        type: count
+        description: Total number of vendor bills
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor bill amounts in base currency (negative values represent vendor liability)
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute vendor bill amounts
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of vendor bill amounts in transaction currency
+
+      - name: avg_bill_amount
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: avg
+        format: currency
+        description: Average vendor bill amount
+
+      - name: min_bill_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: min
+        format: currency
+        description: Minimum vendor bill amount
+
+      - name: max_bill_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: max
+        format: currency
+        description: Maximum vendor bill amount
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate for multi-currency bills
+
+    dimensions:
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the vendor bill transaction
+
+      - name: transaction_number
+        sql: "{CUBE}.transaction_number"
+        type: string
+        description: User-visible vendor bill number
+
+      - name: transaction_date
+        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        type: time
+        description: Date the vendor bill was entered
+
+      - name: due_date
+        sql: "TIMESTAMP({CUBE}.due_date)"
+        type: time
+        description: Payment due date for the vendor bill
+
+      - name: close_date
+        sql: "TIMESTAMP({CUBE}.close_date)"
+        type: time
+        description: Date the vendor bill was fully paid and closed
+
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        description: Foreign key to vendor dimension
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: number
+        description: Foreign key to subsidiary dimension
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Foreign key to currency dimension
+
+      - name: posting_period_id
+        sql: "{CUBE}.posting_period_id"
+        type: number
+        description: Foreign key to accounting period dimension
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Total bill amount in base currency (stored as negative)
+
+      - name: foreign_total_amount
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Total bill amount in transaction currency
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate used for currency conversion
+
+      - name: transaction_status
+        sql: "{CUBE}.transaction_status"
+        type: string
+        description: Status code of the vendor bill (A=Open, B=Paid, etc.)
+
+      - name: is_voided
+        sql: "{CUBE}.is_voided"
+        type: boolean
+        description: True if the vendor bill has been voided
+
+      - name: is_posting
+        sql: "{CUBE}.is_posting"
+        type: boolean
+        description: True if the transaction posts to the general ledger
+
+    segments:
+      - name: open_bills
+        sql: "{CUBE}.transaction_status = 'A'"
+        description: "Vendor bills that have not been fully paid"
+
+      - name: paid_bills
+        sql: "{CUBE}.transaction_status = 'B' OR {CUBE}.close_date IS NOT NULL"
+        description: "Vendor bills that have been fully paid"
+
+      - name: non_voided
+        sql: "{CUBE}.is_voided = false"
+        description: "Excludes voided vendor bills for accurate AP reporting"
+
+      - name: posting_transactions
+        sql: "{CUBE}.is_posting = true"
+        description: "Bills that post to the general ledger"
+
+      - name: overdue_bills
+        sql: "{CUBE}.due_date < CURRENT_DATE() AND {CUBE}.transaction_status = 'A'"
+        description: "Open bills past their due date"
+
+      - name: current_bills
+        sql: "{CUBE}.due_date >= CURRENT_DATE() AND {CUBE}.transaction_status = 'A'"
+        description: "Open bills not yet due"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - vendbill_count
+          - total_amount
+          - total_amount_abs
+        dimensions:
+          - transaction_status
+          - vendor_id
+          - subsidiary_id
+        time_dimension: transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day

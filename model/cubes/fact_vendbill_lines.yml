@@ -1,0 +1,126 @@
+cubes:
+  - name: fact_vendbill_lines
+    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendbill_lines
+    title: Vendor Bill Lines
+    description: >
+      Line-level detail for vendor bills including expense lines and tax lines.
+      Grain: one row per vendor bill line.
+
+    joins:
+      - name: fact_vendbill_headers
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {fact_vendbill_headers.transaction_id}"
+
+      - name: classes
+        relationship: many_to_one
+        sql: "{CUBE}.class_id = {classes.id}"
+
+    measures:
+      - name: vendbill_lines_count
+        type: count
+        description: Total number of vendor bill lines
+
+      - name: total_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount across all vendor bill lines (negative values represent expenses)
+
+      - name: total_line_amount_abs
+        sql: "ABS(CAST({CUBE}.line_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of total line amounts (for expense reporting)
+
+      - name: avg_line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average line amount per vendor bill line
+
+      - name: distinct_transactions
+        sql: "{CUBE}.transaction_id"
+        type: count_distinct
+        description: Number of unique vendor bill transactions
+
+      - name: distinct_classes
+        sql: "{CUBE}.class_id"
+        type: count_distinct
+        description: Number of unique classes used in vendor bills
+
+    dimensions:
+      - name: line_id
+        sql: "{CUBE}.line_id"
+        type: number
+        description: Line identifier within the vendor bill
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction_id"
+        type: number
+        description: Foreign key to vendor bill transaction header
+
+      - name: line_sequence_number
+        sql: "{CUBE}.line_sequence_number"
+        type: number
+        description: Sequential line number within the transaction
+
+      - name: is_mainline
+        sql: "{CUBE}.is_mainline"
+        type: boolean
+        description: True if this is the main/header line (typically false for detail lines)
+
+      - name: line_amount
+        sql: "CAST({CUBE}.line_amount AS FLOAT64)"
+        type: number
+        description: Line amount (negative for expenses, positive for credits)
+
+      - name: class_id
+        sql: "{CUBE}.class_id"
+        type: number
+        description: Foreign key to class dimension (product line or business segment)
+
+    segments:
+      - name: detail_lines_only
+        sql: "{CUBE}.is_mainline = false"
+        description: "Excludes header/mainline records, includes only detail lines"
+
+      - name: expense_lines
+        sql: "{CUBE}.line_amount < 0"
+        description: "Lines representing expenses (negative amounts)"
+
+      - name: credit_lines
+        sql: "{CUBE}.line_amount > 0"
+        description: "Lines representing credits or reversals (positive amounts)"
+
+      - name: non_zero_lines
+        sql: "{CUBE}.line_amount != 0"
+        description: "Excludes zero-amount lines"
+
+      - name: with_class
+        sql: "{CUBE}.class_id IS NOT NULL"
+        description: "Lines with class assignment for segment reporting"
+
+    pre_aggregations:
+      - name: daily_summary
+        measures:
+          - vendbill_lines_count
+          - total_line_amount
+          - total_line_amount_abs
+        dimensions:
+          - is_mainline
+        time_dimension: fact_vendbill_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
+
+      - name: by_class
+        measures:
+          - vendbill_lines_count
+          - total_line_amount
+          - total_line_amount_abs
+        dimensions:
+          - class_id
+        time_dimension: fact_vendbill_headers.transaction_date
+        granularity: day
+        refresh_key:
+          every: 1 day
