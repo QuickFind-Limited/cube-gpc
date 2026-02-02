@@ -479,7 +479,7 @@ cubes:
         description: "Transaction type: SalesOrd, CustInvc, CashSale"
 
       - name: transaction_currency
-        sql: "{CUBE}.transaction_currency"
+        sql: "{CUBE}.transaction_currency_id"
         type: number
         description: "Transaction currency ID (denormalized from transactions table)"
 
