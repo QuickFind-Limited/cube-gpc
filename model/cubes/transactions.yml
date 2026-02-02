@@ -210,12 +210,22 @@ cubes:
               AND UPPER({CUBE}.memo) NOT LIKE '%BULK ADJUSTMENT%'
               AND UPPER({CUBE}.memo) NOT LIKE '%BULK RETURNS%'
               AND UPPER({CUBE}.memo) NOT LIKE '%END OF SEASON%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%O.N PRE GO LIVE%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%CASH REC YE%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%YE STORE ADJ%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%GIFT CARDS%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%RECODE AR%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%YEAR END%'
+              AND UPPER({CUBE}.memo) NOT LIKE '%Q1 %'
+              AND UPPER({CUBE}.memo) NOT LIKE '%Q2 %'
+              AND UPPER({CUBE}.memo) NOT LIKE '%Q3 %'
+              AND UPPER({CUBE}.memo) NOT LIKE '%Q4 %'
               AND LENGTH({CUBE}.memo) > 3
             THEN {CUBE}.memo
             ELSE NULL
           END
         type: string
-        description: "Cleaned return reasons for customer credits (RET-006). Filters out bulk administrative entries, wholesale adjustments, and internal codes to show only actual customer-facing return reasons. Coverage: ~50% of customer credits (2024+). Use with customer_credits measure for return reason analysis."
+        description: "Cleaned return reasons for customer credits (RET-006). Filters out bulk administrative entries (go-live adjustments, year-end adjustments, gift card recodings), wholesale adjustments, and internal codes to show only actual customer-facing return reasons. Coverage: ~50% of customer credits before filtering, lower after enhanced filtering. Use with customer_credits measure for return reason analysis."
 
       # FIXED v58: B2B/Wholesale Customer Segmentation (now based on email presence)
       - name: customer_type
