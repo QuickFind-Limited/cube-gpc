@@ -852,7 +852,10 @@ cubes:
 
       # Top products detail (4 dimensions - FILTERED to top 200 SKUs only)
 
-      # Location-level analysis
+      # Location-level analysis (SIMPLIFIED v68.2 - removed department/classification)
+      # Supports queries with location_name alone or location_name + channel_type
+      # For location + country queries, use geography_location_channel pre-agg
+      # For location + department/classification, query will use raw data (acceptable for specific queries)
       - name: location_analysis
         measures:
           - total_revenue
@@ -862,8 +865,6 @@ cubes:
         dimensions:
           - location_name
           - channel_type
-          - department_name
-          - classification_name
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
