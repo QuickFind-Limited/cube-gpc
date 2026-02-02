@@ -121,13 +121,13 @@ cubes:
 
       # SEA-003: Product attributes from items join (NEW v71)
       - name: season
-        sql: "{items.custitem_gpc_season}"
+        sql: "{items.season}"
         type: string
         title: Product Season
         description: "SEA-003: Product season code (e.g., AW24, SS25) from items table. Use for calculating in-season reorder rates."
 
       - name: category
-        sql: "{items.custitem_gpc_category}"
+        sql: "{items.category}"
         type: string
         title: Product Category
         description: "Product category from items table (Men, Women, Unisex, Accessories, etc.)"
