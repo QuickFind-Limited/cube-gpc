@@ -3,7 +3,7 @@ cubes:
     sql: >
       SELECT
         tl.transaction as order_id,
-        CAST(t.trandate AS TIMESTAMP) as trandate,
+        CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP) as trandate,
         t.type,
         tl.customer_email,
         tl.billing_country,
@@ -23,12 +23,13 @@ cubes:
       FROM gpc.transaction_lines_denormalized_mv tl
       JOIN gpc.transactions_clean t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
-      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
+      GROUP BY tl.transaction, CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
     title: Order Baskets
     description: >
       Order-level basket analysis with line count buckets (BASK003).
       FIX (v68.3): Switched from transaction_lines_clean to transaction_lines_denormalized_mv
       to access customer_email and billing_country fields (not available in transactions table).
+      FIX (v68.7): Added PARSE_DATE for trandate - transactions table has DD/MM/YYYY STRING format, must parse before CAST to TIMESTAMP.
 
     measures:
       - name: order_count
