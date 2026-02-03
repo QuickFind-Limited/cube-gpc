@@ -46,7 +46,7 @@ cubes:
         format: currency
         description: Average cash refund amount
 
-      - name: exchange_rate
+      - name: exchange_rate_avg
         sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
         type: avg
         description: Average exchange rate for multi-currency refunds

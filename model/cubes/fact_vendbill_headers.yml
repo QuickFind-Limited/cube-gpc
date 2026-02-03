@@ -44,6 +44,12 @@ cubes:
         format: currency
         description: Sum of vendor bill amounts in transaction currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute value of vendor bill amounts (for reporting)
+
       - name: avg_bill_amount
         sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: avg

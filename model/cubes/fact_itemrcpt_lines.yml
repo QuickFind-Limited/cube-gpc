@@ -12,13 +12,13 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.transaction_id = {fact_itemrcpt_headers.transaction_id}"
 
-      - name: items
+      - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {items.item_id}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
-      - name: locations
+      - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {locations.location_id}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
     measures:
       - name: itemrcpt_lines_count

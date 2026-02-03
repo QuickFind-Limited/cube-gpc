@@ -41,6 +41,12 @@ cubes:
         format: currency
         description: Sum of credit amounts in transaction currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of credit amounts (for reporting credits as positive values)
+
       - name: avg_credit_amount
         sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: avg
