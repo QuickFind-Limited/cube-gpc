@@ -52,9 +52,9 @@ cubes:
         description: Total units sold
 
       - name: average_basket_size
-        sql: "1.0 * SUM({CUBE}.line_count) / NULLIF(COUNT(*), 0)"
+        sql: "{total_line_count} / NULLIF({order_count}, 0)"
         type: number
-        description: Average items per basket
+        description: Average items per basket (calculated from pre-aggregated components)
 
       - name: average_order_value
         sql: "{total_revenue} / NULLIF({order_count}, 0)"
