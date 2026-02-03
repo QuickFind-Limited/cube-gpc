@@ -1,4 +1,4 @@
-# Updated: 2026-02-03 06:50 - Trigger rebuild after MV refresh (transaction_lines_denormalized_mv now has 19 patched fields)
+# Updated: 2026-02-03 07:30 - Switched to transaction_lines_denormalized_patched view for real geographic data
 cubes:
   - name: order_baskets
     sql: >
@@ -21,7 +21,7 @@ cubes:
           WHEN b2b.id IS NOT NULL THEN 'B2B/Wholesale'
           ELSE 'Retail/D2C'
         END as customer_type
-      FROM gpc.transaction_lines_denormalized_mv tl
+      FROM gpc.transaction_lines_denormalized_patched tl
       JOIN gpc.transactions_clean t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
       GROUP BY tl.transaction, CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
@@ -31,6 +31,7 @@ cubes:
       FIX (v68.3): Switched from transaction_lines_clean to transaction_lines_denormalized_mv
       to access customer_email and billing_country fields (not available in transactions table).
       FIX (v68.7): Added PARSE_DATE for trandate - transactions table has DD/MM/YYYY STRING format, must parse before CAST to TIMESTAMP.
+      FIX (v68.8): Switched to transaction_lines_denormalized_patched view - patches NULL fields with data from transaction_with_demo_patch.
 
     measures:
       - name: order_count
