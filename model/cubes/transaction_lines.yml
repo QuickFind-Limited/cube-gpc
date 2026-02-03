@@ -349,6 +349,23 @@ cubes:
         type: number
         description: "SEA-005: GL-based Gross Margin % = (Revenue - COGS) / Revenue * 100. Uses accurate gl_based_cogs from accounting lines. This is sales/gross profit margin - the actual margin achieved on sales after all costs and discounts. Industry benchmark for apparel retail: 40-60%. Use with season, category, or channel dimensions to track seasonal margin achievement against targets."
 
+      # SEA-004: Pre-Season Booking % - Added 2026-02-03
+      - name: pre_season_revenue
+        sql: "CAST(CASE WHEN {transaction_lines.season_timing} = 'Pre-Season' AND {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN (CASE WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1 ELSE {CUBE}.rate * {CUBE}.quantity * -1 END) * COALESCE({CUBE}.transaction_exchange_rate, 1.0) ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "SEA-004: Revenue from sales made during pre-season period (SS: Jan-Feb, AW: Jul-Aug). Component measure for calculating pre-season booking percentage."
+
+      - name: pre_season_units
+        sql: "CAST(CASE WHEN {transaction_lines.season_timing} = 'Pre-Season' AND {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS FLOAT64)"
+        type: sum
+        description: "SEA-004: Units sold during pre-season period. Component measure for volume-based pre-season analysis."
+
+      - name: pre_season_booking_pct
+        sql: "100.0 * ({transaction_lines.pre_season_revenue}) / NULLIF({transaction_lines.total_revenue}, 0)"
+        type: number
+        description: "SEA-004: Pre-Season Booking % = (Pre-Season Revenue / Total Season Revenue) × 100. Measures percentage of season's total revenue captured before official season launch. Higher percentage indicates strong early demand but may risk stock-outs later. Use with season dimension to compare SS vs AW patterns and year-over-year trends."
+
       # NEW: Item Receipt / Landed Cost Measures (4 measures added 2025-11-30)
       - name: total_landed_costs
         sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'ItemRcpt' AND {CUBE}.blandedcost = 'T' THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
@@ -621,6 +638,22 @@ cubes:
         sql: "{CUBE}.season"
         type: string
         description: "Product season (e.g., AW25, SS24). DATA QUALITY WARNING: Approximately 27% of sales (€7.7m annually) are from products without season codes assigned ('Uncategorised' or NULL). This indicates gaps in master data maintenance or products not properly categorized. For accurate seasonal analysis, consider filtering out uncategorised products or investigating missing season assignments in the source system."
+
+      # SEA-004: Pre-Season Booking dimension
+      - name: season_timing
+        type: string
+        case:
+          when:
+            # SS season (Spring/Summer: Mar-Aug): pre-season if sold Jan-Feb
+            - sql: "{CUBE}.season LIKE 'SS%' AND EXTRACT(MONTH FROM {CUBE}.transaction_date) IN (1, 2)"
+              label: "Pre-Season"
+            # AW season (Autumn/Winter: Sep-Feb): pre-season if sold Jul-Aug
+            - sql: "{CUBE}.season LIKE 'AW%' AND EXTRACT(MONTH FROM {CUBE}.transaction_date) IN (7, 8)"
+              label: "Pre-Season"
+          else:
+            label: "In-Season"
+        title: Season Timing
+        description: "SEA-004: Flags whether a sale occurred pre-season or in-season. Pre-season defined as: SS seasons (Mar-Aug launch) - sales in Jan-Feb, AW seasons (Sep-Feb launch) - sales in Jul-Aug. This 2-month pre-season window tracks early bookings before official season launch."
 
       - name: size
         sql: "{CUBE}.size"
