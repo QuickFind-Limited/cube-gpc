@@ -119,12 +119,12 @@ cubes:
         type: boolean
         description: Indicates if transaction is in scope for business analysis
 
-      - name: total_amount
+      - name: total_amount_dim
         sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: number
         description: Total transaction amount in base currency
 
-      - name: foreign_total_amount
+      - name: foreign_total_amount_dim
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: number
         description: Total transaction amount in foreign currency

@@ -2,7 +2,9 @@ cubes:
   - name: subsidiaries
     sql: SELECT * FROM gpc_data_2026_01_26.subsidiaries
     title: Subsidiaries
-    description: Legal entity reference data for multi-entity accounting
+    description: >
+      Legal entity reference data for multi-entity accounting.
+      Grain: one row per subsidiary/legal entity.
 
     measures:
       - name: subsidiary_count

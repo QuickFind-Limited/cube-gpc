@@ -2,7 +2,9 @@ cubes:
   - name: departments
     sql: SELECT * FROM gpc_data_2026_01_26.departments
     title: Departments
-    description: Department reference data (eCommerce, Retail, Wholesale, etc.)
+    description: >
+      Department reference data (eCommerce, Retail, Wholesale, etc.).
+      Grain: one row per department.
 
     joins:
       - name: departments

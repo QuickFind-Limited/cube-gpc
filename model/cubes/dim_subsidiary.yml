@@ -6,6 +6,11 @@ cubes:
       Subsidiary dimension containing legal entities for multi-entity reporting.
       Grain: one row per subsidiary.
 
+    joins:
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
     measures:
       - name: subsidiary_count
         type: count

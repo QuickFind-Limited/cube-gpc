@@ -282,6 +282,7 @@ cubes:
           - total_amount
           - total_foreigntotal
           - total_foreign_amount
+          - total_exchangerate
         dimensions:
           - type
           - status

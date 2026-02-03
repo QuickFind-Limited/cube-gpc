@@ -41,6 +41,12 @@ cubes:
         format: currency
         description: Sum of return authorization amounts in transaction currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute return authorization amounts (positive values)
+
       - name: avg_return_amount
         sql: "CAST({CUBE}.total_amount AS FLOAT64)"
         type: avg
