@@ -24,11 +24,11 @@ cubes:
         -- Aggregate by customer + country + channel
         MIN(CASE
           WHEN t.type IN ('CustInvc', 'CashSale', 'SalesOrd')
-          THEN t.trandate
+          THEN PARSE_DATE('%d/%m/%Y', t.trandate)
         END) as first_order_date,
         MAX(CASE
           WHEN t.type IN ('CustInvc', 'CashSale', 'SalesOrd')
-          THEN t.trandate
+          THEN PARSE_DATE('%d/%m/%Y', t.trandate)
         END) as last_order_date,
         CAST(COUNT(DISTINCT CASE
           WHEN t.type IN ('CustInvc', 'CashSale', 'SalesOrd')
