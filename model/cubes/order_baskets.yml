@@ -1,3 +1,4 @@
+# Updated: 2026-02-03 - Trigger rebuild for patched transaction fields (19 geographic/email/Shopify fields now available)
 cubes:
   - name: order_baskets
     sql: >
