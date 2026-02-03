@@ -248,6 +248,7 @@ cubes:
           - cash_sale_revenue
           - salesord_revenue
         dimensions:
+          - email
           - billing_country
           - channel_type
           - customer_tier_by_channel
