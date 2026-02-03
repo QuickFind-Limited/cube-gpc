@@ -1,4 +1,4 @@
-# Updated: 2026-02-03 - Trigger rebuild for patched transaction fields (19 geographic/email/Shopify fields now available)
+# Updated: 2026-02-03 06:50 - Trigger rebuild after MV refresh (transaction_lines_denormalized_mv now has 19 patched fields)
 cubes:
   - name: order_baskets
     sql: >
