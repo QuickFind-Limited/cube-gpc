@@ -55,7 +55,7 @@ cubes:
         ON itemship.id = itemship_line.transaction
         AND itemship.type = 'ItemShip'
     title: Transaction Lines
-    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: billing_country, shipping_country, customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX."
+    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX. Note: For country analysis, use header-level cubes (b2c_customers, b2c_customer_channels) which have populated country data."
 
     joins:
       - name: transactions
@@ -201,6 +201,14 @@ cubes:
         type: count_distinct_approx
         description: "Number of unique transactions (approximate - 10-20% error possible due to HyperLogLog rollup). For exact counts, use transaction_count_exact with limited dimensions."
 
+      # RM002 FIX: Revenue-only transaction count for accurate AOV calculations
+      - name: revenue_transaction_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
+        description: "Number of unique revenue transactions only (CustInvc + CashSale). Excludes non-revenue types like deposits, payments, fulfillments. Uses count_distinct_approx (10-20% error possible). Use this for AOV calculations to avoid contamination from non-revenue transactions."
+
       # REMOVED v62: transaction_count_exact - fundamentally broken due to pre-agg architecture
       # Pre-agg counted ROWS not transactions, causing 3-10x undercount
       # Use transaction_count (approx) for ALL AOV calculations
@@ -211,20 +219,24 @@ cubes:
         description: Number of unique SKUs
 
       # Calculated Measures
+      # RM002 FIX: Changed to use revenue_transaction_count instead of transaction_count
+      # OLD: Used transaction_count which included ALL transaction types (deposits, payments, etc.)
+      # NEW: Uses revenue_transaction_count which filters to CustInvc + CashSale only
       - name: average_order_value
-        sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
+        sql: "1.0 * {total_revenue} / NULLIF({revenue_transaction_count}, 0)"
         type: number
         format: currency
-        description: "Average order value (AOV) - ALL CHANNELS including B2B/wholesale. Uses count_distinct_approx for transaction counting (10-20% error margin acceptable). WARNING: B2B wholesale orders have much higher AOV (€500-2000) and will inflate this metric. For consumer/retail AOV analysis, use average_order_value_retail instead or filter out B2B_WHOLESALE, B2B_CORPORATE, and B2B_MARKETPLACE channels."
+        description: "Average order value (AOV) - revenue transactions only (CustInvc + CashSale). Measures automatically filter to revenue transaction types. For consumer-only AOV, use average_order_value_retail."
 
+      # RM002 FIX: Changed to use revenue_transaction_count + added OTHER exclusion
       - name: average_order_value_retail
-        sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
+        sql: "1.0 * {total_revenue} / NULLIF({revenue_transaction_count}, 0)"
         type: number
         format: currency
         filters:
           - sql: >
-              {channel_type} NOT IN ('B2B_WHOLESALE', 'B2B_CORPORATE', 'B2B_MARKETPLACE')
-        description: "Average order value for RETAIL/CONSUMER channels only (excludes B2B wholesale). Use this measure for consumer-facing AOV analysis, pricing strategy, and marketing performance. Represents typical consumer basket size without bulk B2B orders inflating the average. This is the RECOMMENDED measure for most AOV queries."
+              {channel_type} NOT IN ('B2B_WHOLESALE', 'B2B_CORPORATE', 'B2B_MARKETPLACE', 'OTHER')
+        description: "Average order value for RETAIL/CONSUMER channels only (excludes B2B wholesale AND OTHER). Measures automatically filter to revenue transactions. This is the RECOMMENDED measure for most AOV queries."
 
       # REMOVED v62: average_order_value_exact - fundamentally broken
       # Used transaction_count_exact which counted pre-agg ROWS not transactions
@@ -561,12 +573,12 @@ cubes:
       - name: billing_country
         sql: "{CUBE}.billing_country"
         type: string
-        description: Billing country
+        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.billing_country, b2c_customer_channels.billing_country, or transactions.billing_country instead."
 
       - name: shipping_country
         sql: "{CUBE}.shipping_country"
         type: string
-        description: Shipping country
+        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.shipping_country, b2c_customer_channels.shipping_country, or transactions.shipping_country instead."
 
       # Denormalized dimensions from locations
       - name: location_name
