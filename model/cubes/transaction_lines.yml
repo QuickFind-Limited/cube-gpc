@@ -605,6 +605,7 @@ cubes:
             WHEN {CUBE}.department = 108 THEN 'RETAIL'
             WHEN {CUBE}.department = 207 THEN 'B2B_MARKETPLACE'
             WHEN {CUBE}.department = 202 THEN 'B2B_WHOLESALE'
+            WHEN {CUBE}.department = 203 THEN 'RETAIL'
             WHEN {CUBE}.department_name LIKE '%Wholesale%' THEN 'B2B_WHOLESALE'
             WHEN {CUBE}.department_name LIKE '%Event%' THEN 'EVENTS'
 
@@ -617,8 +618,9 @@ cubes:
             WHEN {CUBE}.class = 214 THEN 'B2B_WHOLESALE'
             WHEN {CUBE}.class = 222 THEN 'B2B_MARKETPLACE'
 
-            -- Priority 3: Marketplace locations
+            -- Priority 3: Location-based mappings
             WHEN {CUBE}.location IN (212, 231) THEN 'B2B_MARKETPLACE'
+            WHEN {CUBE}.location = 210 THEN 'EVENTS'
 
             ELSE 'OTHER'
           END
