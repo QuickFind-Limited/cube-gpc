@@ -6,6 +6,7 @@
 -- HISTORY:
 -- 2025-11-27: Created to include SalesOrd/RtnAuth for pipeline metrics (OM003)
 -- 2025-11-30: FIXED to include revenue transactions (CustInvc, CashSale, etc.)
+-- 2026-02-05: Added ItemShip for OM002 fulfilled orders metric (v73)
 --
 -- ISSUE FIXED (2025-11-30):
 -- Revenue transactions have posting=NULL (not 'T'), so the original view
@@ -30,6 +31,8 @@ WHERE COALESCE(voided, 'F') = 'F'
     OR COALESCE(posting, 'F') = 'T'
     -- OR pipeline/return authorization types (for OM003, RET metrics)
     OR type IN ('SalesOrd', 'RtnAuth')
+    -- OR fulfillment transactions (for OM002 fulfilled orders metric)
+    OR type = 'ItemShip'
   );
 
 -- =============================================================================
