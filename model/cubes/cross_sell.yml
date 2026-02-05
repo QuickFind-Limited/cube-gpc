@@ -20,6 +20,12 @@ cubes:
         ON tl1.transaction = tl2.transaction AND tl1.item < tl2.item
       WHERE tl1.quantity < 0
         AND tl2.quantity < 0
+        AND (
+          tl1.category < tl2.category
+          OR (tl1.category = tl2.category AND tl1.section <= tl2.section)
+          OR (tl1.category IS NULL AND tl2.category IS NOT NULL)
+          OR (tl1.category = tl2.category AND tl1.section IS NULL AND tl2.section IS NOT NULL)
+        )
       GROUP BY tl1.item, tl2.item, tl1.sku, tl2.sku, tl1.product_name, tl2.product_name,
                tl1.category, tl2.category,
                tl1.section, tl2.section,
@@ -30,6 +36,11 @@ cubes:
       Uses transaction_lines_denormalized_mv for optimized performance (fixed join issue).
       Data is partitioned by month. To get total historical co-purchases, sum total_co_purchases
       across all time periods without date filter. For recent trends, filter by date range.
+
+      IMPORTANT: Bidirectional pairs are prevented at SQL level using category/section ordering.
+      Each category/section pair appears only once (e.g., Women+Men exists, Men+Women filtered out).
+      Ordering: Alphabetical by category, then by section within same category.
+      This eliminates duplicate pairs and provides clean, canonical cross-sell data.
 
     measures:
       - name: pair_count
