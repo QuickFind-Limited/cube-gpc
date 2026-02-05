@@ -70,22 +70,39 @@ canonicalized_pairs AS (
       ELSE GREATEST(category_a_raw, category_b_raw)
     END as item_b_category,
 
-    -- Sections: Alphabetically ordered (NULL sorts last)
+    -- Sections: Alphabetically ordered AFTER category canonicalization (NULL sorts last)
+    -- First determine if we need to swap based on canonicalized categories
     CASE
       WHEN section_a_raw IS NULL AND section_b_raw IS NOT NULL THEN section_b_raw
       WHEN section_b_raw IS NULL AND section_a_raw IS NOT NULL THEN section_a_raw
       WHEN section_a_raw IS NULL AND section_b_raw IS NULL THEN NULL
-      WHEN category_a_raw = category_b_raw THEN LEAST(section_a_raw, section_b_raw)
-      WHEN category_a_raw < category_b_raw THEN section_a_raw
-      ELSE section_b_raw
+      -- For canonicalized pairs, ensure sections are also canonicalized
+      WHEN (category_a_raw IS NULL OR category_b_raw IS NULL OR category_a_raw < category_b_raw)
+           AND (section_a_raw < section_b_raw OR section_b_raw IS NULL) THEN section_a_raw
+      WHEN (category_a_raw IS NULL OR category_b_raw IS NULL OR category_a_raw < category_b_raw)
+           AND (section_a_raw >= section_b_raw OR section_a_raw IS NULL) THEN section_b_raw
+      WHEN (category_a_raw > category_b_raw)
+           AND (section_b_raw < section_a_raw OR section_a_raw IS NULL) THEN section_b_raw
+      WHEN (category_a_raw > category_b_raw)
+           AND (section_b_raw >= section_a_raw OR section_b_raw IS NULL) THEN section_a_raw
+      -- Same category: always alphabetical
+      ELSE LEAST(section_a_raw, section_b_raw)
     END as item_a_section,
     CASE
       WHEN section_a_raw IS NULL AND section_b_raw IS NOT NULL THEN section_a_raw
       WHEN section_b_raw IS NULL AND section_a_raw IS NOT NULL THEN section_b_raw
       WHEN section_a_raw IS NULL AND section_b_raw IS NULL THEN NULL
-      WHEN category_a_raw = category_b_raw THEN GREATEST(section_a_raw, section_b_raw)
-      WHEN category_a_raw < category_b_raw THEN section_b_raw
-      ELSE section_a_raw
+      -- For canonicalized pairs, ensure sections are also canonicalized
+      WHEN (category_a_raw IS NULL OR category_b_raw IS NULL OR category_a_raw < category_b_raw)
+           AND (section_a_raw < section_b_raw OR section_b_raw IS NULL) THEN section_b_raw
+      WHEN (category_a_raw IS NULL OR category_b_raw IS NULL OR category_a_raw < category_b_raw)
+           AND (section_a_raw >= section_b_raw OR section_a_raw IS NULL) THEN section_a_raw
+      WHEN (category_a_raw > category_b_raw)
+           AND (section_b_raw < section_a_raw OR section_a_raw IS NULL) THEN section_a_raw
+      WHEN (category_a_raw > category_b_raw)
+           AND (section_b_raw >= section_a_raw OR section_b_raw IS NULL) THEN section_b_raw
+      -- Same category: always alphabetical
+      ELSE GREATEST(section_a_raw, section_b_raw)
     END as item_b_section,
 
     transaction_type,
