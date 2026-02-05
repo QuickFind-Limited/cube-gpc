@@ -35,14 +35,18 @@ Updated OM002 section to reflect:
 - Status code: 'C' (not 'B')
 - Added critical warnings about status code context
 
-### 3. BigQuery View Fix ⚠️ REQUIRES DEPLOYMENT
+### 3. BigQuery View Fix ✅ DEPLOYED
 **File:** `/home/produser/cube-gpc/docs/bigquery-views/transactions_analysis.sql`
-**Status:** SQL updated, needs to be run in BigQuery
+**Status:** UNION view deployed to BigQuery
 
-Added ItemShip to the view definition:
+Created UNION ALL view combining transactions and transactions_itemship tables:
 ```sql
-OR type = 'ItemShip'
+SELECT * FROM transactions WHERE [filters]
+UNION ALL
+SELECT * FROM transactions_itemship
 ```
+
+Note: ItemShip data is in a separate table (transactions_itemship) with only 17 columns vs 48 in main transactions table. UNION uses NULL padding for missing columns.
 
 ---
 
@@ -61,51 +65,22 @@ ItemShip was missing, so the measure had no data to count.
 
 ## Deployment Steps
 
-### Step 1: Update BigQuery View
+### Step 1: Update BigQuery View ✅ COMPLETED
 
-Run this SQL in BigQuery `magical-desktop` project:
-
-```sql
-CREATE OR REPLACE VIEW `magical-desktop.gpc.transactions_analysis` AS
-SELECT * FROM `magical-desktop.gpc.transactions`
-WHERE COALESCE(voided, 'F') = 'F'
-  AND (
-    -- Revenue transactions (may have NULL posting, but are always posted)
-    type IN ('CustInvc', 'CashSale', 'CustCred', 'CashRfnd')
-    -- OR posted transactions of other types (ItemRcpt)
-    OR COALESCE(posting, 'F') = 'T'
-    -- OR pipeline/return authorization types (for OM003, RET metrics)
-    OR type IN ('SalesOrd', 'RtnAuth')
-    -- OR fulfillment transactions (for OM002 fulfilled orders metric)
-    OR type = 'ItemShip'
-  );
-```
-
-### Step 2: Verify View Update
-
-Check ItemShip records exist in the view:
+The UNION ALL view has been deployed to BigQuery. Verified with:
 
 ```sql
-SELECT
-  type,
-  status,
-  COUNT(*) as count
+SELECT status, COUNT(*) as count
 FROM `magical-desktop.gpc.transactions_analysis`
 WHERE type = 'ItemShip'
-  AND DATE(trandate) BETWEEN '2025-01-01' AND '2025-01-31'
-GROUP BY type, status
+  AND trandate LIKE '2025-01%'
+GROUP BY status
 ORDER BY count DESC;
 ```
 
-Expected result:
-```
-type      status  count
-ItemShip  C       13,359
-ItemShip  A       (small number)
-ItemShip  B       (small number)
-```
+Result: **13,357 ItemShip records with status 'C'** ✅
 
-### Step 3: Rebuild Cube Pre-Aggregations
+### Step 2: Rebuild Cube Pre-Aggregations ⚠️ REQUIRED
 
 The `orders_analysis` pre-aggregation in the transactions cube uses the `fulfilled_orders` measure. After updating the view, trigger a rebuild:
 
@@ -176,12 +151,15 @@ VALIDATION RESULTS:
 
 ## Next Steps
 
-1. ✅ Cube definition updated and pushed
-2. ✅ Documentation updated and pushed
-3. ✅ BigQuery view SQL updated
-4. ⏳ **ACTION REQUIRED:** Run BigQuery view update SQL
-5. ⏳ **ACTION REQUIRED:** Rebuild pre-aggregations
-6. ⏳ **ACTION REQUIRED:** Test and verify fix
+1. ✅ Cube definition updated and pushed (commit 9332fa6)
+2. ✅ Documentation updated and pushed (commit 95db1077)
+3. ✅ BigQuery view SQL updated (UNION ALL with NULL padding)
+4. ✅ BigQuery view deployed (verified 13,357 ItemShip records)
+5. ⏳ **ACTION REQUIRED:** Rebuild pre-aggregations in Cube Cloud
+   - Pre-aggregation: `transactions.orders_analysis`
+   - Currently serving stale data (0 fulfilled orders)
+   - After rebuild will show 13,357 for January 2025
+6. ⏳ Test and verify fix after pre-agg rebuild
 
 ---
 
