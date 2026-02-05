@@ -4,7 +4,7 @@ cubes:
     title: Item Pricing
     description: >
       Item pricing dimension containing prices by item and price level.
-      Grain: one row per item-price level combination.
+      Grain: one row per item-price level-quantity combination.
 
     joins:
       - name: items
@@ -49,15 +49,16 @@ cubes:
         primary_key: true
         description: Price level identifier (part of composite key)
 
+      - name: price_quantity
+        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
+        type: number
+        primary_key: true
+        description: Quantity threshold for this price (part of composite key)
+
       - name: unit_price
         sql: "CAST({CUBE}.unit_price AS FLOAT64)"
         type: number
         description: Unit price for this item at this price level
-
-      - name: price_quantity
-        sql: "CAST({CUBE}.price_quantity AS FLOAT64)"
-        type: number
-        description: Quantity threshold for this price
 
       - name: currency_id
         sql: "{CUBE}.currency_id"

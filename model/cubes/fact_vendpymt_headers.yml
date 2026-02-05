@@ -34,6 +34,12 @@ cubes:
         format: currency
         description: Total payment amount in base currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Total payment amount (absolute value) in base currency
+
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum

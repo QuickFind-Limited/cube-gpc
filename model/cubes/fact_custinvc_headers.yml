@@ -35,6 +35,12 @@ cubes:
         format: currency
         description: Sum of invoice amounts in base currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute invoice amounts (for returns analysis)
+
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum

@@ -6,6 +6,11 @@ cubes:
       Chart of accounts dimension containing GL account definitions with hierarchical structure.
       Grain: one row per GL account.
 
+    joins:
+      - name: dim_currency
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+
     measures:
       - name: account_count
         type: count
