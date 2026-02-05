@@ -86,7 +86,7 @@ SELECT
   id,
   type,
   tranid,
-  trandate,
+  FORMAT_DATE('%d/%m/%Y', PARSE_DATE('%Y-%m-%d', trandate)) AS trandate,  -- Convert YYYY-MM-DD to DD/MM/YYYY
   status,
   entity,
   subsidiary,
