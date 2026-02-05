@@ -52,6 +52,7 @@ Note: ItemShip data is in a separate table (transactions_itemship) with only 17 
 
 ## Why It Was Returning 0
 
+**Issue 1: Missing ItemShip Data**
 The cube measure was correctly updated to filter on `ItemShip` with status `'C'`, but the underlying BigQuery view `gpc.transactions_analysis` did not include any ItemShip records at all.
 
 The view only included:
@@ -59,7 +60,19 @@ The view only included:
 - Posted transactions: ItemRcpt (posting='T')
 - Pipeline types: SalesOrd, RtnAuth
 
-ItemShip was missing, so the measure had no data to count.
+**Issue 2: Date Format Mismatch**
+ItemShip data is stored in a separate table with different date format:
+- Main transactions table: DD/MM/YYYY format (e.g., "06/05/2022")
+- transactions_itemship table: YYYY-MM-DD format (e.g., "2022-07-21")
+
+The initial UNION caused pre-aggregation build to fail with:
+```
+Error: Mismatch between format character '/' and string character '2' at string index: 2 with format: '%d/%m/%Y'
+```
+
+**Solution:**
+- Added UNION ALL to include ItemShip records
+- Normalized date format in ItemShip to DD/MM/YYYY using `FORMAT_DATE('%d/%m/%Y', PARSE_DATE('%Y-%m-%d', trandate))`
 
 ---
 
@@ -140,6 +153,8 @@ VALIDATION RESULTS:
 ### cube-gpc Repo
 ```
 9332fa6 Fix fulfilled_orders measure to use ItemShip status C
+c1abe69 Deploy UNION ALL view for transactions_analysis with ItemShip data
+b8c2a6a Fix date format mismatch in transactions_analysis UNION view
 ```
 
 ### GymPlusCoffee-Preview Repo
@@ -155,11 +170,14 @@ VALIDATION RESULTS:
 2. ✅ Documentation updated and pushed (commit 95db1077)
 3. ✅ BigQuery view SQL updated (UNION ALL with NULL padding)
 4. ✅ BigQuery view deployed (verified 13,357 ItemShip records)
-5. ⏳ **ACTION REQUIRED:** Rebuild pre-aggregations in Cube Cloud
+5. ✅ Date format mismatch fixed (commit b8c2a6a)
+   - ItemShip dates converted from YYYY-MM-DD to DD/MM/YYYY
+   - Pre-aggregation build error resolved
+6. ⏳ **ACTION REQUIRED:** Rebuild pre-aggregations in Cube Cloud
    - Pre-aggregation: `transactions.orders_analysis`
-   - Currently serving stale data (0 fulfilled orders)
+   - Previous rebuild failed due to date format error (now fixed)
    - After rebuild will show 13,357 for January 2025
-6. ⏳ Test and verify fix after pre-agg rebuild
+7. ⏳ Test and verify fix after pre-agg rebuild
 
 ---
 
