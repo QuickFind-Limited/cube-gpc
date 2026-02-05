@@ -6,7 +6,6 @@ cubes:
       Transaction headers across all transaction types (orders, invoices, cash sales, returns, payments, etc.).
       Grain: one row per transaction header.
       Entity contamination: Contains entity_type and transaction_in_scope fields for filtering system entities (webstore/POS payment processors).
-      Note: Schema updated to new BigQuery dataset - custom fields from old schema (custbody_customer_email, billing_country, etc.) may not be present in base table.
 
     joins:
       - name: currencies

@@ -36,6 +36,12 @@ cubes:
         format: currency
         description: Sum of deposit application amounts in base currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute deposit application amounts
+
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum
@@ -59,6 +65,11 @@ cubes:
         type: max
         format: currency
         description: Maximum deposit application amount
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across deposit applications
 
     dimensions:
       - name: transaction_id

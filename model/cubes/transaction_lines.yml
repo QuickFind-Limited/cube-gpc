@@ -1,59 +1,6 @@
 cubes:
   - name: transaction_lines
-    sql: >
-      WITH cogs_aggregated AS (
-        SELECT
-          CAST(transaction AS INT64) as transaction,
-          SUM(ABS(amount)) as gl_cogs_total
-        FROM gpc_data_2026_01_26.transaction_accounting_lines_cogs
-        GROUP BY transaction
-      ),
-      opex_aggregated AS (
-        SELECT
-          CAST(transaction AS INT64) as transaction,
-          SUM(ABS(CAST(amount AS FLOAT64))) as opex_total
-        FROM gpc_data_2026_01_26.transaction_accounting_lines_opex
-        GROUP BY transaction
-      ),
-      transaction_ship_days AS (
-        SELECT
-          CAST(tl.transaction AS INT64) as transaction_id,
-          DATE_DIFF(
-            PARSE_DATE('%Y-%m-%d', MIN(itemship.trandate)),
-            PARSE_DATE('%d/%m/%Y', MIN(t.createddate)),
-            DAY
-          ) as days_to_ship
-        FROM gpc_data_2026_01_26.transaction_lines tl
-        LEFT JOIN gpc_data_2026_01_26.transactions t
-          ON CAST(tl.transaction AS STRING) = t.id
-        LEFT JOIN gpc_data_2026_01_26.transaction_lines_itemship itemship_line
-          ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
-        LEFT JOIN gpc_data_2026_01_26.transactions_itemship itemship
-          ON itemship.id = itemship_line.transaction
-          AND itemship.type = 'ItemShip'
-        WHERE itemship.trandate IS NOT NULL
-          AND t.createddate IS NOT NULL
-        GROUP BY tl.transaction
-      )
-      SELECT
-        tl.*,
-        ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
-        t.shipdate as transaction_shipdate,
-        PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
-        PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
-        ship_days.days_to_ship,
-        COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
-        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
-      FROM gpc_data_2026_01_26.transaction_lines tl
-      LEFT JOIN gpc_data_2026_01_26.transactions t ON CAST(tl.transaction AS STRING) = t.id
-      LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
-      LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
-      LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
-      LEFT JOIN gpc_data_2026_01_26.transaction_lines_itemship itemship_line
-        ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
-      LEFT JOIN gpc_data_2026_01_26.transactions_itemship itemship
-        ON itemship.id = itemship_line.transaction
-        AND itemship.type = 'ItemShip'
+    sql: SELECT * FROM gpc_data_2026_01_26.transaction_lines
     title: Transaction Lines
     description: "Line items from all transactions - the main fact table for metrics. Grain: one row per transaction line (all transaction types combined)."
 
@@ -95,45 +42,6 @@ cubes:
         type: sum
         description: Total rate across all lines
 
-      # Revenue Measures
-      - name: total_revenue
-        sql: >
-          CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            (CASE
-              WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1
-              ELSE {CUBE}.rate * {CUBE}.quantity * -1
-            END)
-          ELSE 0 END AS FLOAT64)
-        type: sum
-        format: currency
-        description: >
-          Total gross revenue (CustInvc + CashSale only). 
-          Uses hybrid calculation - 'amount' for custom items (rate IS NULL), 'rate × quantity' for standard items.
-
-      - name: net_revenue
-        sql: >
-          CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') THEN
-            ((CASE
-              WHEN {CUBE}.rate IS NULL THEN {CUBE}.amount * -1
-              ELSE {CUBE}.rate * {CUBE}.quantity * -1
-            END) - COALESCE({CUBE}.taxamount, 0))
-          ELSE 0 END AS FLOAT64)
-        type: sum
-        format: currency
-        description: Net revenue (gross revenue minus tax)
-
-      # Units Measures
-      - name: units_sold
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN {CUBE}.quantity * -1 ELSE 0 END AS FLOAT64)"
-        type: sum
-        description: Total units sold (CustInvc + CashSale only)
-
-      - name: units_returned
-        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS FLOAT64)"
-        type: sum
-        description: Total units returned
-
-      # Count Measures
       - name: transaction_count
         sql: "{CUBE}.transaction"
         type: count_distinct_approx
@@ -144,29 +52,21 @@ cubes:
         type: count_distinct_approx
         description: Number of unique SKUs
 
-      # Calculated Measures
-      - name: average_order_value
-        sql: "1.0 * {total_revenue} / NULLIF({transaction_count}, 0)"
+      - name: average_quantity_per_line
+        sql: "1.0 * {total_quantity} / NULLIF({transaction_lines_count}, 0)"
+        type: number
+        description: Average quantity per line item
+
+      - name: average_amount_per_line
+        sql: "1.0 * {total_amount} / NULLIF({transaction_lines_count}, 0)"
         type: number
         format: currency
-        description: "Average order value (AOV) - all channels"
+        description: Average amount per line item
 
-      - name: average_selling_price
-        sql: "1.0 * {total_revenue} / NULLIF({units_sold}, 0)"
-        type: number
-        format: currency
-        description: Average selling price per unit
-
-      - name: average_items_per_order
+      - name: average_lines_per_transaction
         sql: "1.0 * {transaction_lines_count} / NULLIF({transaction_count}, 0)"
         type: number
-        description: Average number of items per order
-
-      # Return Rate
-      - name: return_rate
-        sql: "100.0 * {units_returned} / NULLIF({units_sold} + {units_returned}, 0)"
-        type: number
-        description: Return rate percentage
+        description: Average number of lines per transaction
 
     dimensions:
       - name: id
@@ -240,17 +140,21 @@ cubes:
         sql: "{CUBE}.transaction_in_scope = true"
         description: "Excludes system entities for accurate business metrics"
 
-      - name: sales_lines
-        sql: "{CUBE}.quantity < 0"
-        description: "Sales transaction lines only (negative quantity)"
+      - name: detail_lines_only
+        sql: "{CUBE}.mainline = false"
+        description: "Detail lines only (excludes header/mainline records)"
 
-      - name: return_lines
+      - name: has_item
+        sql: "{CUBE}.item IS NOT NULL"
+        description: "Lines with an associated item"
+
+      - name: positive_quantity
         sql: "{CUBE}.quantity > 0"
-        description: "Return transaction lines only (positive quantity)"
+        description: "Lines with positive quantity (typically returns)"
 
-      - name: revenue_transactions
-        sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
-        description: "Revenue-generating transactions only"
+      - name: negative_quantity
+        sql: "{CUBE}.quantity < 0"
+        description: "Lines with negative quantity (typically sales)"
 
     pre_aggregations:
       - name: daily_summary
@@ -258,13 +162,12 @@ cubes:
           - transaction_lines_count
           - total_quantity
           - total_amount
-          - total_revenue
-          - units_sold
           - transaction_count
         dimensions:
           - entity_type
           - transaction_in_scope
-        time_dimension: transaction_date
+          - mainline
+        time_dimension: transactions.trandate
         granularity: day
         refresh_key:
           every: 1 day
