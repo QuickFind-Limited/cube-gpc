@@ -265,7 +265,28 @@ cubes:
         sql: "1.0 * {salesord_revenue} / NULLIF({salesord_count}, 0)"
         type: number
         format: currency
-        description: "Average value of SalesOrd transactions (OM003 - order intent before fulfillment). Calculated as salesord_revenue / salesord_count for consistency. Uses approximate transaction counting with HyperLogLog (10-20% error margin). For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). FIX (v65): Changed from inline SQL to component measure references to ensure consistent calculation regardless of query dimensions or filters."
+        description: "Average value of SalesOrd transactions (OM003 - all channels including B2B). For consumer-only analysis, use average_salesord_value_consumer. WARNING - Large B2B wholesale orders can inflate this metric 10-40x (e.g., €300-€12,000 monthly variance). Use consumer variant for consistent insights. Calculated as salesord_revenue / salesord_count for consistency. Uses approximate transaction counting with HyperLogLog (10-20% error margin). For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). FIX (v65): Changed from inline SQL to component measure references to ensure consistent calculation regardless of query dimensions or filters."
+
+      # OM003 Consumer-Only Variant (excludes B2B wholesale/corporate/marketplace)
+      - name: salesord_revenue_consumer
+        sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' AND {CUBE}.channel_type IN ('D2C', 'RETAIL', 'EVENTS') THEN {CUBE}.amount * -1 ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total revenue from SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Component measure for OM003 consumer variant.
+
+      - name: salesord_count_consumer
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type = 'SalesOrd'"
+          - sql: "{CUBE}.channel_type IN ('D2C', 'RETAIL', 'EVENTS')"
+        description: Count of unique SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Approximate counting with 10-20% error margin. Component measure for OM003 consumer variant.
+
+      - name: average_salesord_value_consumer
+        sql: "1.0 * {salesord_revenue_consumer} / NULLIF({salesord_count_consumer}, 0)"
+        type: number
+        format: currency
+        description: "Average order value from SalesOrd (OM003 - consumer channels only, excludes B2B wholesale/corporate/marketplace). RECOMMENDED for consumer order intent analysis. Avoids 10-40x inflation from large B2B wholesale orders. For overall AOV including B2B, use average_salesord_value."
 
       - name: average_items_per_order
         sql: "1.0 * {line_count} / NULLIF({transaction_count}, 0)"
@@ -786,6 +807,8 @@ cubes:
           - total_discount_amount
           - salesord_revenue    # OM003: Component for average_salesord_value
           - salesord_count      # OM003: Component for average_salesord_value
+          - salesord_revenue_consumer    # OM003: Consumer-only component
+          - salesord_count_consumer      # OM003: Consumer-only component
           - returns_revenue_aligned    # RET005: Return revenue (Feb 2025+)
           - total_revenue_aligned      # RET005: Total revenue denominator (Feb 2025+)
           - gl_based_cogs       # INV-001: DENORMALIZED GL-based COGS for GMROI calculation
