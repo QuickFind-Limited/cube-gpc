@@ -2,45 +2,32 @@ cubes:
   - name: cross_sell
     sql: >
       SELECT
-        tl1.item as item_a,
-        tl2.item as item_b,
-        tl1.sku as item_a_sku,
-        tl2.sku as item_b_sku,
-        tl1.product_name as item_a_name,
-        tl2.product_name as item_b_name,
-        tl1.category as item_a_category,
-        tl2.category as item_b_category,
-        tl1.section as item_a_section,
-        tl2.section as item_b_section,
-        tl1.transaction_type,
-        CAST(tl1.transaction_date AS TIMESTAMP) as trandate,
-        CAST(COUNT(DISTINCT tl1.transaction) AS INT64) as co_purchase_count
-      FROM gpc.transaction_lines_denormalized_mv tl1
-      JOIN gpc.transaction_lines_denormalized_mv tl2
-        ON tl1.transaction = tl2.transaction AND tl1.item < tl2.item
-      WHERE tl1.quantity < 0
-        AND tl2.quantity < 0
-        AND (
-          tl1.category < tl2.category
-          OR (tl1.category = tl2.category AND tl1.section <= tl2.section)
-          OR (tl1.category IS NULL AND tl2.category IS NOT NULL)
-          OR (tl1.category = tl2.category AND tl1.section IS NULL AND tl2.section IS NOT NULL)
-        )
-      GROUP BY tl1.item, tl2.item, tl1.sku, tl2.sku, tl1.product_name, tl2.product_name,
-               tl1.category, tl2.category,
-               tl1.section, tl2.section,
-               tl1.transaction_type, CAST(tl1.transaction_date AS TIMESTAMP)
+        item_a,
+        item_b,
+        item_a_sku,
+        item_b_sku,
+        item_a_name,
+        item_b_name,
+        item_a_category,
+        item_b_category,
+        item_a_section,
+        item_b_section,
+        transaction_type,
+        trandate,
+        co_purchase_count
+      FROM gpc.cross_sell_deduplicated
     title: Cross-Sell Analysis
     description: >
       Product affinity pairs by transaction date showing items purchased together (BASK002).
-      Uses transaction_lines_denormalized_mv for optimized performance (fixed join issue).
+      Uses cross_sell_deduplicated BigQuery view for canonical pair representation.
       Data is partitioned by month. To get total historical co-purchases, sum total_co_purchases
       across all time periods without date filter. For recent trends, filter by date range.
 
-      IMPORTANT: Bidirectional pairs are prevented at SQL level using category/section ordering.
-      Each category/section pair appears only once (e.g., Women+Men exists, Men+Women filtered out).
+      IMPORTANT: Bidirectional pairs are canonicalized using LEAST/GREATEST in the view.
+      Each category/section pair appears only once with COMBINED counts from both directions.
+      Example: Men+Women (732,586) combines previous Men→Women (402,907) + Women→Men (329,679).
       Ordering: Alphabetical by category, then by section within same category.
-      This eliminates duplicate pairs and provides clean, canonical cross-sell data.
+      This eliminates duplicate pairs while preserving all co-purchase data (no data loss).
 
     measures:
       - name: pair_count
