@@ -199,8 +199,8 @@ cubes:
       - name: product_line_count
         type: count
         filters:
-          - sql: "{CUBE}.section IS NOT NULL"
-        description: "Number of product line items only (excludes shipping, fees, adjustments, returns). For BASK001 (Avg Items per Order), use this instead of line_count to get accurate distinct product counts per transaction. Filter: section IS NOT NULL excludes non-product lines."
+          - sql: "{CUBE}.mainline = 'F' AND {CUBE}.item IS NOT NULL AND {CUBE}.item > 0"
+        description: "Number of product line items only (excludes shipping, fees, adjustments, returns, header lines). For BASK001 (Avg Items per Order), use this instead of line_count to get accurate distinct product counts per transaction. Filter: mainline='F' (detail lines) AND item > 0 (actual products) excludes non-product lines."
 
       - name: transaction_count
         sql: "{CUBE}.transaction"
