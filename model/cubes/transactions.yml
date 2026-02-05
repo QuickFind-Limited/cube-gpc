@@ -30,8 +30,8 @@ cubes:
       - name: fulfilled_orders
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.status = 'B'"
-        description: "Number of fulfilled/billed orders (OM002). Counts billed invoices (CustInvc) and cash sales (CashSale) with status 'B'. Excludes sales orders with status 'G' which are pending billing (not yet fulfilled). For detailed shipment-level fulfillment tracking use the fulfillments cube. FIX (v65): Changed from status IN ('B', 'G') to explicitly filter CustInvc/CashSale with status='B' only, removing 12,303 incorrectly included pending sales orders (status 'G' = approved but not fulfilled)."
+          - sql: "{CUBE}.type = 'ItemShip' AND {CUBE}.status = 'C'"
+        description: "Number of fulfilled orders (OM002). Counts shipped item fulfillments (ItemShip) with status 'C' (Shipped). This represents actual fulfillment/shipment events, not billing events. For detailed shipment-level fulfillment tracking use the fulfillments cube. FIX (v73 - 2026-02-05): Corrected from CustInvc/CashSale status 'B' to ItemShip status 'C' - previous definition was counting billed orders (not fulfilled shipments). Status 'C' = Shipped/Fulfilled in ItemShip records. Jan 2025 baseline: 13,359 fulfilled orders."
 
       - name: cancelled_orders
         type: count
