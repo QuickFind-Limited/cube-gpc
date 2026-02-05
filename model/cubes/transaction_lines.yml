@@ -268,19 +268,55 @@ cubes:
         description: "Average value of SalesOrd transactions (OM003 - all channels including B2B). For consumer-only analysis, use average_salesord_value_consumer. WARNING - Large B2B wholesale orders can inflate this metric 10-40x (e.g., €300-€12,000 monthly variance). Use consumer variant for consistent insights. Calculated as salesord_revenue / salesord_count for consistency. Uses approximate transaction counting with HyperLogLog (10-20% error margin). For post-fulfillment AOV, use average_order_value or average_order_value_retail (RM002). FIX (v65): Changed from inline SQL to component measure references to ensure consistent calculation regardless of query dimensions or filters."
 
       # OM003 Consumer-Only Variant (excludes B2B wholesale/corporate/marketplace)
+      # Note: Inline channel_type logic for pre-aggregation compatibility
       - name: salesord_revenue_consumer
-        sql: "CAST(CASE WHEN {CUBE}.transaction_type = 'SalesOrd' AND {CUBE}.channel_type IN ('D2C', 'RETAIL', 'EVENTS') THEN {CUBE}.amount * -1 ELSE 0 END AS FLOAT64)"
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type = 'SalesOrd'
+            AND (
+              -- D2C (excluding bulk orders >€10k)
+              (({CUBE}.department = 109 OR ({CUBE}.department IS NULL AND {CUBE}.class IN (101, 102, 103, 106, 215, 220, 216)))
+                AND {CUBE}.transaction_total_abs <= 10000)
+              OR
+              -- RETAIL
+              ({CUBE}.department IN (108, 203)
+                OR {CUBE}.class IN (109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 209, 219))
+              OR
+              -- EVENTS
+              ({CUBE}.department_name LIKE '%Event%'
+                OR {CUBE}.class = 108
+                OR {CUBE}.location = 210)
+            )
+            THEN {CUBE}.amount * -1
+            ELSE 0
+          END AS FLOAT64)
         type: sum
         format: currency
-        description: Total revenue from SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Component measure for OM003 consumer variant.
+        description: Total revenue from SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Component measure for OM003 consumer variant. Inline channel logic for pre-agg compatibility.
 
       - name: salesord_count_consumer
-        sql: "{CUBE}.transaction"
+        sql: >
+          CASE
+            WHEN {CUBE}.transaction_type = 'SalesOrd'
+            AND (
+              -- D2C (excluding bulk orders >€10k)
+              (({CUBE}.department = 109 OR ({CUBE}.department IS NULL AND {CUBE}.class IN (101, 102, 103, 106, 215, 220, 216)))
+                AND {CUBE}.transaction_total_abs <= 10000)
+              OR
+              -- RETAIL
+              ({CUBE}.department IN (108, 203)
+                OR {CUBE}.class IN (109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 209, 219))
+              OR
+              -- EVENTS
+              ({CUBE}.department_name LIKE '%Event%'
+                OR {CUBE}.class = 108
+                OR {CUBE}.location = 210)
+            )
+            THEN {CUBE}.transaction
+            ELSE NULL
+          END
         type: count_distinct_approx
-        filters:
-          - sql: "{CUBE}.transaction_type = 'SalesOrd'"
-          - sql: "{CUBE}.channel_type IN ('D2C', 'RETAIL', 'EVENTS')"
-        description: Count of unique SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Approximate counting with 10-20% error margin. Component measure for OM003 consumer variant.
+        description: Count of unique SalesOrd transactions (consumer channels only - excludes B2B wholesale/corporate/marketplace). Approximate counting with 10-20% error margin. Component measure for OM003 consumer variant. Inline channel logic for pre-agg compatibility.
 
       - name: average_salesord_value_consumer
         sql: "1.0 * {salesord_revenue_consumer} / NULLIF({salesord_count_consumer}, 0)"
