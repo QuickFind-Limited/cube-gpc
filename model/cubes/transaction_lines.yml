@@ -40,7 +40,6 @@ cubes:
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
         PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
-        PARSE_DATE('%Y-%m-%d', itemship.trandate) as itemship_actual_shipdate,
         ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
         COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
@@ -49,11 +48,6 @@ cubes:
       LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
       LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
-      LEFT JOIN gpc.transaction_lines_itemship itemship_line
-        ON itemship_line.createdfrom = CAST(tl.transaction AS STRING)
-      LEFT JOIN gpc.transactions_itemship itemship
-        ON itemship.id = itemship_line.transaction
-        AND itemship.type = 'ItemShip'
     title: Transaction Lines
     description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX. Note: For country analysis, use header-level cubes (b2c_customers, b2c_customer_channels) which have populated country data."
 
@@ -503,7 +497,7 @@ cubes:
 
       # Ship Speed Measures (FUL-001 Alternative)
       # Instead of OTD (requires promised date), measure fulfillment speed
-      # ✅ DENORMALIZED: Uses itemship_actual_shipdate (from ItemShip fulfillment) and transaction_createddate
+      # ✅ DENORMALIZED: Uses days_to_ship (pre-aggregated from transaction_ship_days CTE)
       - name: ship_to_order_days_total
         sql: "{CUBE}.days_to_ship"
         type: sum
