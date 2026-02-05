@@ -196,6 +196,12 @@ cubes:
         type: count
         description: Total number of line items
 
+      - name: product_line_count
+        type: count
+        filters:
+          - sql: "{CUBE}.section IS NOT NULL"
+        description: "Number of product line items only (excludes shipping, fees, adjustments, returns). For BASK001 (Avg Items per Order), use this instead of line_count to get accurate distinct product counts per transaction. Filter: section IS NOT NULL excludes non-product lines."
+
       - name: transaction_count
         sql: "{CUBE}.transaction"
         type: count_distinct_approx
@@ -839,6 +845,7 @@ cubes:
           - units_sold
           - transaction_count
           - line_count          # BASK001: Required for average_items_per_order calculation
+          - product_line_count  # BASK001: Product lines only (excludes shipping/fees/adjustments)
           - total_tax
           - total_discount_amount
           - salesord_revenue    # OM003: Component for average_salesord_value
@@ -885,6 +892,7 @@ cubes:
           - units_sold
           - transaction_count
           - line_count          # SHP002: For Items Per Order (IPO) calculation
+          - product_line_count  # BASK001: Product lines only (excludes shipping/fees/adjustments)
         dimensions:
           - billing_country
           - shipping_country
