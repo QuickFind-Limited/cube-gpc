@@ -4,7 +4,7 @@ cubes:
     sql: >
       SELECT
         tl.transaction as order_id,
-        CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP) as trandate,
+        CAST(t.trandate AS TIMESTAMP) as trandate,
         t.type,
         tl.customer_email,
         tl.billing_country,
@@ -22,9 +22,9 @@ cubes:
           ELSE 'Retail/D2C'
         END as customer_type
       FROM gpc.transaction_lines_denormalized_patched tl
-      JOIN gpc.transactions_analysis t ON tl.transaction = t.id
-      LEFT JOIN gpc.b2b_customers b2b ON t.entity = b2b.id
-      GROUP BY tl.transaction, CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
+      JOIN gpc.transactions_analysis t ON CAST(tl.transaction AS INT64) = t.id
+      LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
+      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
     title: Order Baskets
     description: >
       Order-level basket analysis with line count buckets (BASK003).
@@ -97,7 +97,7 @@ cubes:
       - name: billing_country
         sql: "{CUBE}.billing_country"
         type: string
-        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.billing_country, b2c_customer_channels.billing_country, or transactions.billing_country instead."
+        description: Billing country
 
       - name: line_count
         sql: "{CUBE}.line_count"

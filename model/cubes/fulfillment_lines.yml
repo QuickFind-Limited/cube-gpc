@@ -7,7 +7,7 @@ cubes:
         t.trandate as order_date
       FROM gpc.fulfillment_lines fl
       LEFT JOIN gpc.transactions_analysis t
-        ON CAST(fl.createdfrom AS STRING) = t.id
+        ON CAST(fl.createdfrom AS INT64) = t.id
     title: Fulfillment Lines
     description: >
       Individual line items for fulfillments tracking what products were shipped.
@@ -57,7 +57,7 @@ cubes:
         description: Number of shipping locations (approximate with HyperLogLog)
 
       - name: total_fulfillment_days
-        sql: "CAST(DATE_DIFF({CUBE}.shipdate_parsed, CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.order_date) AS DATE), DAY) AS FLOAT64)"
+        sql: "CAST(DATE_DIFF({CUBE}.shipdate_parsed, CAST({CUBE}.order_date AS DATE), DAY) AS FLOAT64)"
         type: sum
         description: >
           Total days from order to ship (for averaging - FD002).
@@ -149,7 +149,7 @@ cubes:
         description: "Labeled location name with type prefix and ID for FD002. DC (Distribution Center), Store (Retail), B2B (Wholesale/Partners), LOC (Other)."
 
       - name: order_date
-        sql: "CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.order_date) AS TIMESTAMP)"
+        sql: "CAST({CUBE}.order_date AS TIMESTAMP)"
         type: time
         description: "Order date from source transaction (denormalized from transactions table via createdfrom)"
 

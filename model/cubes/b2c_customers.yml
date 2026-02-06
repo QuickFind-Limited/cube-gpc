@@ -8,11 +8,11 @@ cubes:
         -- Count only FULFILLED orders (CustInvc + CashSale), exclude SalesOrd pipeline
         MIN(CASE
           WHEN t.type IN ('CustInvc', 'CashSale')
-          THEN PARSE_DATE('%d/%m/%Y', t.trandate)
+          THEN CAST(t.trandate AS DATE)
         END) as first_order_date,
         MAX(CASE
           WHEN t.type IN ('CustInvc', 'CashSale')
-          THEN PARSE_DATE('%d/%m/%Y', t.trandate)
+          THEN CAST(t.trandate AS DATE)
         END) as last_order_date,
         CAST(COUNT(DISTINCT CASE
           WHEN t.type IN ('CustInvc', 'CashSale')
