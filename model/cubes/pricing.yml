@@ -28,3 +28,11 @@ cubes:
           EUR retail/base price from NetSuite Pricing table.
           This is the selling price, NOT purchase cost.
           13,548 items have pricing data. 99.7% coverage on PO items.
+
+    pre_aggregations:
+      - name: pricing_lookup
+        dimensions:
+          - item_id
+          - base_price_eur
+        refresh_key:
+          every: 1 day
