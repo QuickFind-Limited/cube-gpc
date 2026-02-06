@@ -31,6 +31,7 @@ cubes:
         sql: "{total_balance} / NULLIF({customer_count}, 0)"
         type: number
         format: currency
+        public: false
         description: "Average customer balance (calculated from components, NOT for use in pre-aggregations)"
 
     dimensions:

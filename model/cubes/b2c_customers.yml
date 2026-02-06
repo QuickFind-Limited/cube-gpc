@@ -52,6 +52,7 @@ cubes:
         sql: "{total_lifetime_value} / NULLIF({customer_count}, 0)"
         type: number
         format: currency
+        public: false
         description: "Average customer lifetime value (CM002) - NOW ACCURATE"
 
       - name: total_orders

@@ -34,6 +34,7 @@ cubes:
       - name: fulfillments_per_order
         sql: "1.0 * {fulfillment_count} / NULLIF({unique_orders}, 0)"
         type: number
+        public: false
         description: Average fulfillments per order (FD003)
 
     dimensions:

@@ -81,6 +81,7 @@ cubes:
         sql: "SAFE_DIVIDE({units_sold}, {total_units}) * 100.0"
         type: number
         format: percent
+        public: false
         description: "Sell-through rate: % of season stock that has sold (STR001, PP058)"
 
       - name: stock_remaining_rate

@@ -88,6 +88,7 @@ cubes:
         sql: "{total_foreign_amount} / NULLIF({order_count}, 0)"
         type: number
         format: currency
+        public: false
         description: Average transaction total (calculated from components, NOT for use in pre-aggregations)
 
     dimensions:

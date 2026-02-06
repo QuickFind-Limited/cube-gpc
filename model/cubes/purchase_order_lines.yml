@@ -7,6 +7,7 @@ cubes:
       Purchase order line items with quantity, cost, and receipt tracking.
       FIX (v68.8): Changed on_order_value and avg_unit_cost measures to reference 'rate' field directly instead of 'unit_cost' dimension name.
       FIX (v68.10): Added CAST to total_received_qty - quantityshiprecv is STRING type in typed Parquet.
+      Data quality note: items join coverage is ~92.6% (based on current BQ data); item-derived attributes may be NULL for unmatched lines.
 
     measures:
       - name: line_count
@@ -50,6 +51,7 @@ cubes:
         sql: "CASE WHEN quantity > 0 THEN (COALESCE(CAST(quantityshiprecv AS INT64), 0) / quantity) * 100 ELSE 0 END"
         type: avg
         format: percent
+        public: false
         description: Average fulfillment rate (received / ordered * 100)
 
       # SEA-003: In-Season Reorder Rate measures (NEW v71)

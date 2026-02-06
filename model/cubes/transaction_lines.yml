@@ -60,13 +60,13 @@ cubes:
       # Join to current inventory. Note: Inventory is point-in-time (current stock levels).
       - name: inventory
         relationship: many_to_one
-        sql: "{CUBE}.item = {inventory.item}"
+        sql: "{CUBE}.item = {inventory.item} AND {CUBE}.location = {inventory.location}"
 
       # NEW P5: Join to locations for centralized channel_type logic
       # Join to locations cube for centralized channel type classification (P5 fix)
       - name: locations
         relationship: many_to_one
-        sql: "{CUBE}.location_name = {locations.name}"
+        sql: "{CUBE}.location = {locations.id}"
 
       # NEW: Join to GL-based COGS for accurate cost of goods sold
       - name: transaction_accounting_lines_cogs
@@ -178,6 +178,7 @@ cubes:
       - name: discount_rate
         sql: "100.0 * {total_discount_amount} / NULLIF({total_base_price_for_discount}, 0)"
         type: number
+        public: false
         description: Average discount rate percentage for DM002 (calculated from components - NOT for use in pre-aggs)
 
       - name: discounted_units
@@ -478,6 +479,7 @@ cubes:
             0
           )
         type: number
+        public: false
         description: Sales velocity - units sold per week (LIFE004)
 
       # Return rate for RET001
