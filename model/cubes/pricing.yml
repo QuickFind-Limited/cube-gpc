@@ -17,6 +17,7 @@ cubes:
         sql: "{CUBE}.item_id"
         type: number
         primary_key: true
+        public: true
         description: NetSuite item ID (join key to items table)
 
       - name: base_price_eur
