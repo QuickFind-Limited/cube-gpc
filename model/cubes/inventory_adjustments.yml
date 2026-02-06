@@ -1,0 +1,207 @@
+cubes:
+  - name: inventory_adjustments
+    sql: >
+      SELECT
+        tl.id,
+        tl.transaction,
+        tl.item,
+        tl.location,
+        tl.quantity,
+        tl.amount,
+        tl.netamount,
+        tl.rate,
+        tl.class,
+        tl.createdfrom,
+        tl.mainline,
+        tl.taxline,
+        tl.trandate as transaction_date,
+        th.memo,
+        SAFE_CAST(th.subsidiary AS INT64) as subsidiary,
+        SAFE_CAST(th.total AS FLOAT64) as header_total,
+        th.tranid as adjustment_number
+      FROM gpc.inventory_adjustments tl
+      LEFT JOIN gpc.inventory_adjustment_headers th
+        ON tl.transaction = SAFE_CAST(th.id AS INT64)
+      WHERE tl.mainline = 'F'
+        AND COALESCE(tl.taxline, 'F') = 'F'
+    title: Inventory Adjustments
+    description: >
+      Inventory adjustment transactions (InvAdjst) tracking stock corrections,
+      shrinkage, write-downs, and cycle count adjustments. 276K line records
+      with 100% item and location coverage. Negative quantities represent
+      inventory reductions (shrinkage/write-downs); positive quantities
+      represent inventory additions (found stock/corrections).
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      # ADJ001: Total adjustment value
+      - name: adjustment_value
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "ADJ001: Total inventory adjustment value. Positive = stock added, negative = stock removed/written down."
+
+      - name: adjustment_count
+        type: count
+        description: "Total number of adjustment line items."
+
+      - name: adjustment_transaction_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        description: "Number of unique adjustment transactions (approximate)."
+
+      # ADJ002: Shrinkage - negative quantity adjustments only
+      - name: shrinkage_value
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.amount) ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "ADJ002: Total value of inventory shrinkage (negative-quantity adjustments: damaged, lost, expired, theft). Always positive amount."
+
+      - name: shrinkage_units
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END AS FLOAT64)"
+        type: sum
+        description: "ADJ002: Total units lost to shrinkage (negative-quantity adjustments)."
+
+      - name: shrinkage_line_count
+        type: count
+        filters:
+          - sql: "{CUBE}.quantity < 0"
+        description: "Number of shrinkage adjustment lines (negative quantity)."
+
+      # ADJ004: Positive adjustments (found stock, corrections)
+      - name: positive_adjustment_value
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: "Value of positive inventory adjustments (stock found, corrections upward)."
+
+      - name: positive_adjustment_units
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END AS FLOAT64)"
+        type: sum
+        description: "Units added through positive adjustments."
+
+      - name: item_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        description: "Number of unique items adjusted (approximate)."
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction"
+        type: number
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: "NetSuite item ID"
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: "Location ID where adjustment occurred"
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        description: "Location name (from locations join)"
+
+      - name: quantity
+        sql: "{CUBE}.quantity"
+        type: number
+        description: "Adjustment quantity (negative = shrinkage, positive = found/correction)"
+
+      - name: transaction_date
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
+        type: time
+        description: "Adjustment transaction date"
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: "Adjustment memo/reason from transaction header"
+
+      - name: adjustment_number
+        sql: "{CUBE}.adjustment_number"
+        type: string
+        description: "Adjustment transaction number (e.g., IA07, IA08)"
+
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: "Subsidiary ID (2=Ireland, 6=UK)"
+
+      - name: createdfrom
+        sql: "{CUBE}.createdfrom"
+        type: number
+        description: "Source transaction ID (38% of adjustments link back to a source transaction)"
+
+      - name: adjustment_type
+        type: string
+        case:
+          when:
+            - sql: "{CUBE}.quantity < 0"
+              label: "Shrinkage/Write-Down"
+            - sql: "{CUBE}.quantity > 0"
+              label: "Addition/Correction"
+          else:
+            label: "Zero Adjustment"
+        description: "ADJ003: Classification of adjustment direction"
+
+    pre_aggregations:
+      # ADJ005: Adjustment trends by location
+      - name: adjustment_by_location
+        measures:
+          - adjustment_value
+          - adjustment_count
+          - shrinkage_value
+          - shrinkage_units
+          - shrinkage_line_count
+          - positive_adjustment_value
+          - positive_adjustment_units
+          - item_count
+          - adjustment_transaction_count
+        dimensions:
+          - location
+          - location_name
+          - adjustment_type
+          - subsidiary
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
+
+      # Monthly rollup for high-level trending
+      - name: adjustment_monthly
+        measures:
+          - adjustment_value
+          - adjustment_count
+          - shrinkage_value
+          - shrinkage_units
+          - positive_adjustment_value
+          - positive_adjustment_units
+        dimensions:
+          - adjustment_type
+          - subsidiary
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day

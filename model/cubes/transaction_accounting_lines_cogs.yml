@@ -52,6 +52,24 @@ cubes:
         type: string
         description: Account type (should be COGS)
 
+      - name: cogs_category
+        type: string
+        case:
+          when:
+            - sql: "{CUBE}.account_name LIKE 'Cost of Goods Sold%'"
+              label: "Product Cost"
+            - sql: "{CUBE}.account_name LIKE 'Freight & Duty%'"
+              label: "Freight & Duty"
+            - sql: "{CUBE}.account_name LIKE 'Card & Platfrom%' OR {CUBE}.account_name LIKE 'Card & Platform%'"
+              label: "Platform Fees"
+            - sql: "{CUBE}.account_name LIKE 'Storage & Delivery%'"
+              label: "Storage & Delivery"
+            - sql: "{CUBE}.account_name LIKE 'Other Cost of Sales%'"
+              label: "Other Cost of Sales"
+          else:
+            label: "Uncategorised"
+        description: "COGS001: High-level cost category grouping. Product Cost (purchases/freight/duties), Platform Fees (Shopify/PayPal/CC), Storage & Delivery (warehousing/transport/returns), Other (packaging/samples)."
+
     measures:
       - name: gl_cogs
         sql: debit
@@ -75,6 +93,30 @@ cubes:
         type: count
         description: Number of COGS GL entries
 
+      - name: platform_fees
+        sql: debit
+        type: sum
+        format: currency
+        filters:
+          - sql: "{CUBE}.account_name LIKE 'Card & Platfrom%' OR {CUBE}.account_name LIKE 'Card & Platform%'"
+        description: "COGS002: Total platform/payment processing fees (Shopify, PayPal, CC, Gift Card Commission, Cash Collection, Flexible Payment). Note: source data has typo 'Platfrom' in account_name."
+
+      - name: logistics_costs
+        sql: debit
+        type: sum
+        format: currency
+        filters:
+          - sql: "{CUBE}.account_name LIKE 'Storage & Delivery%' OR {CUBE}.account_name LIKE 'Freight & Duty%'"
+        description: "COGS003: Total logistics costs (Storage & Warehousing, Transport & Distribution, Returns handling, Freight & Customs, Import Duties)."
+
+      - name: product_cost
+        sql: debit
+        type: sum
+        format: currency
+        filters:
+          - sql: "{CUBE}.account_name LIKE 'Cost of Goods Sold%'"
+        description: "Direct product purchase cost (COGS - Purchases, Freight, Duties & Taxes sub-accounts under Cost of Goods Sold parent)."
+
     pre_aggregations:
       - name: cogs_by_account
         measures:
@@ -82,9 +124,13 @@ cubes:
           - gl_cogs_debit
           - gl_cogs_credit
           - cogs_entry_count
+          - platform_fees
+          - logistics_costs
+          - product_cost
         dimensions:
           - account_name
           - acctnumber
+          - cogs_category
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -98,6 +144,11 @@ cubes:
         measures:
           - gl_cogs
           - cogs_entry_count
+          - platform_fees
+          - logistics_costs
+          - product_cost
+        dimensions:
+          - cogs_category
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month

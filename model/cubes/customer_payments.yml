@@ -1,0 +1,140 @@
+cubes:
+  - name: customer_payments
+    sql: >
+      SELECT
+        tl.transaction,
+        tl.amount,
+        tl.netamount,
+        tl.trandate as payment_date,
+        tl.createdfrom as invoice_transaction_id,
+        SAFE_CAST(t.entity AS INT64) as customer_id,
+        t.paymentmethod,
+        t.currency,
+        t.exchangerate,
+        t.foreigntotal,
+        t.total,
+        t.subsidiary,
+        t.tranid as payment_number,
+        t.status,
+        t.memo
+      FROM gpc.transaction_lines tl
+      LEFT JOIN gpc.transaction t
+        ON tl.transaction = SAFE_CAST(t.id AS INT64)
+      WHERE tl.transaction_type = 'CustPymt'
+        AND COALESCE(tl.mainline, 'F') = 'F'
+        AND COALESCE(tl.taxline, 'F') = 'F'
+        AND COALESCE(t.posting, 'T') = 'T'
+        AND COALESCE(t.voided, 'F') = 'F'
+    title: Customer Payments
+    description: >
+      Customer payment transactions (CustPymt) representing cash collected.
+      Amounts are stored as negatives in NetSuite and are ABS() converted in measures.
+
+    joins:
+      - name: b2b_customers
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {b2b_customers.id}"
+
+    measures:
+      - name: cash_collected
+        sql: "ABS({CUBE}.amount)"
+        type: sum
+        format: currency
+        description: "Total cash collected from customer payments (ABS of line amount)."
+
+      - name: payment_count
+        type: count
+        description: "Number of customer payments."
+
+      - name: payment_transaction_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        description: "Number of unique customer payments (approximate)."
+
+      - name: payments_with_invoice
+        sql: "CASE WHEN {CUBE}.invoice_transaction_id IS NOT NULL THEN 1 END"
+        type: count
+        description: "Number of payments linked to an invoice (createdfrom not null)."
+
+      - name: average_payment_size
+        sql: "{cash_collected} / NULLIF({payment_transaction_count}, 0)"
+        type: number
+        format: currency
+        public: false
+        description: "Average payment size (calculated from components)."
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.transaction"
+        type: number
+        primary_key: true
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: "Customer entity ID"
+
+      - name: customer_type
+        type: string
+        case:
+          when:
+            - sql: "{b2b_customers.id} IS NOT NULL"
+              label: "B2B/Wholesale"
+          else:
+            label: "Retail/D2C"
+        description: "Customer type derived from B2B customer lookup"
+
+      - name: paymentmethod
+        sql: "{CUBE}.paymentmethod"
+        type: string
+        description: "Payment method ID from NetSuite header"
+
+      - name: payment_date
+        sql: "CAST({CUBE}.payment_date AS TIMESTAMP)"
+        type: time
+        description: "Payment transaction date"
+
+      - name: invoice_transaction_id
+        sql: "{CUBE}.invoice_transaction_id"
+        type: number
+        description: "Linked invoice transaction ID (createdfrom)"
+
+      - name: subsidiary
+        sql: "SAFE_CAST({CUBE}.subsidiary AS INT64)"
+        type: number
+        description: "Subsidiary ID"
+
+      - name: currency
+        sql: "SAFE_CAST({CUBE}.currency AS INT64)"
+        type: number
+        description: "Currency ID"
+
+      - name: payment_number
+        sql: "{CUBE}.payment_number"
+        type: string
+        description: "Payment transaction number"
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+        description: "Payment status code"
+
+    pre_aggregations:
+      - name: payments_summary
+        measures:
+          - cash_collected
+          - payment_count
+          - payment_transaction_count
+          - payments_with_invoice
+        dimensions:
+          - paymentmethod
+          - customer_type
+          - subsidiary
+          - currency
+        time_dimension: payment_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day

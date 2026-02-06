@@ -107,3 +107,104 @@ views:
           - lifetime_value
           - customer_tier
           - recency_bucket
+
+  # Inventory Adjustments View - Shrinkage and correction tracking
+  - name: adjustment_overview
+    title: Inventory Adjustments
+    description: Inventory adjustment metrics for shrinkage, corrections, and write-downs
+
+    cubes:
+      - join_path: inventory_adjustments
+        includes:
+          - adjustment_value
+          - adjustment_count
+          - shrinkage_value
+          - shrinkage_units
+          - positive_adjustment_value
+          - positive_adjustment_units
+          - item_count
+          - transaction_date
+          - adjustment_type
+          - location_name
+          - subsidiary
+
+  # Vendor Spend View - AP and supplier analysis
+  - name: vendor_spend_overview
+    title: Vendor Spend
+    description: Vendor bill analysis for supplier concentration and spend tracking
+
+    cubes:
+      - join_path: vendor_spend
+        includes:
+          - total_spend
+          - bill_count
+          - vendor_count
+          - bill_date
+          - vendor_name
+          - currency_name
+          - subsidiary
+
+  # Journal Entries View - D&A and controls monitoring
+  - name: journal_entries_overview
+    title: Journal Entries
+    description: Journal entry monitoring and D&A extraction for EBITDA
+
+    cubes:
+      - join_path: journal_entries
+        includes:
+          - depreciation_amortization
+          - journal_entry_count
+          - journal_line_count
+          - total_debits
+          - total_credits
+          - journal_date
+          - accttype
+          - subsidiary
+
+  # Customer Deposits View - Cash received before fulfillment
+  - name: customer_deposits_overview
+    title: Customer Deposits
+    description: Customer deposit inflows and payment method mix
+
+    cubes:
+      - join_path: customer_deposits
+        includes:
+          - deposit_inflow
+          - deposit_count
+          - deposit_transaction_count
+          - deposit_date
+          - paymentmethod
+          - customer_type
+          - subsidiary
+
+  # Deposit Applications View - Deferred revenue timing
+  - name: deposit_applications_overview
+    title: Deposit Applications
+    description: Applied deposits and application timing
+
+    cubes:
+      - join_path: deposit_applications
+        includes:
+          - applied_value
+          - application_count
+          - application_transaction_count
+          - application_date
+          - deposit_date
+          - customer_type
+          - subsidiary
+
+  # Customer Payments View - Cash collections
+  - name: customer_payments_overview
+    title: Customer Payments
+    description: Customer payment collections and method mix
+
+    cubes:
+      - join_path: customer_payments
+        includes:
+          - cash_collected
+          - payment_count
+          - payment_transaction_count
+          - payment_date
+          - paymentmethod
+          - customer_type
+          - subsidiary

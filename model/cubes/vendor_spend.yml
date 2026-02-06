@@ -1,0 +1,150 @@
+cubes:
+  - name: vendor_spend
+    sql: >
+      SELECT
+        SAFE_CAST(vb.id AS INT64) as id,
+        SAFE_CAST(vb.entity AS INT64) as vendor_id,
+        ABS(SAFE_CAST(vb.total AS FLOAT64)) as spend_eur,
+        ABS(SAFE_CAST(vb.foreigntotal AS FLOAT64)) as spend_foreign,
+        SAFE_CAST(vb.currency AS INT64) as currency_id,
+        SAFE_CAST(vb.exchangerate AS FLOAT64) as exchange_rate,
+        SAFE_CAST(vb.subsidiary AS INT64) as subsidiary,
+        vb.memo,
+        vb.tranid as bill_number,
+        PARSE_DATE('%d/%m/%Y', vb.trandate) as bill_date,
+        PARSE_DATE('%d/%m/%Y', vb.duedate) as due_date,
+        PARSE_DATE('%d/%m/%Y', vb.closedate) as close_date,
+        vb.status,
+        vb.approvalstatus
+      FROM gpc.vendor_bills vb
+      WHERE COALESCE(vb.voided, 'F') = 'F'
+        AND COALESCE(vb.posting, 'T') = 'T'
+    title: Vendor Spend
+    description: >
+      Vendor bill (accounts payable) analysis. 25,149 bills from 893 distinct
+      vendors. Amounts are ABS() converted since NetSuite stores AP as negative.
+      All EUR amounts use transaction-date exchange rates.
+      NOTE: All vendor terms are Net 30 (single value) - payment terms analysis not viable.
+
+    joins:
+      - name: vendors
+        relationship: many_to_one
+        sql: "{CUBE}.vendor_id = {vendors.id}"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies.id}"
+
+    measures:
+      # VEND001: Total vendor spend
+      - name: total_spend
+        sql: spend_eur
+        type: sum
+        format: currency
+        description: "VEND001: Total vendor spend in EUR (base currency). Uses ABS of NetSuite AP totals."
+
+      - name: total_spend_foreign
+        sql: spend_foreign
+        type: sum
+        format: currency
+        description: "Total vendor spend in original foreign currency before FX conversion."
+
+      - name: bill_count
+        type: count
+        description: "Number of vendor bills."
+
+      - name: vendor_count
+        sql: "{CUBE}.vendor_id"
+        type: count_distinct_approx
+        description: "VEND002 component: Number of distinct vendors billed (approximate)."
+
+      # VEND004: Spend by currency is handled by grouping by currencies.name dimension
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        description: "Vendor entity ID (FK to vendors table)"
+
+      - name: vendor_name
+        sql: "{vendors.vendor_name}"
+        type: string
+        description: "Vendor name (from vendors join)"
+
+      - name: bill_date
+        sql: "CAST({CUBE}.bill_date AS TIMESTAMP)"
+        type: time
+        description: "Vendor bill transaction date"
+
+      - name: due_date
+        sql: "CAST({CUBE}.due_date AS TIMESTAMP)"
+        type: time
+        description: "Payment due date"
+
+      - name: currency_name
+        sql: "{currencies.name}"
+        type: string
+        description: "VEND004: Bill currency code (EUR, GBP, USD, etc.)"
+
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: "Subsidiary ID (2=Ireland, 6=UK)"
+
+      - name: bill_number
+        sql: "{CUBE}.bill_number"
+        type: string
+        description: "Vendor bill reference number"
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: "Bill memo/description"
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+        description: "Bill status code (B=Paid in Full, etc.)"
+
+    pre_aggregations:
+      # VEND001/VEND002: Vendor spend summary
+      - name: vendor_spend_summary
+        measures:
+          - total_spend
+          - total_spend_foreign
+          - bill_count
+          - vendor_count
+        dimensions:
+          - vendor_id
+          - vendor_name
+          - currency_name
+          - subsidiary
+        time_dimension: bill_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
+
+      # Monthly rollup for trending
+      - name: vendor_spend_monthly
+        measures:
+          - total_spend
+          - bill_count
+          - vendor_count
+        dimensions:
+          - currency_name
+          - subsidiary
+        time_dimension: bill_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day

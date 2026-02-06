@@ -488,6 +488,39 @@ cubes:
         type: number
         description: Return rate percentage (RET001)
 
+      # RET008: Return Cost Impact
+      - name: return_cost_estimate
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type IN ('RtnAuth', 'CashRfnd')
+            AND {CUBE}.costestimate IS NOT NULL
+            AND {CUBE}.costestimate > 0
+            THEN {CUBE}.costestimate * ABS(COALESCE({CUBE}.quantity, 1))
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        format: currency
+        description: >
+          RET008: Estimated cost of returned goods (costestimate x quantity from RtnAuth/CashRfnd).
+          Coverage: ~51% of RtnAuth lines have costestimate populated.
+          This is NetSuite's estimated cost at time of return, not actual COGS posting.
+          Use as a lower-bound estimate of return cost impact.
+
+      # RET009 component: Return gross profit erosion
+      - name: return_estimated_gross_profit
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type IN ('RtnAuth', 'CashRfnd')
+            AND {CUBE}.estgrossprofit IS NOT NULL
+            THEN ABS({CUBE}.estgrossprofit)
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        format: currency
+        description: >
+          RET009: Estimated gross profit lost to returns (from estgrossprofit field on RtnAuth/CashRfnd).
+          Same ~51% coverage caveat as RET008.
+
       # Customer Churn Measures (CUS-004)
       # ✅ PRE-AGG COMPATIBLE: Component measure approach
       # Client-side calculates churn by comparing total_customers (all time) vs total_customers (recent period)
@@ -860,6 +893,8 @@ cubes:
           - orders_shipped_2days          # FUL-001: Component for 2-day ship rate
           - pre_season_revenue            # SEA-004: Component for pre-season booking %
           - pre_season_units              # SEA-004: Component for pre-season booking %
+          - return_cost_estimate         # RET008: Return cost impact
+          - return_estimated_gross_profit # RET009: Return margin erosion
         dimensions:
           - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
           - category          # 10 values - Mens, Womens, etc.

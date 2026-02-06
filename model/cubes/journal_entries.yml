@@ -1,0 +1,132 @@
+cubes:
+  - name: journal_entries
+    sql: >
+      SELECT
+        SAFE_CAST(jl.transaction AS INT64) as transaction,
+        SAFE_CAST(jl.transactionline AS INT64) as transactionline,
+        SAFE_CAST(jl.account AS INT64) as account,
+        jl.account_name,
+        jl.acctnumber,
+        jl.accttype,
+        SAFE_CAST(jl.amount AS FLOAT64) as amount,
+        SAFE_CAST(jl.debit AS FLOAT64) as debit,
+        SAFE_CAST(jl.credit AS FLOAT64) as credit,
+        jl.memo,
+        jl.posting,
+        PARSE_DATE('%d/%m/%Y', jl.trandate) as journal_date,
+        jl.transaction_type,
+        SAFE_CAST(jh.subsidiary AS INT64) as subsidiary,
+        jh.memo as header_memo,
+        SAFE_CAST(jh.currency AS INT64) as currency
+      FROM gpc.accounting_lines_journal jl
+      LEFT JOIN gpc.journal_headers jh
+        ON SAFE_CAST(jl.transaction AS INT64) = SAFE_CAST(jh.id AS INT64)
+      WHERE jl.posting = 'T'
+    title: Journal Entries
+    description: >
+      Manual journal entry accounting lines (169K records). Covers 9 account types:
+      Bank, COGS, CredCard, Equity, Expense, FixedAsset, Income, OthCurrAsset, OthCurrLiab.
+      Primary use: Extract Depreciation & Amortization (D&A) to enable EBITDA calculation.
+      CAVEAT: Excludes opening balance entries (memo LIKE '%Open Balances%') from D&A measures
+      to prevent period spikes.
+
+    measures:
+      # JNL001: Depreciation & Amortization
+      - name: depreciation_amortization
+        sql: "CASE WHEN {CUBE}.accttype = 'FixedAsset' AND {CUBE}.account_name LIKE '%Depreciation%' THEN ABS({CUBE}.amount) ELSE 0 END"
+        type: sum
+        format: currency
+        description: >
+          JNL001: Depreciation & Amortization from journal entries. Enables EBITDA calculation:
+          EBITDA = EBIT + D&A = (Revenue - COGS - OpEx) + D&A.
+          Filters to FixedAsset accounts with 'Depreciation' in name.
+          Excludes opening balance entries.
+        filters:
+          - sql: "COALESCE({CUBE}.header_memo, '') NOT LIKE '%Open Balances%'"
+
+      # JNL002: Journal entry monitoring
+      - name: journal_entry_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        description: "JNL002: Number of unique journal entries (approximate). Useful for audit/controls monitoring."
+
+      - name: journal_line_count
+        type: count
+        description: "Total number of journal entry lines."
+
+      - name: total_debits
+        sql: debit
+        type: sum
+        format: currency
+        description: "Total debit amounts across all journal entries."
+
+      - name: total_credits
+        sql: credit
+        type: sum
+        format: currency
+        description: "Total credit amounts across all journal entries."
+
+    dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.transactionline AS STRING))"
+        type: string
+        primary_key: true
+
+      - name: transaction_id
+        sql: "{CUBE}.transaction"
+        type: number
+
+      - name: account_name
+        sql: "{CUBE}.account_name"
+        type: string
+        description: "GL account name"
+
+      - name: acctnumber
+        sql: "{CUBE}.acctnumber"
+        type: string
+        description: "GL account number"
+
+      - name: accttype
+        sql: "{CUBE}.accttype"
+        type: string
+        description: "Account type (FixedAsset, Bank, COGS, Expense, etc.)"
+
+      - name: journal_date
+        sql: "CAST({CUBE}.journal_date AS TIMESTAMP)"
+        type: time
+        description: "Journal entry date"
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: "Line-level memo"
+
+      - name: header_memo
+        sql: "{CUBE}.header_memo"
+        type: string
+        description: "Header-level memo (e.g., 'Open Balances Feb 2022', 'Dec21 Bal Corr')"
+
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: "Subsidiary ID"
+
+    pre_aggregations:
+      # D&A and journal monitoring
+      - name: journal_summary
+        measures:
+          - depreciation_amortization
+          - journal_entry_count
+          - journal_line_count
+          - total_debits
+          - total_credits
+        dimensions:
+          - accttype
+          - subsidiary
+        time_dimension: journal_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day

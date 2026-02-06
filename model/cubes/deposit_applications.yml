@@ -1,0 +1,155 @@
+cubes:
+  - name: deposit_applications
+    sql: >
+      SELECT
+        tl.transaction,
+        tl.amount,
+        tl.netamount,
+        tl.trandate as application_date,
+        tl.createdfrom as deposit_transaction_id,
+        cd.trandate as deposit_date,
+        SAFE_CAST(t.entity AS INT64) as customer_id,
+        t.currency,
+        t.exchangerate,
+        t.foreigntotal,
+        t.total,
+        t.subsidiary,
+        t.tranid as application_number,
+        t.status,
+        t.memo
+      FROM gpc.transaction_lines tl
+      LEFT JOIN gpc.transaction t
+        ON tl.transaction = SAFE_CAST(t.id AS INT64)
+      LEFT JOIN gpc.transaction_lines cd
+        ON tl.createdfrom = cd.transaction
+        AND cd.transaction_type = 'CustDep'
+        AND COALESCE(cd.mainline, 'F') = 'F'
+        AND COALESCE(cd.taxline, 'F') = 'F'
+      WHERE tl.transaction_type = 'DepAppl'
+        AND COALESCE(tl.mainline, 'F') = 'F'
+        AND COALESCE(tl.taxline, 'F') = 'F'
+        AND COALESCE(t.posting, 'T') = 'T'
+        AND COALESCE(t.voided, 'F') = 'F'
+    title: Deposit Applications
+    description: >
+      Deposit application transactions (DepAppl) representing applied customer
+      deposits against invoices. Amounts are stored as negatives in NetSuite and
+      are ABS() converted in measures.
+
+    joins:
+      - name: b2b_customers
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {b2b_customers.id}"
+
+    measures:
+      - name: applied_value
+        sql: "ABS({CUBE}.amount)"
+        type: sum
+        format: currency
+        description: "Total value of applied deposits (ABS of line amount)."
+
+      - name: application_count
+        type: count
+        description: "Number of deposit applications."
+
+      - name: application_transaction_count
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        description: "Number of unique deposit applications (approximate)."
+
+      - name: total_days_to_apply
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.deposit_date IS NOT NULL
+            THEN DATE_DIFF(CAST({CUBE}.application_date AS DATE), CAST({CUBE}.deposit_date AS DATE), DAY)
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        description: "Total days between deposit and application (for averaging)."
+
+      - name: lines_with_deposit_date
+        sql: "CASE WHEN {CUBE}.deposit_date IS NOT NULL THEN 1 END"
+        type: count
+        description: "Count of applications with a linked deposit date."
+
+      - name: average_days_to_apply
+        sql: "{total_days_to_apply} / NULLIF({lines_with_deposit_date}, 0)"
+        type: number
+        public: false
+        description: "Average days between deposit and application (calculated from components)."
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.transaction"
+        type: number
+        primary_key: true
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: "Customer entity ID"
+
+      - name: customer_type
+        type: string
+        case:
+          when:
+            - sql: "{b2b_customers.id} IS NOT NULL"
+              label: "B2B/Wholesale"
+          else:
+            label: "Retail/D2C"
+        description: "Customer type derived from B2B customer lookup"
+
+      - name: application_date
+        sql: "CAST({CUBE}.application_date AS TIMESTAMP)"
+        type: time
+        description: "Deposit application transaction date"
+
+      - name: deposit_date
+        sql: "CAST({CUBE}.deposit_date AS TIMESTAMP)"
+        type: time
+        description: "Original deposit transaction date"
+
+      - name: deposit_transaction_id
+        sql: "{CUBE}.deposit_transaction_id"
+        type: number
+        description: "Linked deposit transaction ID (createdfrom)"
+
+      - name: subsidiary
+        sql: "SAFE_CAST({CUBE}.subsidiary AS INT64)"
+        type: number
+        description: "Subsidiary ID"
+
+      - name: currency
+        sql: "SAFE_CAST({CUBE}.currency AS INT64)"
+        type: number
+        description: "Currency ID"
+
+      - name: application_number
+        sql: "{CUBE}.application_number"
+        type: string
+        description: "Deposit application transaction number"
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+        description: "Application status code"
+
+    pre_aggregations:
+      - name: deposit_application_summary
+        measures:
+          - applied_value
+          - application_count
+          - application_transaction_count
+          - total_days_to_apply
+          - lines_with_deposit_date
+        dimensions:
+          - customer_type
+          - subsidiary
+          - currency
+        time_dimension: application_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
