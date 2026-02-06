@@ -1,6 +1,6 @@
 cubes:
   - name: entity_classification
-    sql: SELECT * FROM gpc_data_2026_01_26.entity_classification
+    sql_table: gpc_data_2026_01_26.entity_classification
     title: Entity Classification
     description: >
       Entity classification lookup dimension for identifying entity types (customer, vendor, webstore, POS, etc.)

@@ -1,10 +1,19 @@
 cubes:
   - name: subsidiaries
-    sql: SELECT * FROM gpc_data_2026_01_26.subsidiaries
+    sql_table: gpc_data_2026_01_26.subsidiaries
     title: Subsidiaries
     description: >
       Legal entity reference data for multi-entity accounting.
       Grain: one row per subsidiary/legal entity.
+
+    joins:
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies}.currency_id"
+
+      - name: parent_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.parent_subsidiary_id = {subsidiaries}.subsidiary_id"
 
     measures:
       - name: subsidiary_count
@@ -59,7 +68,7 @@ cubes:
         description: Indicates if this is an elimination subsidiary for consolidation
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the subsidiary record was last modified
 

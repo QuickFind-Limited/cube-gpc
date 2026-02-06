@@ -1,15 +1,15 @@
 cubes:
   - name: accounts
-    sql: SELECT * FROM gpc_data_2026_01_26.accounts
+    sql_table: gpc_data_2026_01_26.accounts
     title: Chart of Accounts
     description: >
       General Ledger chart of accounts dimension with hierarchical account structure.
       Grain: one row per GL account.
 
     joins:
-      - name: accounts
+      - name: currencies
         relationship: many_to_one
-        sql: "{CUBE}.account_id = {accounts.account_id}"
+        sql: "{CUBE}.currency_id = {currencies}.currency_id"
 
     measures:
       - name: account_count
@@ -66,7 +66,7 @@ cubes:
         description: Comma-separated list of subsidiary IDs this account belongs to
 
       - name: currency_id
-        sql: "CAST({CUBE}.currency_id AS INT64)"
+        sql: "{CUBE}.currency_id"
         type: number
         description: Currency ID for this account (mainly for bank/credit card accounts)
 
@@ -116,7 +116,7 @@ cubes:
         description: Exchange rate type for general ledger reporting
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the account was last modified
 

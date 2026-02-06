@@ -1,6 +1,6 @@
 cubes:
   - name: currencies
-    sql: SELECT * FROM gpc_data_2026_01_26.currencies
+    sql_table: gpc_data_2026_01_26.currencies
     title: Currencies
     description: Currency reference data with exchange rates for multi-currency support
 

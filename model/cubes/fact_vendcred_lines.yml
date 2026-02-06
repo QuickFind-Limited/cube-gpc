@@ -1,6 +1,6 @@
 cubes:
   - name: fact_vendcred_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendcred_lines
+    sql_table: gpc_data_2026_01_26.fact_vendcred_lines
     title: Vendor Credit Lines
     description: >
       Vendor credit memo line-level detail. Contains individual line items for vendor credits.
@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: fact_vendcred_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_vendcred_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_vendcred_headers}.transaction_id"
 
     measures:
       - name: vendcred_lines_count
@@ -66,6 +66,8 @@ cubes:
 
     pre_aggregations:
       - name: vendcred_lines_rollup
+        type: rollup
+        external: true
         measures:
           - vendcred_lines_count
           - total_line_amount
@@ -73,4 +75,4 @@ cubes:
           - class_id
           - is_mainline
         refresh_key:
-          every: 1 day
+          every: "24 hour"

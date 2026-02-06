@@ -1,6 +1,6 @@
 cubes:
   - name: fact_invadjst_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_headers
+    sql_table: gpc_data_2026_01_26.fact_invadjst_headers
     title: Inventory Adjustment Headers
     description: >
       Inventory adjustment transaction headers. These represent adjustments to inventory quantities
@@ -8,9 +8,9 @@ cubes:
       Grain: one row per inventory adjustment transaction header.
 
     joins:
-      - name: subsidiaries
+      - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {subsidiaries.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
 
       - name: currencies
         relationship: many_to_one
@@ -19,6 +19,10 @@ cubes:
       - name: accounting_periods
         relationship: many_to_one
         sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction_id = {transactions.id}"
 
     measures:
       - name: invadjst_count
@@ -31,6 +35,12 @@ cubes:
         format: currency
         description: Sum of adjustment amounts in base currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute adjustment amounts (ignoring sign)
+
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum
@@ -41,12 +51,6 @@ cubes:
         sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
         type: avg
         description: Average exchange rate for adjustments
-
-      - name: total_adjustments_absolute
-        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
-        type: sum
-        format: currency
-        description: Sum of absolute adjustment amounts (ignoring sign)
 
     dimensions:
       - name: transaction_id
@@ -61,7 +65,7 @@ cubes:
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date the inventory adjustment was recorded
 
@@ -129,6 +133,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_adjustments
+        type: rollup
+        external: true
         measures:
           - invadjst_count
           - total_amount
@@ -140,4 +146,4 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

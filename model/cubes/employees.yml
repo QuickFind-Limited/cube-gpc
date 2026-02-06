@@ -1,6 +1,6 @@
 cubes:
   - name: employees
-    sql: SELECT * FROM gpc_data_2026_01_26.employees
+    sql_table: gpc_data_2026_01_26.employees
     title: Employees
     description: >
       Employee dimension containing employee master data including sales reps.
@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: subsidiaries
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {subsidiaries.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {subsidiaries}.subsidiary_id"
 
     measures:
       - name: employee_count
@@ -78,12 +78,12 @@ cubes:
         description: Indicates if the employee is a sales representative
 
       - name: hire_date
-        sql: "TIMESTAMP({CUBE}.hire_date)"
+        sql: "CAST({CUBE}.hire_date AS TIMESTAMP)"
         type: time
         description: Date the employee was hired
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date the employee record was last modified
 

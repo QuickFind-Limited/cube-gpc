@@ -1,6 +1,6 @@
 cubes:
   - name: fact_invadjst_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_lines
+    sql_table: gpc_data_2026_01_26.fact_invadjst_lines
     title: Inventory Adjustment Lines
     description: >
       Inventory adjustment transaction line details showing item-level adjustments.
@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: fact_invadjst_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_invadjst_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_invadjst_headers}.transaction_id"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {dim_item.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {dim_location.location_id}"
+        sql: "{CUBE}.location_id = {dim_location}.location_id"
 
       - name: classes
         relationship: many_to_one
-        sql: "{CUBE}.class_id = {classes.id}"
+        sql: "{CUBE}.class_id = {classes}.id"
 
     measures:
       - name: invadjst_lines_count
@@ -119,6 +119,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_adjustments
+        type: rollup
+        external: true
         measures:
           - invadjst_lines_count
           - total_quantity
@@ -127,12 +129,12 @@ cubes:
           - item_id
           - location_id
           - class_id
-        time_dimension: fact_invadjst_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day
 
       - name: monthly_by_item_location
+        type: rollup
+        external: true
         measures:
           - invadjst_lines_count
           - total_quantity
@@ -140,7 +142,5 @@ cubes:
         dimensions:
           - item_id
           - location_id
-        time_dimension: fact_invadjst_headers.transaction_date
-        granularity: month
         refresh_key:
           every: 1 day

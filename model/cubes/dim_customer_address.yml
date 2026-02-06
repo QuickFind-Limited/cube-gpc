@@ -1,6 +1,6 @@
 cubes:
   - name: dim_customer_address
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer_address
+    sql_table: gpc_data_2026_01_26.dim_customer_address
     title: Customer Addresses
     description: >
       Customer address dimension containing shipping and billing addresses.
@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: dim_customer
         relationship: many_to_one
-        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+        sql: "{CUBE}.customer_id = {dim_customer}.customer_id"
 
     measures:
       - name: address_count
@@ -66,12 +66,12 @@ cubes:
       - name: is_default_billing
         sql: "{CUBE}.is_default_billing"
         type: string
-        description: Indicates if this is the default billing address
+        description: Indicates if this is the default billing address (T/F)
 
       - name: is_default_shipping
         sql: "{CUBE}.is_default_shipping"
         type: string
-        description: Indicates if this is the default shipping address
+        description: Indicates if this is the default shipping address (T/F)
 
       - name: is_residential
         sql: "{CUBE}.is_residential"

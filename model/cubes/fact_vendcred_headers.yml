@@ -1,6 +1,6 @@
 cubes:
   - name: fact_vendcred_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendcred_headers
+    sql_table: gpc_data_2026_01_26.fact_vendcred_headers
     title: Vendor Credit Headers
     description: >
       Vendor credit memo headers tracking credits received from vendors.
@@ -9,19 +9,19 @@ cubes:
     joins:
       - name: dim_vendor
         relationship: many_to_one
-        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
+        sql: "{CUBE}.vendor_id = {dim_vendor}.vendor_id"
 
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
       - name: currencies
         relationship: many_to_one
-        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+        sql: "{CUBE}.currency_id = {currencies}.currency_id"
 
       - name: accounting_periods
         relationship: many_to_one
-        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+        sql: "{CUBE}.posting_period_id = {accounting_periods}.period_id"
 
     measures:
       - name: vendcred_count
@@ -33,6 +33,12 @@ cubes:
         type: sum
         format: currency
         description: Sum of vendor credit amounts in base currency
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of vendor credit amounts (positive)
 
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
@@ -64,12 +70,12 @@ cubes:
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date of the vendor credit transaction
 
       - name: close_date
-        sql: "TIMESTAMP({CUBE}.close_date)"
+        sql: "CAST({CUBE}.close_date AS TIMESTAMP)"
         type: time
         description: Date when the vendor credit was closed
 
@@ -134,6 +140,8 @@ cubes:
 
     pre_aggregations:
       - name: vendor_credits_daily
+        type: rollup
+        external: true
         measures:
           - vendcred_count
           - total_amount
@@ -146,4 +154,4 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

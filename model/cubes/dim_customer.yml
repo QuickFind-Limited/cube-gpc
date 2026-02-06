@@ -1,11 +1,16 @@
 cubes:
   - name: dim_customer
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer
+    sql_table: gpc_data_2026_01_26.dim_customer
     title: Customers
     description: >
       Customer dimension containing all customers, including real customers and system entities (webstore, POS).
       Grain: one row per customer.
       Note: Use segments to filter out system entities for customer-facing analytics.
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
     measures:
       - name: customer_count
@@ -90,12 +95,12 @@ cubes:
         description: Indicates if customer is an individual person vs business
 
       - name: date_created
-        sql: "TIMESTAMP({CUBE}.date_created)"
+        sql: "CAST({CUBE}.date_created AS TIMESTAMP)"
         type: time
         description: Date when customer record was created
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when customer record was last modified
 

@@ -1,6 +1,6 @@
 cubes:
   - name: classes
-    sql: SELECT * FROM gpc_data_2026_01_26.classes
+    sql_table: gpc_data_2026_01_26.classes
     title: Classes
     description: >
       Class dimension for segmenting transactions by product line or business unit.

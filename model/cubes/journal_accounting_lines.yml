@@ -1,23 +1,27 @@
 cubes:
   - name: journal_accounting_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.journal_accounting_lines
+    sql_table: gpc_data_2026_01_26.journal_accounting_lines
     title: Journal Accounting Lines
     description: >
       Journal entry line-level detail containing GL distributions for journal entries.
-      Grain: one row per journal entry line.
+      Grain: one row per journal entry line with account distribution.
 
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {transactions.id}"
+        sql: "{CUBE}.transaction = {transactions}.id"
 
       - name: departments
         relationship: many_to_one
-        sql: "{CUBE}.department = {departments.department_id}"
+        sql: "{CUBE}.department = {departments}.department_id"
 
       - name: locations
         relationship: many_to_one
-        sql: "{CUBE}.location = {locations.location_id}"
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: accounts
+        relationship: many_to_one
+        sql: "{CUBE}.account = {accounts}.account_id"
 
     measures:
       - name: journal_lines_count
@@ -63,6 +67,7 @@ cubes:
       - name: account
         sql: "{CUBE}.account"
         type: number
+        primary_key: true
         description: GL account number for this journal line
 
       - name: debit
@@ -78,7 +83,7 @@ cubes:
       - name: amount
         sql: "CAST({CUBE}.amount AS FLOAT64)"
         type: number
-        description: Line amount (signed: positive for debit, negative for credit)
+        description: "Line amount (signed: positive for debit, negative for credit)"
 
       - name: netamount
         sql: "CAST({CUBE}.netamount AS FLOAT64)"
@@ -111,7 +116,7 @@ cubes:
         description: Line-level memo or description
 
       - name: trandate
-        sql: "TIMESTAMP({CUBE}.trandate)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
@@ -130,6 +135,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_gl_summary
+        type: rollup
+        external: true
         measures:
           - journal_lines_count
           - total_debit
@@ -142,4 +149,4 @@ cubes:
         time_dimension: trandate
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

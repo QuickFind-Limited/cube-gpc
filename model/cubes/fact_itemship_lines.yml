@@ -1,6 +1,6 @@
 cubes:
   - name: fact_itemship_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemship_lines
+    sql_table: gpc_data_2026_01_26.fact_itemship_lines
     title: Item Fulfillment Lines
     description: >
       Item fulfillment line-level detail for shipments to customers.
@@ -9,23 +9,23 @@ cubes:
     joins:
       - name: fact_itemship_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_itemship_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_itemship_headers}.transaction_id"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {dim_item.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {dim_location.location_id}"
+        sql: "{CUBE}.location_id = {dim_location}.location_id"
 
       - name: dim_department
         relationship: many_to_one
-        sql: "{CUBE}.department_id = {dim_department.department_id}"
+        sql: "{CUBE}.department_id = {dim_department}.department_id"
 
       - name: classes
         relationship: many_to_one
-        sql: "{CUBE}.class_id = {classes.id}"
+        sql: "{CUBE}.class_id = {classes}.id"
 
     measures:
       - name: itemship_lines_count
@@ -114,18 +114,20 @@ cubes:
 
     pre_aggregations:
       - name: daily_shipments
+        type: rollup
+        external: true
         measures:
           - itemship_lines_count
           - total_quantity
         dimensions:
           - item_id
           - location_id
-        time_dimension: fact_itemship_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day
 
       - name: item_location_rollup
+        type: rollup
+        external: true
         measures:
           - itemship_lines_count
           - total_quantity

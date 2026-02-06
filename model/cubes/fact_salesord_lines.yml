@@ -1,6 +1,6 @@
 cubes:
   - name: fact_salesord_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_salesord_lines
+    sql_table: gpc_data_2026_01_26.fact_salesord_lines
     title: Sales Order Lines
     description: >
       Sales order line-level detail containing item quantities and amounts for each sales order.
@@ -132,6 +132,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - salesord_lines_count
           - total_quantity
@@ -139,12 +141,12 @@ cubes:
         dimensions:
           - entity_type
           - transaction_in_scope
-        time_dimension: fact_salesord_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day
 
       - name: by_item_daily
+        type: rollup
+        external: true
         measures:
           - salesord_lines_count
           - total_quantity
@@ -152,7 +154,5 @@ cubes:
         dimensions:
           - item_id
           - entity_type
-        time_dimension: fact_salesord_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day

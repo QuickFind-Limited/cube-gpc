@@ -1,6 +1,6 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM gpc_data_2026_01_26.transactions
+    sql_table: gpc_data_2026_01_26.transactions
     title: Transactions
     description: >
       Transaction headers across all transaction types (orders, invoices, cash sales, returns, payments, etc.).
@@ -10,11 +10,11 @@ cubes:
     joins:
       - name: currencies
         relationship: many_to_one
-        sql: "{CUBE}.currency = {currencies.currency_id}"
+        sql: "{CUBE}.currency = {currencies}.currency_id"
 
       - name: subsidiaries
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary = {subsidiaries.subsidiary_id}"
+        sql: "{CUBE}.subsidiary = {subsidiaries}.subsidiary_id"
 
     measures:
       - name: transactions_count
@@ -110,7 +110,7 @@ cubes:
         description: "Transaction type: SalesOrd, CustInvc, CashSale, CustCred, CustPymt, VendBill, VendPymt, etc."
 
       - name: trandate
-        sql: "TIMESTAMP({CUBE}.trandate)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
@@ -207,37 +207,37 @@ cubes:
         description: Source transaction ID (for transactions created from other transactions)
 
       - name: shipdate
-        sql: "TIMESTAMP({CUBE}.shipdate)"
+        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
         type: time
         description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
 
       - name: closedate
-        sql: "TIMESTAMP({CUBE}.closedate)"
+        sql: "CAST({CUBE}.closedate AS TIMESTAMP)"
         type: time
         description: Date when transaction was closed/completed
 
       - name: duedate
-        sql: "TIMESTAMP({CUBE}.duedate)"
+        sql: "CAST({CUBE}.duedate AS TIMESTAMP)"
         type: time
         description: Due date (for invoices and bills)
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), MONTH)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), YEAR)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), WEEK)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 
@@ -269,6 +269,8 @@ cubes:
     pre_aggregations:
       # Main rollup for transaction analysis
       - name: transactions_daily
+        type: rollup
+        external: true
         measures:
           - transactions_count
           - order_count
@@ -293,4 +295,4 @@ cubes:
         time_dimension: trandate
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

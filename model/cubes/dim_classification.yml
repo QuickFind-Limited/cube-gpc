@@ -1,6 +1,6 @@
 cubes:
   - name: dim_classification
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_classification
+    sql_table: gpc_data_2026_01_26.dim_classification
     title: Classifications
     description: >
       Classification dimension for retail location and business unit categorization.
