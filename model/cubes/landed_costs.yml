@@ -11,25 +11,28 @@ cubes:
         CAST(tl.estgrossprofitpercent AS FLOAT64) as estimated_gp_percent,
         CAST(tl.subsidiary AS INT64) as subsidiary_id,
         tl.transaction_date as receipt_date,
-        tl.transaction_type,
-        tl.blandedcost
+        tl.transaction_type
       FROM gpc.transaction_lines_denormalized_mv tl
       WHERE tl.transaction_type = 'ItemRcpt'
         AND tl.mainline = 'F'
         AND CAST(tl.amount AS FLOAT64) > 0
-        AND tl.blandedcost = 'T'
+        AND (CAST(tl.quantity AS FLOAT64) IS NULL OR CAST(tl.quantity AS FLOAT64) = 0)
 
     title: Landed Costs Analysis
     description: >
-      Landed costs (freight, duties, customs) from Item Receipts identified by blandedcost='T' flag.
+      Landed costs (freight, duties, customs) from Item Receipts identified by null quantity pattern.
       These are additional costs added to inventory beyond the base item cost.
 
-      Uses transaction_lines_denormalized_mv which includes foreignamount, subsidiary, and blandedcost fields
+      Uses transaction_lines_denormalized_mv which includes foreignamount and subsidiary fields
       not available in the base transaction_lines table.
 
-      NetSuite stores landed costs using double-entry accounting with offsetting positive/negative amounts.
-      This cube filters for positive amounts only (amount > 0) and blandedcost='T' to get only actual
-      landed cost lines, not regular item receipt lines.
+      NetSuite ItemRcpt lines follow a 5-line pattern per item:
+        1. Receipt line: has quantity + rate + positive amount (inventory receipt)
+        2. Landed cost line(s): NO quantity, NO rate, positive amount (freight/duty)
+        3. Offset line(s): NO quantity, NO rate, negative amount (double-entry contra)
+
+      This cube filters for positive amounts (amount > 0) with null/zero quantity to isolate
+      landed cost lines from regular item receipt lines. No dependency on blandedcost field.
 
     measures:
       - name: total_landed_costs
@@ -102,7 +105,7 @@ cubes:
 
     pre_aggregations:
       # Monthly landed costs by item
-      # REBUILD REQUIRED: v67 fix - switched to transaction_lines_denormalized_mv for foreignamount, subsidiary, blandedcost fields
+      # REBUILD REQUIRED: v68 fix - replaced blandedcost='T' filter with quantity-based landed cost identification
       - name: monthly_landed_costs
         measures:
           - total_landed_costs
@@ -118,4 +121,4 @@ cubes:
           sql: SELECT '2025-10-31'
         refresh_key:
           every: 1 day
-          # Force rebuild after v66 fix (2026-01-29)
+          # Force rebuild after v68 fix - quantity-based landed cost identification (2026-02-05)
