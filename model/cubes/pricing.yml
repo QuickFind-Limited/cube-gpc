@@ -1,0 +1,30 @@
+cubes:
+  - name: pricing
+    sql: >
+      SELECT item AS item_id, unitprice AS base_price_eur
+      FROM gpc.pricing
+      WHERE currency = 1 AND pricelevel = 1 AND priceqty = 1 AND unitprice > 0
+
+    title: Pricing
+    description: >
+      Item EUR base/retail pricing from NetSuite Pricing table.
+      Filtered to EUR (currency=1), Base Price level (pricelevel=1), qty break 1.
+      PO002 FIX - enables retail value analysis on purchase orders.
+      99.7% coverage on PO items (10,697 of 10,727).
+
+    dimensions:
+      - name: item_id
+        sql: "{CUBE}.item_id"
+        type: number
+        primary_key: true
+        description: NetSuite item ID (join key to items table)
+
+      - name: base_price_eur
+        sql: "{CUBE}.base_price_eur"
+        type: number
+        format: currency
+        title: Base Price (EUR)
+        description: >
+          EUR retail/base price from NetSuite Pricing table.
+          This is the selling price, NOT purchase cost.
+          13,548 items have pricing data. 99.7% coverage on PO items.

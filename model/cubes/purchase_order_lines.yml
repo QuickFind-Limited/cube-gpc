@@ -63,6 +63,23 @@ cubes:
         type: count_distinct
         description: "SEA-003: Number of unique purchase orders (for reorder rate calculation)"
 
+      # PO002 fix: Retail value measures using pricing table
+      - name: on_order_retail_value
+        sql: "(quantity - COALESCE(CAST(quantityshiprecv AS INT64), 0)) * {pricing.base_price_eur}"
+        type: sum
+        format: currency
+        description: >
+          Retail value of outstanding orders (qty outstanding * EUR base price).
+          PO002 FIX - uses Pricing table for retail/selling prices. 99.7% PO item coverage.
+
+      - name: total_retail_value
+        sql: "quantity * {pricing.base_price_eur}"
+        type: sum
+        format: currency
+        description: >
+          Total retail value of ordered quantity (qty ordered * EUR base price).
+          PO002 FIX - uses Pricing table for retail/selling prices.
+
     dimensions:
       - name: id
         sql: id
@@ -132,6 +149,31 @@ cubes:
         title: Product Category
         description: "Product category from items table (Men, Women, Unisex, Accessories, etc.)"
 
+      # PO002 fix: Country of origin and factory for PO analysis
+      - name: country_of_origin
+        sql: "{items.country_of_origin}"
+        type: string
+        title: Country of Origin
+        description: >
+          ISO 2-letter country of origin code from items table (e.g., CN=China, TR=Turkey, VN=Vietnam).
+          86.6% coverage. PO002 FIX - enables PO analysis by sourcing country.
+
+      - name: factory_code
+        sql: "{vendors.factory_code}"
+        type: string
+        title: Factory Code
+        description: >
+          Supplier factory code from vendors table (e.g., CN0001, GB0021).
+          Only manufacturing vendors have this (22 of 1,136). PO002 FIX.
+
+      - name: supplier_company_name
+        sql: "{vendors.company_name}"
+        type: string
+        title: Supplier Company Name
+        description: >
+          Supplier company name from vendors table (companyName). 99.7% coverage.
+          PO002 FIX - alternative to vendor_name (entityId) for display.
+
     joins:
       - name: purchase_orders
         relationship: many_to_one
@@ -140,6 +182,10 @@ cubes:
       - name: items
         relationship: many_to_one
         sql: "{CUBE}.item = {items}.id"
+
+      - name: pricing
+        relationship: many_to_one
+        sql: "{CUBE}.item = {pricing}.item_id"
 
     pre_aggregations:
       - name: on_order_summary
@@ -151,6 +197,8 @@ cubes:
           - total_received_qty
           - unique_items        # SEA-003 v71
           - unique_pos          # SEA-003 v71
+          - on_order_retail_value   # PO002 fix - retail value
+          - total_retail_value      # PO002 fix - retail value
         dimensions:
           - item
           - po_id               # SEA-003 v71
@@ -158,6 +206,9 @@ cubes:
           - category            # SEA-003 v71
           - purchase_orders.supplier
           - vendors.vendor_name
+          - country_of_origin       # PO002 fix - sourcing country from items
+          - factory_code            # PO002 fix - factory code from vendors
+          - supplier_company_name   # PO002 fix - company name from vendors
         time_dimension: trandate
         granularity: day
         refresh_key:

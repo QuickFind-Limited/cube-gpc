@@ -125,5 +125,7 @@ cubes:
           - status
           - supplier
           - vendors.vendor_name
+          - vendors.factory_code      # PO002 fix
+          - vendors.company_name      # PO002 fix
         refresh_key:
           every: 1 day

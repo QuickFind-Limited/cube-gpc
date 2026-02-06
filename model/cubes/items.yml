@@ -131,7 +131,23 @@ cubes:
       - name: base_price
         sql: "{CUBE}.baseprice"
         type: number
-        description: Base price
+        description: >
+          Base price. WARNING: baseprice field is NOT available in SuiteQL (HTTP 400) and was NOT extracted
+          to BigQuery. This dimension will return NULL. For cost data use 'cost' or 'lastpurchaseprice' dimensions.
+          There is no retail/selling price field available from NetSuite extraction.
+
+      - name: last_purchase_price
+        sql: "{CUBE}.lastpurchaseprice"
+        type: number
+        description: Last purchase price paid for this item (56% coverage, avg €12.48)
+
+      - name: country_of_origin
+        sql: "{CUBE}.custitem_coo_iso2"
+        type: string
+        title: Country of Origin
+        description: >
+          ISO 2-letter country of origin code (e.g., CN=China, TR=Turkey, VN=Vietnam, PT=Portugal).
+          86.6% coverage (13,215 of 15,268 items). PO002 FIX - Added for PO analysis by sourcing country.
 
       - name: description
         sql: "{CUBE}.salesdescription"
@@ -176,6 +192,7 @@ cubes:
           - itemtype
           - season_type
           - markdown  # LIFE001 - needed for full price vs markdown analysis
+          - country_of_origin  # PO002 fix - country of origin for sourcing analysis
         refresh_key:
           every: 1 day
           # Force rebuild after v68.2 fix (2026-01-31)

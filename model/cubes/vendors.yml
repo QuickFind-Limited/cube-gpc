@@ -84,6 +84,20 @@ cubes:
         title: Last Modified
         description: Date vendor record was last modified
 
+      - name: factory_code
+        sql: "custentityfactory_code"
+        type: string
+        title: Factory Code
+        description: >
+          Factory code (e.g., CN0001, GB0021). PO002 FIX - Only 22 of 1,136 vendors have this field
+          (manufacturing/production vendors only). Format: country ISO2 + sequential number.
+
+      - name: company_name
+        sql: "companyName"
+        type: string
+        title: Company Name
+        description: Vendor company name (companyName from NetSuite REST API). 99.7% coverage.
+
     joins:
       - name: currencies
         relationship: many_to_one
@@ -101,5 +115,7 @@ cubes:
           - is_inactive
           - is_person
           - currency_name
+          - factory_code    # PO002 fix
+          - company_name    # PO002 fix
         refresh_key:
           every: 1 day
