@@ -1,6 +1,6 @@
 cubes:
   - name: transactions
-    sql: SELECT * FROM gpc_data_2026_01_26.transactions
+    sql_table: gpc_data_2026_01_26.transactions
     title: Transactions
     description: >
       Transaction headers across all transaction types (orders, invoices, cash sales, returns, payments, etc.).
@@ -54,13 +54,13 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred' AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
+          - sql: "{CUBE}.type = 'CustCred' AND CAST({CUBE}.trandate AS TIMESTAMP) >= '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND CAST({CUBE}.trandate AS TIMESTAMP) >= '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_amount
@@ -110,7 +110,7 @@ cubes:
         description: "Transaction type: SalesOrd, CustInvc, CashSale, CustCred, CustPymt, VendBill, VendPymt, etc."
 
       - name: trandate
-        sql: "TIMESTAMP({CUBE}.trandate)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
@@ -207,37 +207,37 @@ cubes:
         description: Source transaction ID (for transactions created from other transactions)
 
       - name: shipdate
-        sql: "TIMESTAMP({CUBE}.shipdate)"
+        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
         type: time
         description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
 
       - name: closedate
-        sql: "TIMESTAMP({CUBE}.closedate)"
+        sql: "CAST({CUBE}.closedate AS TIMESTAMP)"
         type: time
         description: Date when transaction was closed/completed
 
       - name: duedate
-        sql: "TIMESTAMP({CUBE}.duedate)"
+        sql: "CAST({CUBE}.duedate AS TIMESTAMP)"
         type: time
         description: Due date (for invoices and bills)
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), MONTH)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), YEAR)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(TIMESTAMP({CUBE}.trandate), WEEK)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 

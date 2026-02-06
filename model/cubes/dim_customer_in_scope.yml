@@ -1,6 +1,6 @@
 cubes:
   - name: dim_customer_in_scope
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_customer_in_scope
+    sql_table: gpc_data_2026_01_26.dim_customer_in_scope
     title: Customers (In Scope)
     description: >
       Customer dimension filtered to include only in-scope customers (excludes webstore, POS, and test entities).
@@ -94,14 +94,19 @@ cubes:
         description: Indicates if customer is an individual person (true) or business (false)
 
       - name: date_created
-        sql: "TIMESTAMP({CUBE}.date_created)"
+        sql: "CAST({CUBE}.date_created AS TIMESTAMP)"
         type: time
         description: Date when customer record was created
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when customer record was last modified
+
+    joins:
+      - name: dim_subsidiary
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
     segments:
       - name: active_customers

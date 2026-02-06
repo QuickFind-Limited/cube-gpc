@@ -1,6 +1,6 @@
 cubes:
   - name: fact_transfer_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_transfer_lines
+    sql_table: gpc_data_2026_01_26.fact_transfer_lines
     title: Transfer Order Lines
     description: >
       Transfer order line-level detail for inventory transfers between locations or subsidiaries.
@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: fact_transfer_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_transfer_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_transfer_headers}.transaction_id"
 
     measures:
       - name: transfer_lines_count
@@ -34,9 +34,11 @@ cubes:
 
     pre_aggregations:
       - name: transfer_lines_rollup
+        type: rollup
+        external: true
         measures:
           - transfer_lines_count
         dimensions:
           - is_mainline
         refresh_key:
-          every: 1 day
+          every: 24 hour

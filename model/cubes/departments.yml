@@ -1,6 +1,6 @@
 cubes:
   - name: departments
-    sql: SELECT * FROM gpc_data_2026_01_26.departments
+    sql_table: gpc_data_2026_01_26.departments
     title: Departments
     description: >
       Department reference data (eCommerce, Retail, Wholesale, etc.).
@@ -45,7 +45,7 @@ cubes:
         description: Whether department is inactive
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the department record was last modified
 

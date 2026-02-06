@@ -1,6 +1,6 @@
 cubes:
   - name: fact_invadjst_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_headers
+    sql_table: gpc_data_2026_01_26.fact_invadjst_headers
     title: Inventory Adjustment Headers
     description: >
       Inventory adjustment transaction headers. These represent adjustments to inventory quantities
@@ -61,7 +61,7 @@ cubes:
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date the inventory adjustment was recorded
 
@@ -129,6 +129,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_adjustments
+        type: rollup
+        external: true
         measures:
           - invadjst_count
           - total_amount

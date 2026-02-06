@@ -1,6 +1,6 @@
 cubes:
   - name: fact_itemrcpt_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemrcpt_headers
+    sql_table: gpc_data_2026_01_26.fact_itemrcpt_headers
     title: Item Receipt Headers
     description: >
       Item receipt transaction headers for vendor receipts and inventory receiving.
@@ -10,19 +10,19 @@ cubes:
     joins:
       - name: dim_vendor
         relationship: many_to_one
-        sql: "{CUBE}.vendor_id = {dim_vendor.vendor_id}"
+        sql: "{CUBE}.vendor_id = {dim_vendor}.vendor_id"
 
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
       - name: dim_currency
         relationship: many_to_one
-        sql: "{CUBE}.currency_id = {dim_currency.currency_id}"
+        sql: "{CUBE}.currency_id = {dim_currency}.currency_id"
 
       - name: accounting_periods
         relationship: many_to_one
-        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+        sql: "{CUBE}.posting_period_id = {accounting_periods}.period_id"
 
     measures:
       - name: itemrcpt_count
@@ -65,7 +65,7 @@ cubes:
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date of the item receipt transaction
 
@@ -138,6 +138,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_receipts
+        type: rollup
+        external: true
         measures:
           - itemrcpt_count
           - total_amount

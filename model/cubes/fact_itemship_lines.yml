@@ -1,6 +1,6 @@
 cubes:
   - name: fact_itemship_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemship_lines
+    sql_table: gpc_data_2026_01_26.fact_itemship_lines
     title: Item Fulfillment Lines
     description: >
       Item fulfillment line-level detail for shipments to customers.
@@ -113,19 +113,9 @@ cubes:
         description: "Lines with negative quantities (returns or reversals)"
 
     pre_aggregations:
-      - name: daily_shipments
-        measures:
-          - itemship_lines_count
-          - total_quantity
-        dimensions:
-          - item_id
-          - location_id
-        time_dimension: fact_itemship_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day
-
       - name: item_location_rollup
+        type: rollup
+        external: true
         measures:
           - itemship_lines_count
           - total_quantity

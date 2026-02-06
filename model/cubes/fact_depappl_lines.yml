@@ -1,6 +1,6 @@
 cubes:
   - name: fact_depappl_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_depappl_lines
+    sql_table: gpc_data_2026_01_26.fact_depappl_lines
     title: Deposit Application Lines
     description: >
       Deposit application line-level detail showing how customer deposits are applied to invoices.
@@ -10,7 +10,7 @@ cubes:
     joins:
       - name: fact_depappl_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_depappl_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_depappl_headers}.transaction_id"
 
     measures:
       - name: depappl_lines_count
@@ -137,19 +137,3 @@ cubes:
       - name: detail_lines_only
         sql: "{CUBE}.is_mainline = false"
         description: "Detail lines only (excludes header records)"
-
-    pre_aggregations:
-      - name: daily_summary
-        measures:
-          - depappl_lines_count
-          - total_amount
-          - total_net_amount
-          - total_transaction_discount
-        dimensions:
-          - entity_type
-          - transaction_in_scope
-          - is_tax_line
-        time_dimension: fact_depappl_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day

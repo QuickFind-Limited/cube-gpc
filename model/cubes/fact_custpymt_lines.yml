@@ -1,6 +1,6 @@
 cubes:
   - name: fact_custpymt_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_custpymt_lines
+    sql_table: gpc_data_2026_01_26.fact_custpymt_lines
     title: Customer Payment Lines
     description: >
       Customer payment transaction line-level detail.
@@ -12,7 +12,7 @@ cubes:
     joins:
       - name: fact_custpymt_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_custpymt_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_custpymt_headers}.transaction_id"
 
     measures:
       - name: custpymt_lines_count
@@ -93,6 +93,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - custpymt_lines_count
           - total_amount
@@ -100,7 +102,5 @@ cubes:
         dimensions:
           - entity_type
           - transaction_in_scope
-        time_dimension: fact_custpymt_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day

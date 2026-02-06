@@ -1,6 +1,6 @@
 cubes:
   - name: fact_salesord_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_salesord_headers
+    sql_table: gpc_data_2026_01_26.fact_salesord_headers
     title: Sales Order Headers
     description: >
       Sales order transaction headers containing order-level information.
@@ -61,17 +61,17 @@ cubes:
         description: User-visible transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date the sales order was created
 
       - name: ship_date
-        sql: "TIMESTAMP({CUBE}.ship_date)"
+        sql: "CAST({CUBE}.ship_date AS TIMESTAMP)"
         type: time
         description: Scheduled or actual ship date
 
       - name: close_date
-        sql: "TIMESTAMP({CUBE}.close_date)"
+        sql: "CAST({CUBE}.close_date AS TIMESTAMP)"
         type: time
         description: Date the order was closed
 
@@ -149,6 +149,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_orders
+        type: rollup
+        external: true
         measures:
           - salesord_count
           - total_amount

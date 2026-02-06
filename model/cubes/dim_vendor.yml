@@ -1,6 +1,6 @@
 cubes:
   - name: dim_vendor
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_vendor
+    sql_table: gpc_data_2026_01_26.dim_vendor
     title: Vendors
     description: >
       Vendor dimension for accounts payable and procurement analysis.
@@ -66,12 +66,12 @@ cubes:
         description: Indicates if the vendor is an individual person vs a company
 
       - name: date_created
-        sql: "TIMESTAMP({CUBE}.date_created)"
+        sql: "CAST({CUBE}.date_created AS TIMESTAMP)"
         type: time
         description: Date the vendor record was created
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date the vendor record was last modified
 

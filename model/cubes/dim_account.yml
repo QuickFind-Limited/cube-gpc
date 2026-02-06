@@ -1,6 +1,6 @@
 cubes:
   - name: dim_account
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_account
+    sql_table: gpc_data_2026_01_26.dim_account
     title: Chart of Accounts
     description: >
       Chart of accounts dimension containing GL account definitions with hierarchical structure.
@@ -109,7 +109,7 @@ cubes:
         description: General rate type for currency translation
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the account was last modified
 

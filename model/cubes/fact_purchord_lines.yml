@@ -1,6 +1,6 @@
 cubes:
   - name: fact_purchord_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_purchord_lines
+    sql_table: gpc_data_2026_01_26.fact_purchord_lines
     title: Purchase Order Lines
     description: >
       Purchase order line-level detail containing item quantities, rates, and amounts.
@@ -11,17 +11,17 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.transaction_id = {fact_purchord_headers.transaction_id}"
 
-      - name: items
+      - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {items.item_id}"
+        sql: "{CUBE}.item_id = {dim_item.item_id}"
 
-      - name: locations
+      - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {locations.location_id}"
+        sql: "{CUBE}.location_id = {dim_location.location_id}"
 
-      - name: departments
+      - name: dim_department
         relationship: many_to_one
-        sql: "{CUBE}.department_id = {departments.department_id}"
+        sql: "{CUBE}.department_id = {dim_department.department_id}"
 
     measures:
       - name: purchord_lines_count
@@ -66,7 +66,6 @@ cubes:
       - name: line_id
         sql: "{CUBE}.line_id"
         type: number
-        primary_key: true
         description: Unique identifier for the purchase order line
 
       - name: transaction_id
@@ -78,6 +77,7 @@ cubes:
       - name: line_sequence_number
         sql: "{CUBE}.line_sequence_number"
         type: number
+        primary_key: true
         description: Sequence number of the line within the purchase order
 
       - name: is_mainline
@@ -135,6 +135,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_po_lines
+        type: rollup
+        external: true
         measures:
           - purchord_lines_count
           - total_quantity
@@ -143,8 +145,5 @@ cubes:
           - item_id
           - location_id
           - department_id
-        time_dimension: fact_purchord_headers.transaction_date
-        granularity: day
-        partition_granularity: month
         refresh_key:
           every: 1 day

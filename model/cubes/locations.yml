@@ -1,8 +1,8 @@
 cubes:
   - name: locations
-    sql: SELECT * FROM gpc_data_2026_01_26.locations
+    sql_table: gpc_data_2026_01_26.locations
     title: Locations
-    description: Warehouse and store locations with centralized channel type logic. Grain: one row per location.
+    description: "Warehouse and store locations with centralized channel type logic. Grain: one row per location."
 
     measures:
       - name: location_count
@@ -142,7 +142,7 @@ cubes:
         description: Geographic longitude coordinate
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Last modification timestamp
 

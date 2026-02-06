@@ -1,15 +1,19 @@
 cubes:
   - name: dim_pricing
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_pricing
+    sql_table: gpc_data_2026_01_26.dim_pricing
     title: Item Pricing
     description: >
       Item pricing dimension containing prices by item and price level.
       Grain: one row per item-price level-quantity combination.
 
     joins:
-      - name: items
+      - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {items.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
+
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency_id = {currencies}.currency_id"
 
     measures:
       - name: pricing_count

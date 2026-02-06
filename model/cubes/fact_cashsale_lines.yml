@@ -1,6 +1,6 @@
 cubes:
   - name: fact_cashsale_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashsale_lines
+    sql_table: gpc_data_2026_01_26.fact_cashsale_lines
     title: Cash Sale Lines
     description: >
       Cash sale transaction line items with detail for each item sold.
@@ -10,19 +10,19 @@ cubes:
     joins:
       - name: fact_cashsale_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_cashsale_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_cashsale_headers}.transaction_id"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {dim_item.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {dim_location.location_id}"
+        sql: "{CUBE}.location_id = {dim_location}.location_id"
 
       - name: dim_department
         relationship: many_to_one
-        sql: "{CUBE}.department_id = {dim_department.department_id}"
+        sql: "{CUBE}.department_id = {dim_department}.department_id"
 
     measures:
       - name: cashsale_lines_count
@@ -55,18 +55,19 @@ cubes:
       - name: line_id
         sql: "{CUBE}.line_id"
         type: number
-        description: Line item identifier (part of composite key)
+        description: Line item identifier
 
       - name: transaction_id
         sql: "{CUBE}.transaction_id"
         type: number
         primary_key: true
-        description: Transaction identifier (part of composite key)
+        description: Transaction identifier (part of composite key with line_sequence_number)
 
       - name: line_sequence_number
         sql: "{CUBE}.line_sequence_number"
         type: number
-        description: Sequence number of the line within the transaction
+        primary_key: true
+        description: Sequence number of the line within the transaction (part of composite key)
 
       - name: entity_type
         sql: "{CUBE}.entity_type"
@@ -136,6 +137,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - cashsale_lines_count
           - total_quantity
@@ -145,7 +148,5 @@ cubes:
           - transaction_in_scope
           - location_id
           - department_id
-        time_dimension: fact_cashsale_headers.transaction_date
-        granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

@@ -1,6 +1,6 @@
 cubes:
   - name: fact_vendbill_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_vendbill_lines
+    sql_table: gpc_data_2026_01_26.fact_vendbill_lines
     title: Vendor Bill Lines
     description: >
       Vendor bill line-level detail for accounts payable.
@@ -9,11 +9,11 @@ cubes:
     joins:
       - name: fact_vendbill_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_vendbill_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_vendbill_headers}.transaction_id"
 
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {transactions.id}"
+        sql: "{CUBE}.transaction_id = {transactions}.id"
 
     measures:
       - name: vendbill_lines_count
@@ -59,6 +59,7 @@ cubes:
       - name: line_sequence_number
         sql: "{CUBE}.line_sequence_number"
         type: number
+        primary_key: true
         description: Sequence number for ordering lines within a transaction
 
       - name: is_mainline
@@ -91,12 +92,12 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - vendbill_lines_count
           - total_line_amount
         dimensions:
           - is_mainline
-        time_dimension: fact_vendbill_headers.transaction_date
-        granularity: day
         refresh_key:
           every: 1 day

@@ -1,6 +1,6 @@
 cubes:
   - name: fact_invadjst_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_invadjst_lines
+    sql_table: gpc_data_2026_01_26.fact_invadjst_lines
     title: Inventory Adjustment Lines
     description: >
       Inventory adjustment transaction line details showing item-level adjustments.
@@ -116,31 +116,3 @@ cubes:
       - name: detail_lines_only
         sql: "{CUBE}.is_mainline = false"
         description: "Excludes header summary lines, includes only detail lines"
-
-    pre_aggregations:
-      - name: daily_adjustments
-        measures:
-          - invadjst_lines_count
-          - total_quantity
-          - total_adjustment_value
-        dimensions:
-          - item_id
-          - location_id
-          - class_id
-        time_dimension: fact_invadjst_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day
-
-      - name: monthly_by_item_location
-        measures:
-          - invadjst_lines_count
-          - total_quantity
-          - total_adjustment_value
-        dimensions:
-          - item_id
-          - location_id
-        time_dimension: fact_invadjst_headers.transaction_date
-        granularity: month
-        refresh_key:
-          every: 1 day

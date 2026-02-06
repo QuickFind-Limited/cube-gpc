@@ -1,6 +1,6 @@
 cubes:
   - name: dim_payment_method
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_payment_method
+    sql_table: gpc_data_2026_01_26.dim_payment_method
     title: Payment Methods
     description: >
       Payment method dimension for classifying transaction payment types.

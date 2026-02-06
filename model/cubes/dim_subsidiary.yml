@@ -1,6 +1,6 @@
 cubes:
   - name: dim_subsidiary
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_subsidiary
+    sql_table: gpc_data_2026_01_26.dim_subsidiary
     title: Subsidiaries
     description: >
       Subsidiary dimension containing legal entities for multi-entity reporting.
@@ -64,7 +64,7 @@ cubes:
         description: Indicates if this is an elimination subsidiary for consolidation
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the subsidiary record was last modified
 
