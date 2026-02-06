@@ -1,6 +1,6 @@
 cubes:
   - name: fact_custcred_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_custcred_headers
+    sql_table: gpc_data_2026_01_26.fact_custcred_headers
     title: Customer Credit Memos
     description: >
       Customer credit memo transaction headers. Contains credits issued to customers for returns, adjustments, and refunds.
@@ -10,19 +10,19 @@ cubes:
     joins:
       - name: dim_customer
         relationship: many_to_one
-        sql: "{CUBE}.customer_id = {dim_customer.customer_id}"
+        sql: "{CUBE}.customer_id = {dim_customer}.customer_id"
 
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
       - name: currencies
         relationship: many_to_one
-        sql: "{CUBE}.currency_id = {currencies.currency_id}"
+        sql: "{CUBE}.currency_id = {currencies}.currency_id"
 
       - name: accounting_periods
         relationship: many_to_one
-        sql: "{CUBE}.posting_period_id = {accounting_periods.period_id}"
+        sql: "{CUBE}.posting_period_id = {accounting_periods}.period_id"
 
     measures:
       - name: custcred_count
@@ -71,12 +71,12 @@ cubes:
         description: User-visible transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Credit memo transaction date
 
       - name: close_date
-        sql: "TIMESTAMP({CUBE}.close_date)"
+        sql: "CAST({CUBE}.close_date AS TIMESTAMP)"
         type: time
         description: Date when the credit memo was closed
 
@@ -167,6 +167,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_credits
+        type: rollup
+        external: true
         measures:
           - custcred_count
           - total_amount

@@ -1,6 +1,6 @@
 cubes:
   - name: cogs_accounting_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.cogs_accounting_lines
+    sql_table: gpc_data_2026_01_26.cogs_accounting_lines
     title: COGS Accounting Lines
     description: >
       Cost of Goods Sold (COGS) accounting line entries for inventory cost allocation.
@@ -9,7 +9,11 @@ cubes:
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {transactions.id}"
+        sql: "{CUBE}.transaction = {transactions}.id"
+
+      - name: accounts
+        relationship: many_to_one
+        sql: "{CUBE}.account = {accounts}.account_id"
 
     measures:
       - name: cogs_lines_count
@@ -75,7 +79,7 @@ cubes:
         description: Credit amount
 
       - name: trandate
-        sql: "TIMESTAMP({CUBE}.trandate)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date for the COGS entry
 
@@ -104,6 +108,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_cogs
+        type: rollup
+        external: true
         measures:
           - cogs_lines_count
           - total_cogs_amount
@@ -112,4 +118,4 @@ cubes:
         time_dimension: trandate
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

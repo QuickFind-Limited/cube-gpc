@@ -1,6 +1,6 @@
 cubes:
   - name: classifications
-    sql: SELECT * FROM gpc_data_2026_01_26.classifications
+    sql_table: gpc_data_2026_01_26.classifications
     title: Classifications
     description: >
       Business classification hierarchy (EU Website, UK Website, Kildare Village, etc.).

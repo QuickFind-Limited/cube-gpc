@@ -1,6 +1,6 @@
 cubes:
   - name: payment_methods
-    sql: SELECT * FROM gpc_data_2026_01_26.payment_methods
+    sql_table: gpc_data_2026_01_26.payment_methods
     title: Payment Methods
     description: >
       Payment method dimension containing all available payment methods (credit cards, cash, EFT, etc.).

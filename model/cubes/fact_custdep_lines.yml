@@ -1,6 +1,6 @@
 cubes:
   - name: fact_custdep_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_custdep_lines
+    sql_table: gpc_data_2026_01_26.fact_custdep_lines
     title: Customer Deposit Lines
     description: >
       Customer deposit transaction line-level detail.
@@ -10,7 +10,7 @@ cubes:
     joins:
       - name: fact_custdep_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_custdep_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_custdep_headers}.transaction_id"
 
     measures:
       - name: custdep_lines_count
@@ -135,6 +135,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - custdep_lines_count
           - total_amount
@@ -144,7 +146,5 @@ cubes:
           - entity_type
           - transaction_in_scope
           - is_tax_line
-        time_dimension: fact_custdep_headers.transaction_date
-        granularity: day
         refresh_key:
-          every: 1 day
+          every: 24 hour

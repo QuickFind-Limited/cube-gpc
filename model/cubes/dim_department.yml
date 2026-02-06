@@ -1,6 +1,6 @@
 cubes:
   - name: dim_department
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_department
+    sql_table: gpc_data_2026_01_26.dim_department
     title: Departments
     description: >
       Department dimension for organizational segmentation and cost center analysis.
@@ -34,7 +34,7 @@ cubes:
         description: Indicates if the department is inactive
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the department record was last modified
 

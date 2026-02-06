@@ -1,6 +1,6 @@
 cubes:
   - name: fact_itemrcpt_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_itemrcpt_lines
+    sql_table: gpc_data_2026_01_26.fact_itemrcpt_lines
     title: Item Receipt Lines
     description: >
       Item receipt line-level detail for vendor receipts and inventory receiving transactions.
@@ -10,15 +10,15 @@ cubes:
     joins:
       - name: fact_itemrcpt_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_itemrcpt_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_itemrcpt_headers}.transaction_id"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {dim_item.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
 
       - name: dim_location
         relationship: many_to_one
-        sql: "{CUBE}.location_id = {dim_location.location_id}"
+        sql: "{CUBE}.location_id = {dim_location}.location_id"
 
     measures:
       - name: itemrcpt_lines_count
@@ -103,29 +103,3 @@ cubes:
         sql: "{CUBE}.class_id"
         type: number
         description: Class/product line identifier for the receipt line
-
-    pre_aggregations:
-      - name: daily_receipts_by_item
-        measures:
-          - itemrcpt_lines_count
-          - total_quantity
-          - total_receipt_value
-        dimensions:
-          - item_id
-          - location_id
-        time_dimension: fact_itemrcpt_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day
-
-      - name: daily_receipts_by_location
-        measures:
-          - itemrcpt_lines_count
-          - total_quantity
-          - total_receipt_value
-        dimensions:
-          - location_id
-        time_dimension: fact_itemrcpt_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day

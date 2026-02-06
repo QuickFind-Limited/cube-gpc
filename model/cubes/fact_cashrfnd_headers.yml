@@ -1,6 +1,6 @@
 cubes:
   - name: fact_cashrfnd_headers
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_cashrfnd_headers
+    sql_table: gpc_data_2026_01_26.fact_cashrfnd_headers
     title: Cash Refund Headers
     description: >
       Cash refund transaction headers. Contains entity contamination - 100% POS system entities per analysis.
@@ -34,6 +34,12 @@ cubes:
         format: currency
         description: Sum of cash refund amounts in base currency
 
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total_amount AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Sum of absolute cash refund amounts (for negative amounts)
+
       - name: foreign_total_amount
         sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
         type: sum
@@ -64,7 +70,7 @@ cubes:
         description: Human-readable transaction number
 
       - name: transaction_date
-        sql: "TIMESTAMP({CUBE}.transaction_date)"
+        sql: "CAST({CUBE}.transaction_date AS TIMESTAMP)"
         type: time
         description: Date of the cash refund transaction
 
@@ -97,6 +103,21 @@ cubes:
         sql: "{CUBE}.transaction_in_scope"
         type: boolean
         description: Indicates if transaction is in scope for business analytics
+
+      - name: total_amount_raw
+        sql: "CAST({CUBE}.total_amount AS FLOAT64)"
+        type: number
+        description: Raw total amount value (not aggregated)
+
+      - name: foreign_total_amount_raw
+        sql: "CAST({CUBE}.foreign_total_amount AS FLOAT64)"
+        type: number
+        description: Raw foreign total amount value (not aggregated)
+
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate for currency conversion
 
       - name: transaction_status
         sql: "{CUBE}.transaction_status"
@@ -136,6 +157,8 @@ cubes:
 
     pre_aggregations:
       - name: daily_summary
+        type: rollup
+        external: true
         measures:
           - cashrfnd_count
           - total_amount

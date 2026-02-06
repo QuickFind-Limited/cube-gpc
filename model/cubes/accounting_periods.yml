@@ -1,6 +1,6 @@
 cubes:
   - name: accounting_periods
-    sql: SELECT * FROM gpc_data_2026_01_26.accounting_periods
+    sql_table: gpc_data_2026_01_26.accounting_periods
     title: Accounting Periods
     description: >
       Accounting period dimension containing fiscal periods (months, quarters, years, and adjustment periods).
@@ -54,17 +54,17 @@ cubes:
         description: Indicates if the period is inactive
 
       - name: start_date
-        sql: "TIMESTAMP({CUBE}.start_date)"
+        sql: "CAST({CUBE}.start_date AS TIMESTAMP)"
         type: time
         description: Period start date
 
       - name: end_date
-        sql: "TIMESTAMP({CUBE}.end_date)"
+        sql: "CAST({CUBE}.end_date AS TIMESTAMP)"
         type: time
         description: Period end date
 
       - name: closed_on_date
-        sql: "TIMESTAMP({CUBE}.closed_on_date)"
+        sql: "CAST({CUBE}.closed_on_date AS TIMESTAMP)"
         type: time
         description: Date when the period was closed
 

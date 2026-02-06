@@ -1,6 +1,6 @@
 cubes:
   - name: fact_custinvc_lines
-    sql: SELECT * FROM gpc_data_2026_01_26.fact_custinvc_lines
+    sql_table: gpc_data_2026_01_26.fact_custinvc_lines
     title: Customer Invoice Lines
     description: >
       Customer invoice line-level detail fact table. Contains individual line items from customer invoices.
@@ -10,15 +10,15 @@ cubes:
     joins:
       - name: fact_custinvc_headers
         relationship: many_to_one
-        sql: "{CUBE}.transaction_id = {fact_custinvc_headers.transaction_id}"
+        sql: "{CUBE}.transaction_id = {fact_custinvc_headers}.transaction_id"
 
       - name: dim_item
         relationship: many_to_one
-        sql: "{CUBE}.item_id = {dim_item.item_id}"
+        sql: "{CUBE}.item_id = {dim_item}.item_id"
 
       - name: classes
         relationship: many_to_one
-        sql: "{CUBE}.class_id = {classes.id}"
+        sql: "{CUBE}.class_id = {classes}.id"
 
     measures:
       - name: custinvc_lines_count
@@ -119,17 +119,3 @@ cubes:
       - name: detail_lines_only
         sql: "{CUBE}.is_mainline = false"
         description: "Detail lines only, excluding header summary records"
-
-    pre_aggregations:
-      - name: daily_invoice_lines
-        measures:
-          - custinvc_lines_count
-          - total_quantity
-          - total_line_amount
-        dimensions:
-          - entity_type
-          - transaction_in_scope
-        time_dimension: fact_custinvc_headers.transaction_date
-        granularity: day
-        refresh_key:
-          every: 1 day

@@ -1,6 +1,6 @@
 cubes:
   - name: pricelevels
-    sql: SELECT * FROM gpc_data_2026_01_26.pricelevels
+    sql_table: gpc_data_2026_01_26.pricelevels
     title: Price Levels
     description: >
       Price level dimension for tiered pricing (e.g., base, VIP, wholesale).

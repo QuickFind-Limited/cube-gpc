@@ -1,6 +1,6 @@
 cubes:
   - name: dim_location
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_location
+    sql_table: gpc_data_2026_01_26.dim_location
     title: Locations
     description: >
       Location dimension containing warehouses, stores, and distribution centers.
@@ -9,7 +9,7 @@ cubes:
     joins:
       - name: dim_subsidiary
         relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {dim_subsidiary.subsidiary_id}"
+        sql: "{CUBE}.subsidiary_id = {dim_subsidiary}.subsidiary_id"
 
     measures:
       - name: location_count
@@ -99,7 +99,7 @@ cubes:
         description: Geographic longitude coordinate
 
       - name: last_modified_date
-        sql: "TIMESTAMP({CUBE}.last_modified_date)"
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
         type: time
         description: Date when the location was last modified
 

@@ -1,6 +1,6 @@
 cubes:
   - name: dim_currency
-    sql: SELECT * FROM gpc_data_2026_01_26.dim_currency
+    sql_table: gpc_data_2026_01_26.dim_currency
     title: Currencies
     description: >
       Currency dimension containing all currencies used in the system.
