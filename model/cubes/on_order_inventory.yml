@@ -130,6 +130,8 @@ cubes:
           - product_count
         dimensions:
           - item
+          - itemid
+          - displayname
           - po_status
         time_dimension: po_date
         granularity: day
@@ -159,6 +161,8 @@ cubes:
           - product_count
         dimensions:
           - item
+          - itemid
+          - displayname
           - po_status
         time_dimension: expected_receipt_date
         granularity: day
