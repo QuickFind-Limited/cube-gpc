@@ -12,6 +12,11 @@ cubes:
       PO002 FIX - enables retail value analysis on purchase orders.
       99.7% coverage on PO items (10,697 of 10,727).
 
+    measures:
+      - name: item_price_count
+        type: count
+        description: Number of item prices
+
     dimensions:
       - name: item_id
         sql: "{CUBE}.item_id"
@@ -32,6 +37,8 @@ cubes:
 
     pre_aggregations:
       - name: pricing_lookup
+        measures:
+          - item_price_count
         dimensions:
           - item_id
           - base_price_eur
