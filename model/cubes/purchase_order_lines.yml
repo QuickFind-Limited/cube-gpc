@@ -55,13 +55,13 @@ cubes:
       # SEA-003: In-Season Reorder Rate measures (NEW v71)
       - name: unique_items
         sql: item
-        type: count_distinct
-        description: "SEA-003: Number of unique items ordered (for reorder rate calculation)"
+        type: count_distinct_approx
+        description: "SEA-003: Number of unique items ordered (approximate with HyperLogLog; rollup-safe)"
 
       - name: unique_pos
         sql: transaction
-        type: count_distinct
-        description: "SEA-003: Number of unique purchase orders (for reorder rate calculation)"
+        type: count_distinct_approx
+        description: "SEA-003: Number of unique purchase orders (approximate with HyperLogLog; rollup-safe)"
 
       # PO002 fix: Retail value measures using pricing table
       - name: on_order_retail_value
