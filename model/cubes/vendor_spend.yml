@@ -12,7 +12,6 @@ cubes:
         vb.memo,
         vb.tranid as bill_number,
         PARSE_DATE('%d/%m/%Y', vb.trandate) as bill_date,
-        PARSE_DATE('%d/%m/%Y', vb.duedate) as due_date,
         PARSE_DATE('%d/%m/%Y', vb.closedate) as close_date,
         vb.status,
         vb.approvalstatus
@@ -80,11 +79,6 @@ cubes:
         sql: "CAST({CUBE}.bill_date AS TIMESTAMP)"
         type: time
         description: "Vendor bill transaction date"
-
-      - name: due_date
-        sql: "CAST({CUBE}.due_date AS TIMESTAMP)"
-        type: time
-        description: "Payment due date"
 
       - name: currency_name
         sql: "{currencies.name}"
