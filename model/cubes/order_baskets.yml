@@ -22,8 +22,8 @@ cubes:
           ELSE 'Retail/D2C'
         END as customer_type
       FROM gpc.transaction_lines_denormalized_patched tl
-      JOIN gpc.transactions_analysis t ON CAST(tl.transaction AS STRING) = t.id
-      LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
+      JOIN gpc.transactions_analysis t ON tl.transaction = t.id
+      LEFT JOIN gpc.b2b_customers b2b ON t.entity = b2b.id
       GROUP BY tl.transaction, CAST(PARSE_DATE('%d/%m/%Y', t.trandate) AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
     title: Order Baskets
     description: >
@@ -97,7 +97,7 @@ cubes:
       - name: billing_country
         sql: "{CUBE}.billing_country"
         type: string
-        description: Billing country
+        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.billing_country, b2c_customer_channels.billing_country, or transactions.billing_country instead."
 
       - name: line_count
         sql: "{CUBE}.line_count"
