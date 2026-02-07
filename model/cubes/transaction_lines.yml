@@ -39,6 +39,8 @@ cubes:
         tl.*,
         ABS(SUM(tl.amount) OVER (PARTITION BY tl.transaction)) as transaction_total_abs,
         t.shipdate as transaction_shipdate,
+        t.billing_country as transaction_billing_country,
+        t.shipping_country as transaction_shipping_country,
         PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
         ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
@@ -49,7 +51,7 @@ cubes:
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
       LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
     title: Transaction Lines
-    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX. Note: For country analysis, use header-level cubes (b2c_customers, b2c_customer_channels) which have populated country data."
+    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX. Country fields are sourced from transaction headers (gpc.transactions) because the denormalized MV country columns are null."
 
     joins:
       - name: transactions
@@ -663,14 +665,14 @@ cubes:
         description: Customer email address
 
       - name: billing_country
-        sql: "{CUBE}.billing_country"
+        sql: "{CUBE}.transaction_billing_country"
         type: string
-        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.billing_country, b2c_customer_channels.billing_country, or transactions.billing_country instead."
+        description: "Billing country from transaction header (gpc.transactions)."
 
       - name: shipping_country
-        sql: "{CUBE}.shipping_country"
+        sql: "{CUBE}.transaction_shipping_country"
         type: string
-        description: "⚠️ DEPRECATED: All values are NULL. Use b2c_customers.shipping_country, b2c_customer_channels.shipping_country, or transactions.shipping_country instead."
+        description: "Shipping country from transaction header (gpc.transactions)."
 
       # Denormalized dimensions from locations
       - name: location_name
