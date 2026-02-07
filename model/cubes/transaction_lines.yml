@@ -873,6 +873,7 @@ cubes:
           - net_revenue
           - units_sold
           - transaction_count
+          - revenue_transaction_count  # RM002: Required component for direct average_order_value measures in rollup-only mode
           - line_count          # BASK001: Required for average_items_per_order calculation
           - product_line_count  # BASK001: Product lines only (excludes shipping/fees/adjustments)
           - total_tax
