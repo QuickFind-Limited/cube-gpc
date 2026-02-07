@@ -3,8 +3,9 @@ cubes:
   - name: b2c_customers
     sql: >
       SELECT
-        t.custbody_customer_email as email,
-        t.billing_country,
+        COALESCE(CAST(t.entity AS STRING), t.custbody_customer_email) as customer_key,
+        ANY_VALUE(t.custbody_customer_email) as email,
+        ANY_VALUE(t.billing_country) as billing_country,
         -- Count only FULFILLED orders (CustInvc + CashSale), exclude SalesOrd pipeline
         MIN(CASE
           WHEN t.type IN ('CustInvc', 'CashSale')
@@ -33,7 +34,7 @@ cubes:
       FROM gpc.transactions_analysis t
       WHERE t.custbody_customer_email IS NOT NULL
         AND t.custbody_customer_email != ''
-      GROUP BY t.custbody_customer_email, t.billing_country
+      GROUP BY COALESCE(CAST(t.entity AS STRING), t.custbody_customer_email)
     title: B2C Customers
     description: Virtual cube for B2C customer metrics aggregated from SalesOrd
 
@@ -112,10 +113,15 @@ cubes:
         description: "Revenue from SalesOrd transactions"
 
     dimensions:
+      - name: customer_key
+        sql: "{CUBE}.customer_key"
+        type: string
+        primary_key: true
+        description: "Stable customer key (entity id when available, otherwise email)"
+
       - name: email
         sql: "{CUBE}.email"
         type: string
-        primary_key: true
         public: true
         description: Customer email address
 
