@@ -15,6 +15,7 @@ cubes:
         CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,
         i.itemid,
         i.displayname,
+        i.parent as parent_item,
         i.custitem_gpc_stylenumber
       FROM gpc.purchase_order_lines pol
       LEFT JOIN gpc.purchase_orders po ON pol.transaction = po.id
@@ -53,13 +54,13 @@ cubes:
         description: Number of unique SKUs with on-order inventory (size/color variants) - OOI003a. Use product_count for parent product count.
 
       - name: product_count
-        sql: custitem_gpc_stylenumber
+        sql: parent_item
         type: count_distinct_approx
         description: >
-          Number of unique products with on-order inventory (parent styles, ignoring size/color) - OOI003b.
+          Number of unique products with on-order inventory (parent matrix items, ignoring size/color) - OOI003b.
+          Uses NetSuite parent field (100% coverage, 5.4:1 SKU-to-product ratio).
           Use this for "How many products are on order?" queries.
           Use item_count for "How many SKUs are on order?" queries.
-          GPC has ~25 SKUs per product on average.
 
       - name: avg_pos_per_item
         sql: po_id
