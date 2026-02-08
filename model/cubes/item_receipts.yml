@@ -73,3 +73,37 @@ cubes:
       - name: vendors
         relationship: many_to_one
         sql: "{CUBE}.entity = {vendors}.id"
+
+    pre_aggregations:
+      - name: receipt_summary
+        measures:
+          - receipt_count
+          - total_receipt_value
+          - avg_receipt_value
+        dimensions:
+          - supplier
+          - currency
+          - vendors.vendor_name
+        time_dimension: trandate
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
+
+      - name: receipt_monthly
+        measures:
+          - receipt_count
+          - total_receipt_value
+          - avg_receipt_value
+        dimensions:
+          - supplier
+          - currency
+        time_dimension: trandate
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
