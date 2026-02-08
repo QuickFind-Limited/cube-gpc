@@ -1,13 +1,28 @@
 cubes:
   - name: fulfillments
-    sql: SELECT * FROM gpc.fulfillments
+    sql: >
+      SELECT
+        f.id,
+        f.entity,
+        f.tranid,
+        f.trandate,
+        f.status,
+        f.shipcarrier,
+        f.shipmethod,
+        ANY_VALUE(fl.createdfrom) as order_id
+      FROM gpc.fulfillments f
+      LEFT JOIN gpc.fulfillment_lines fl
+        ON f.id = fl.transaction
+      GROUP BY
+        f.id,
+        f.entity,
+        f.tranid,
+        f.trandate,
+        f.status,
+        f.shipcarrier,
+        f.shipmethod
     title: Fulfillments
     description: Item fulfillment records tracking shipments and deliveries
-
-    joins:
-      - name: transactions
-        relationship: many_to_one
-        sql: "CAST({CUBE}.entity AS STRING) = {transactions.id}"
 
     measures:
       - name: fulfillment_count
@@ -15,9 +30,9 @@ cubes:
         description: Total number of fulfillments
 
       - name: unique_orders
-        sql: "{CUBE}.entity"
+        sql: "{CUBE}.order_id"
         type: count_distinct_approx
-        description: Number of unique orders fulfilled
+        description: Number of unique source orders fulfilled (from fulfillment_lines.createdfrom)
 
       - name: shipped_count
         type: count
@@ -47,6 +62,11 @@ cubes:
         sql: "{CUBE}.entity"
         type: number
         description: Related entity/order ID
+
+      - name: order_id
+        sql: "{CUBE}.order_id"
+        type: number
+        description: Source sales transaction ID from fulfillment line linkage
 
       - name: tranid
         sql: "{CUBE}.tranid"

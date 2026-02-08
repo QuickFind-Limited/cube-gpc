@@ -63,10 +63,15 @@ cubes:
         description: "Number of individual landed cost line items"
 
     dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.line_id AS STRING))"
+        type: string
+        primary_key: true
+        description: "Unique landed-cost row key (transaction + line_id)"
+
       - name: transaction
         sql: "{CUBE}.transaction"
         type: number
-        primary_key: true
         description: "Item Receipt transaction ID"
 
       - name: line_id

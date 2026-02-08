@@ -80,9 +80,9 @@ cubes:
 
       - name: currency
         sql: currency
-        type: string
+        type: number
         title: Currency
-        description: Transaction currency code
+        description: Transaction currency ID
 
       - name: exchangerate
         sql: exchangerate

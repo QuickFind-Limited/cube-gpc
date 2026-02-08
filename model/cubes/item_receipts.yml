@@ -11,13 +11,13 @@ cubes:
         description: Number of item receipts
 
       - name: total_receipt_value
-        sql: total
+        sql: "CAST(total AS FLOAT64)"
         type: sum
         format: currency
         description: Total receipt value in base currency
 
       - name: avg_receipt_value
-        sql: total
+        sql: "CAST(total AS FLOAT64)"
         type: avg
         format: currency
         description: Average receipt value
@@ -36,7 +36,7 @@ cubes:
         description: Item receipt transaction number
 
       - name: trandate
-        sql: trandate
+        sql: "CAST(PARSE_DATE('%d/%m/%Y', trandate) AS TIMESTAMP)"
         type: time
         title: Receipt Date
         description: Date of receipt
@@ -49,9 +49,9 @@ cubes:
 
       - name: currency
         sql: currency
-        type: string
+        type: number
         title: Currency
-        description: Transaction currency code
+        description: Transaction currency ID
 
       - name: exchangerate
         sql: exchangerate

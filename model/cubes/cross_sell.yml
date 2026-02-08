@@ -51,7 +51,7 @@ cubes:
 
     dimensions:
       - name: id
-        sql: "CONCAT(CAST({CUBE}.item_a AS STRING), '-', CAST({CUBE}.item_b AS STRING))"
+        sql: "CONCAT(CAST({CUBE}.item_a AS STRING), '-', CAST({CUBE}.item_b AS STRING), '|', CAST({CUBE}.trandate AS STRING), '|', COALESCE({CUBE}.transaction_type, 'UNKNOWN'))"
         type: string
         primary_key: true
 

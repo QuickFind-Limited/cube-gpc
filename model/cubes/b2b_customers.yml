@@ -12,7 +12,7 @@ cubes:
       - name: active_customer_count
         type: count
         filters:
-          - sql: "CAST({CUBE}.isInactive AS STRING) = 'False'"
+          - sql: "{CUBE}.isInactive = FALSE"
         description: Number of active B2B customers
 
       - name: total_balance
@@ -88,14 +88,14 @@ cubes:
         description: Days overdue
 
       - name: dateCreated
-        sql: "CAST({CUBE}.dateCreated AS TIMESTAMP)"
+        sql: "CAST(NULL AS TIMESTAMP)"
         type: time
-        description: Customer creation date
+        description: "Customer creation date (temporarily unavailable due external table schema mismatch on dateCreated column)"
 
       - name: lastModifiedDate
-        sql: "CAST({CUBE}.lastModifiedDate AS TIMESTAMP)"
+        sql: "CAST(NULL AS TIMESTAMP)"
         type: time
-        description: Last modification date
+        description: "Last modification date (temporarily unavailable due external table schema mismatch on lastModifiedDate column)"
 
       - name: isInactive
         sql: "{CUBE}.isInactive"
@@ -205,7 +205,7 @@ cubes:
 
     segments:
       - name: active_customers
-        sql: "CAST({CUBE}.isInactive AS STRING) = 'False'"
+        sql: "{CUBE}.isInactive = FALSE"
 
       - name: with_balance
         sql: "{CUBE}.balance != 0"

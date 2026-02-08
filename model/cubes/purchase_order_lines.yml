@@ -30,7 +30,7 @@ cubes:
         description: Outstanding quantity not yet received
 
       - name: total_po_line_value
-        sql: line_total
+        sql: "quantity * rate"
         type: sum
         format: currency
         description: Total PO line value in base currency

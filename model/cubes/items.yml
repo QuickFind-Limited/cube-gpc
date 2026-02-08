@@ -129,7 +129,7 @@ cubes:
         description: Item cost
 
       - name: base_price
-        sql: "{CUBE}.baseprice"
+        sql: "CAST(NULL AS FLOAT64)"
         type: number
         description: >
           Base price. WARNING: baseprice field is NOT available in SuiteQL (HTTP 400) and was NOT extracted
@@ -150,9 +150,9 @@ cubes:
           86.6% coverage (13,215 of 15,268 items). PO002 FIX - Added for PO analysis by sourcing country.
 
       - name: description
-        sql: "{CUBE}.salesdescription"
+        sql: "{CUBE}.description"
         type: string
-        description: Sales description
+        description: Item description
 
       - name: has_dimensions
         sql: "CASE WHEN {CUBE}.custitem_gpc_category IS NOT NULL THEN 'Yes' ELSE 'No' END"

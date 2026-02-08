@@ -7,14 +7,24 @@ cubes:
         inv.displayname,
         inv.location,
         inv.calculated_quantity_available as current_stock,
-        COALESCE(SUM(CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)), 0) as qty_on_order,
-        COALESCE(SUM((CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.rate AS FLOAT64)), 0) as on_order_value,
-        COUNT(DISTINCT CASE WHEN (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0 THEN pol.transaction END) as open_po_count
+        COALESCE(SUM(CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)
+          ELSE 0
+        END), 0) as qty_on_order,
+        COALESCE(SUM(CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.rate AS FLOAT64)
+          ELSE 0
+        END), 0) as on_order_value,
+        COUNT(DISTINCT CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN pol.transaction
+        END) as open_po_count
       FROM gpc.inventory_calculated inv
-      LEFT JOIN gpc.purchase_order_lines pol ON inv.item = pol.item
+      LEFT JOIN gpc.purchase_order_lines pol ON inv.item = pol.item AND inv.location = pol.location
       LEFT JOIN gpc.purchase_orders po ON pol.transaction = po.id
         AND po.status IN ('B', 'D', 'E')
-        AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
       GROUP BY inv.item, inv.itemid, inv.displayname, inv.location, inv.calculated_quantity_available
 
     title: Inventory with Commitments

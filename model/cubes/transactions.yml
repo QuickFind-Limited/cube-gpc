@@ -69,13 +69,13 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= DATE '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= DATE '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_foreign_amount
@@ -125,27 +125,27 @@ cubes:
         description: Human-readable transaction status
 
       - name: trandate
-        sql: "CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP)"
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), MONTH)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), YEAR)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(CAST(PARSE_DATE('%d/%m/%Y', {CUBE}.trandate) AS TIMESTAMP), WEEK)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 
@@ -165,12 +165,30 @@ cubes:
         description: Shipping country
 
       - name: shipdate
-        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
+        sql: >
+          CAST(
+            CASE
+              WHEN REGEXP_CONTAINS({CUBE}.shipdate, r'^[0-9]{2}/[0-9]{2}/[0-9]{4}$')
+                THEN PARSE_DATE('%d/%m/%Y', {CUBE}.shipdate)
+              WHEN REGEXP_CONTAINS({CUBE}.shipdate, r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                THEN PARSE_DATE('%Y-%m-%d', {CUBE}.shipdate)
+              ELSE NULL
+            END AS TIMESTAMP
+          )
         type: time
         description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
 
       - name: createddate
-        sql: "CAST({CUBE}.createddate AS TIMESTAMP)"
+        sql: >
+          CAST(
+            CASE
+              WHEN REGEXP_CONTAINS({CUBE}.createddate, r'^[0-9]{2}/[0-9]{2}/[0-9]{4}$')
+                THEN PARSE_DATE('%d/%m/%Y', {CUBE}.createddate)
+              WHEN REGEXP_CONTAINS({CUBE}.createddate, r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+                THEN PARSE_DATE('%Y-%m-%d', {CUBE}.createddate)
+              ELSE NULL
+            END AS TIMESTAMP
+          )
         type: time
         description: Created date (when order was created) - used for FUL-001 fulfillment speed metrics
 

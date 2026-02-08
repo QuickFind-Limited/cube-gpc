@@ -51,7 +51,7 @@ cubes:
         description: Full formatted address
 
       - name: lastmodifieddate
-        sql: "CAST({CUBE}.lastmodifieddate AS TIMESTAMP)"
+        sql: "CAST(SAFE.PARSE_DATE('%d/%m/%Y', {CUBE}.lastmodifieddate) AS TIMESTAMP)"
         type: time
         description: Last modified date
 
