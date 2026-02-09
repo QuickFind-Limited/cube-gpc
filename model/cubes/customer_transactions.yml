@@ -1,0 +1,283 @@
+cubes:
+  - name: customer_transactions
+    sql_table: gpc_data_2026_01_26.customer_transactions
+    title: Customer Transactions
+    description: >
+      Customer transaction headers including invoices, sales orders, payments, deposits, and credit memos.
+      Grain: one row per customer transaction header.
+      Note: Contains system entity contamination (webstore/POS entities) - use segments to filter.
+
+    joins:
+      - name: currencies
+        relationship: many_to_one
+        sql: "{CUBE}.currency = {currencies}.currency_id"
+
+      - name: subsidiaries
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary = {subsidiaries}.subsidiary_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+    measures:
+      - name: customer_transactions_count
+        type: count
+        description: Total number of customer transactions
+
+      - name: total_revenue
+        sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of revenue amounts (for revenue transactions only)
+
+      - name: total_revenue_abs
+        sql: "ABS(CAST({CUBE}.total_revenue AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of revenue amounts
+
+      - name: total_amount
+        sql: "CAST({CUBE}.total AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transaction amounts in base currency
+
+      - name: total_amount_abs
+        sql: "ABS(CAST({CUBE}.total AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of transaction amounts
+
+      - name: total_foreigntotal
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of transaction amounts in foreign currency
+
+      - name: total_foreigntotal_abs
+        sql: "ABS(CAST({CUBE}.foreigntotal AS FLOAT64))"
+        type: sum
+        format: currency
+        description: Absolute value of foreign currency amounts
+
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across transactions
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Unique transaction identifier
+
+      - name: tranid
+        sql: "{CUBE}.tranid"
+        type: string
+        description: Transaction document number
+
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: Type of transaction (Invoice, SalesOrder, Payment, etc.)
+
+      - name: entity
+        sql: "{CUBE}.entity"
+        type: number
+        description: Customer entity ID (foreign key to customers)
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity classification (customer, webstore, pos, test)
+
+      - name: channel
+        sql: "{CUBE}.channel"
+        type: string
+        description: Sales channel
+
+      - name: trandate_raw
+        sql: "{CUBE}.trandate_raw"
+        type: string
+        description: Raw transaction date string
+
+      - name: trandate
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
+        type: time
+        description: Transaction date
+
+      - name: duedate
+        sql: "CAST({CUBE}.duedate AS TIMESTAMP)"
+        type: time
+        description: Due date for payment
+
+      - name: shipdate
+        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
+        type: time
+        description: Ship date
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+        description: Transaction status
+
+      - name: posting
+        sql: "{CUBE}.posting"
+        type: string
+        description: Posting flag
+
+      - name: voided
+        sql: "{CUBE}.voided"
+        type: string
+        description: Voided flag
+
+      - name: total
+        sql: "CAST({CUBE}.total AS FLOAT64)"
+        type: number
+        description: Transaction total in base currency
+
+      - name: foreigntotal
+        sql: "CAST({CUBE}.foreigntotal AS FLOAT64)"
+        type: number
+        description: Transaction total in foreign currency
+
+      - name: is_revenue_transaction
+        sql: "{CUBE}.is_revenue_transaction"
+        type: boolean
+        description: Indicates if this is a revenue transaction
+
+      - name: total_revenue
+        sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
+        type: number
+        description: Revenue amount (for revenue transactions)
+
+      - name: currency
+        sql: "{CUBE}.currency"
+        type: number
+        description: Currency ID (foreign key)
+
+      - name: exchangerate
+        sql: "CAST({CUBE}.exchangerate AS FLOAT64)"
+        type: number
+        description: Exchange rate applied
+
+      - name: subsidiary
+        sql: "{CUBE}.subsidiary"
+        type: number
+        description: Subsidiary ID (foreign key)
+
+      - name: postingperiod
+        sql: "{CUBE}.postingperiod"
+        type: number
+        description: Posting period ID
+
+      - name: paymentmethod
+        sql: "{CUBE}.paymentmethod"
+        type: number
+        description: Payment method ID
+
+      - name: createdfrom
+        sql: "{CUBE}.createdfrom"
+        type: number
+        description: Source transaction ID
+
+      - name: appliedtotransaction
+        sql: "{CUBE}.appliedtotransaction"
+        type: number
+        description: Applied to transaction ID
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID (foreign key)
+
+      - name: transferlocation
+        sql: "{CUBE}.transferlocation"
+        type: number
+        description: Transfer location ID
+
+      - name: shipmethod
+        sql: "{CUBE}.shipmethod"
+        type: string
+        description: Shipping method
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: Transaction memo
+
+      - name: createddate
+        sql: "{CUBE}.createddate"
+        type: string
+        description: Created date string
+
+      - name: lastmodifieddate
+        sql: "{CUBE}.lastmodifieddate"
+        type: string
+        description: Last modified date string
+
+    segments:
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer'"
+        description: "Real customers only (excludes webstore/POS/test system entities)"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
+      - name: exclude_system_entities
+        sql: "{CUBE}.entity_type NOT IN ('webstore', 'pos', 'test')"
+        description: "Excludes all system entities (webstore, POS, test)"
+
+      - name: revenue_transactions
+        sql: "{CUBE}.is_revenue_transaction = TRUE"
+        description: "Revenue-generating transactions only"
+
+      - name: posted_transactions
+        sql: "{CUBE}.posting = 'T'"
+        description: "Posted transactions only"
+
+      - name: not_voided
+        sql: "{CUBE}.voided = 'F'"
+        description: "Non-voided transactions"
+
+    pre_aggregations:
+      - name: daily_summary
+        type: rollup
+        external: true
+        measures:
+          - customer_transactions_count
+          - total_revenue
+          - total_amount
+        dimensions:
+          - transaction_type
+          - entity_type
+          - channel
+          - status
+        time_dimensions:
+          - dimension: trandate
+            granularity: day
+        refresh_key:
+          every: "24 hour"
+
+      - name: customer_daily_rollup
+        type: rollup
+        external: true
+        measures:
+          - customer_transactions_count
+          - total_revenue
+          - total_amount
+        dimensions:
+          - entity
+          - transaction_type
+        time_dimensions:
+          - dimension: trandate
+            granularity: day
+        refresh_key:
+          every: "24 hour"

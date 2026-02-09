@@ -1,0 +1,195 @@
+cubes:
+  - name: vendor_bill_line
+    sql_table: gpc_data_2026_01_26.vendor_bill_line
+    title: Vendor Bill Lines
+    description: >
+      Vendor bill line items containing expense details for accounts payable.
+      Grain: one row per vendor bill line.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: vendor_bill_line_count
+        type: count
+        description: Total number of vendor bill lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Sum of line quantities
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line amounts (typically negative for expenses)
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net amounts
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of tax amounts
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of gross amounts
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of foreign currency amounts
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line revenue amounts
+
+      - name: avg_rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: avg
+        description: Average rate per line
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line identifier (part of composite primary key with transaction)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Foreign key to vendor bill transaction header
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Foreign key to item master
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity on the line
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit rate or price
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (typically negative for expenses)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount for the line
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount for the line
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount including tax
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Foreign key to location dimension
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/GL classification code
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Foreign key to department dimension
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Revenue amount for the line
+
+    segments:
+      - name: item_based_expenses
+        sql: "{CUBE}.item IS NOT NULL"
+        description: "Lines with item references (item-based expenses)"
+
+      - name: account_based_expenses
+        sql: "{CUBE}.item IS NULL"
+        description: "Lines without items (account-based expenses using class for GL coding)"
+
+      - name: tax_lines
+        sql: "{CUBE}.taxamount IS NOT NULL AND {CUBE}.taxamount != 0"
+        description: "Lines with tax amounts"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = TRUE"
+        description: "Closed vendor bill lines"
+
+    pre_aggregations:
+      - name: vendor_bill_daily
+        type: rollup
+        external: true
+        measures:
+          - vendor_bill_line_count
+          - total_amount
+          - total_netamount
+          - total_taxamount
+        dimensions:
+          - isclosed
+          - iscogs
+        refresh_key:
+          every: "24 hour"

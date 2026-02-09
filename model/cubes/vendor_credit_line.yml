@@ -1,0 +1,190 @@
+cubes:
+  - name: vendor_credit_line
+    sql_table: gpc_data_2026_01_26.vendor_credit_line
+    title: Vendor Credit Lines
+    description: >
+      Vendor credit memo line items. Contains allocation and tax lines for vendor credits/returns.
+      Grain: one row per vendor credit line.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: vendor_credit_line_count
+        type: count
+        description: Total number of vendor credit lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity across vendor credit lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total credit amount (positive values represent AP credits)
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount after discounts
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount on vendor credits
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount including tax
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total amount in foreign currency
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line revenue impact
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line ID (transaction-scoped, not globally unique)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction ID reference
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID (product or tax code reference)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity on this line
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit rate/price
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (positive = credit to vendor)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after discounts
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount on this line
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount including tax
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID reference
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/classification ID
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID reference
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Revenue impact of this line
+
+    segments:
+      - name: allocation_lines
+        sql: "{CUBE}.iscogs = false"
+        description: "Allocation lines only (excludes COGS lines)"
+
+      - name: cogs_lines
+        sql: "{CUBE}.iscogs = true"
+        description: "COGS lines only"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = true"
+        description: "Closed lines only"
+
+      - name: open_lines
+        sql: "{CUBE}.isclosed = false"
+        description: "Open lines only"
+
+    pre_aggregations:
+      - name: vendor_credit_daily
+        type: rollup
+        external: true
+        measures:
+          - vendor_credit_line_count
+          - total_amount
+          - total_netamount
+          - total_taxamount
+        dimensions:
+          - isclosed
+          - iscogs
+        refresh_key:
+          every: "24 hour"

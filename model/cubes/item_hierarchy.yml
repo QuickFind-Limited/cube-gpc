@@ -1,0 +1,48 @@
+cubes:
+  - name: item_hierarchy
+    sql_table: gpc_data_2026_01_26.item_hierarchy
+    title: Item Hierarchy
+    description: >
+      Item hierarchy bridge table containing parent-child relationships for matrix items.
+      Grain: one row per parent-child item relationship.
+      Used for product family rollups and variant analysis.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.parent_item_id = {items}.item_id"
+
+      - name: items_children
+        relationship: many_to_one
+        sql: "{CUBE}.child_item_id = {items}.item_id"
+
+    measures:
+      - name: relationship_count
+        type: count
+        description: Total number of parent-child item relationships
+
+      - name: distinct_parent_count
+        type: count_distinct
+        sql: "{CUBE}.parent_item_id"
+        description: Count of distinct parent items
+
+      - name: distinct_child_count
+        type: count_distinct
+        sql: "{CUBE}.child_item_id"
+        description: Count of distinct child items
+
+    dimensions:
+      - name: parent_item_id
+        sql: "{CUBE}.parent_item_id"
+        type: number
+        description: Foreign key to parent item (matrix parent or bundle)
+
+      - name: child_item_id
+        sql: "{CUBE}.child_item_id"
+        type: number
+        description: Foreign key to child item (matrix variant or component)
+
+      - name: relationship_type
+        sql: "{CUBE}.relationship_type"
+        type: string
+        description: Type of parent-child relationship (e.g., matrix, bundle, kit)

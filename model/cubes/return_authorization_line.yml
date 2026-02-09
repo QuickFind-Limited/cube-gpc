@@ -1,0 +1,195 @@
+cubes:
+  - name: return_authorization_line
+    sql_table: gpc_data_2026_01_26.return_authorization_line
+    title: Return Authorization Lines
+    description: >
+      Return authorization line items for customer returns.
+      Grain: one row per return authorization line item.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: return_authorization_line_count
+        type: count
+        description: Total number of return authorization lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity of items returned
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount (after discounts)
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total amount in foreign currency
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line revenue (negative for returns)
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line ID (unique within transaction)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Return authorization transaction ID
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID (foreign key to items)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Return quantity
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after discounts
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID (foreign key to locations)
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/category ID
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID (foreign key to departments)
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line (vs COGS or tax)
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Line revenue amount
+
+    segments:
+      - name: sales_lines_only
+        sql: "{CUBE}.is_sales_line = true"
+        description: "Filter to sales lines only, excluding COGS and tax lines"
+
+      - name: cogs_lines_only
+        sql: "{CUBE}.iscogs = true"
+        description: "Filter to COGS lines only"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = true"
+        description: "Filter to closed lines only"
+
+      - name: open_lines
+        sql: "{CUBE}.isclosed = false"
+        description: "Filter to open lines only"
+
+    pre_aggregations:
+      - name: return_lines_summary
+        type: rollup
+        external: true
+        measures:
+          - return_authorization_line_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_taxamount
+          - total_line_revenue
+        dimensions:
+          - item
+          - location
+          - department
+          - is_sales_line
+          - iscogs
+        refresh_key:
+          every: "24 hour"

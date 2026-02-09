@@ -4,7 +4,12 @@ cubes:
     title: Classifications
     description: >
       Business classification hierarchy (EU Website, UK Website, Kildare Village, etc.).
-      Grain: one row per classification.
+      Grain: one row per sales channel classification.
+
+    joins:
+      - name: classifications
+        relationship: many_to_one
+        sql: "{CUBE}.parent_classification_id = {classifications}.classification_id"
 
     measures:
       - name: classification_count
@@ -14,7 +19,7 @@ cubes:
       - name: active_count
         type: count
         filters:
-          - sql: "{CUBE}.is_inactive = false"
+          - sql: "{CUBE}.is_active = true"
         description: Number of active classifications
 
     dimensions:
@@ -24,20 +29,34 @@ cubes:
         primary_key: true
         description: Unique identifier for the classification
 
-      - name: classification_name
-        sql: "{CUBE}.classification_name"
+      - name: classification_path
+        sql: "{CUBE}.classification_path"
         type: string
-        description: Classification name (EU Website, UK Website, Kildare Village, etc.)
+        description: Full hierarchical path of the classification
 
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
+      - name: root_classification
+        sql: "{CUBE}.root_classification"
+        type: string
+        description: Root level classification name
+
+      - name: parent_classification_id
+        sql: "{CUBE}.parent_classification_id"
+        type: number
+        description: Parent classification ID for hierarchy navigation
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
         type: boolean
-        description: Whether classification is inactive
+        description: Whether classification is active
 
     segments:
       - name: active
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active classifications only"
+
+      - name: root_level
+        sql: "{CUBE}.parent_classification_id IS NULL"
+        description: "Root level classifications only"
 
     pre_aggregations:
       - name: classification_analysis
@@ -45,6 +64,7 @@ cubes:
           - classification_count
           - active_count
         dimensions:
-          - classification_name
+          - classification_path
+          - root_classification
         refresh_key:
           every: 1 day

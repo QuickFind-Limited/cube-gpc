@@ -1,0 +1,127 @@
+cubes:
+  - name: vendors
+    sql_table: gpc_data_2026_01_26.vendors
+    title: Vendors
+    description: >
+      Vendor dimension containing supplier and vendor information.
+      Grain: one row per vendor.
+
+    measures:
+      - name: vendor_count
+        type: count
+        description: Total number of vendors
+
+      - name: total_balance
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total vendor balance (amount owed to vendors)
+
+      - name: total_unbilled_orders
+        sql: "CAST({CUBE}.unbilled_orders AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total unbilled purchase orders
+
+      - name: avg_balance
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average vendor balance
+
+    dimensions:
+      - name: vendor_id
+        sql: "{CUBE}.vendor_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the vendor
+
+      - name: vendor_number
+        sql: "{CUBE}.vendor_number"
+        type: string
+        description: Vendor reference number
+
+      - name: company_name
+        sql: "{CUBE}.company_name"
+        type: string
+        description: Vendor company name
+
+      - name: is_person
+        sql: "{CUBE}.is_person"
+        type: boolean
+        description: Indicates if the vendor is an individual person rather than a company
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
+        type: boolean
+        description: Indicates if the vendor is currently active
+
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        description: Vendor email address
+
+      - name: phone
+        sql: "{CUBE}.phone"
+        type: string
+        description: Vendor phone number
+
+      - name: balance
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
+        type: number
+        description: Current vendor balance (positive = amount owed to vendor)
+
+      - name: unbilled_orders
+        sql: "CAST({CUBE}.unbilled_orders AS FLOAT64)"
+        type: number
+        description: Value of unbilled purchase orders
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: string
+        description: Subsidiary identifier
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: string
+        description: Currency identifier for vendor transactions
+
+      - name: payment_terms_id
+        sql: "{CUBE}.payment_terms_id"
+        type: string
+        description: Payment terms identifier
+
+      - name: created_date
+        sql: "CAST({CUBE}.created_date AS TIMESTAMP)"
+        type: time
+        description: Date when the vendor record was created
+
+      - name: last_modified_date
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
+        type: time
+        description: Date when the vendor record was last modified
+
+    segments:
+      - name: active_vendors
+        sql: "{CUBE}.is_active = true"
+        description: "Active vendors only"
+
+      - name: inactive_vendors
+        sql: "{CUBE}.is_active = false"
+        description: "Inactive vendors only"
+
+      - name: vendors_with_balance
+        sql: "CAST({CUBE}.balance AS FLOAT64) > 0"
+        description: "Vendors with outstanding balance owed"
+
+      - name: vendors_with_unbilled_orders
+        sql: "CAST({CUBE}.unbilled_orders AS FLOAT64) > 0"
+        description: "Vendors with unbilled purchase orders"
+
+      - name: company_vendors
+        sql: "{CUBE}.is_person = false"
+        description: "Vendors that are companies (not individuals)"
+
+      - name: individual_vendors
+        sql: "{CUBE}.is_person = true"
+        description: "Vendors that are individual persons"

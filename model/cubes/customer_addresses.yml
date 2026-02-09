@@ -1,0 +1,105 @@
+cubes:
+  - name: customer_addresses
+    sql_table: gpc_data_2026_01_26.customer_addresses
+    title: Customer Addresses
+    description: >
+      Bridge table linking customers to their addresses (billing, shipping, etc.).
+      Grain: one row per customer address relationship.
+
+    joins:
+      - name: customers
+        relationship: many_to_one
+        sql: "{CUBE}.customer_id = {customers}.customer_id"
+
+    measures:
+      - name: address_count
+        type: count
+        description: Total number of customer addresses
+
+      - name: unique_customer_count
+        type: count_distinct
+        sql: customer_id
+        description: Count of unique customers with addresses
+
+    dimensions:
+      - name: address_id
+        sql: "{CUBE}.address_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the address
+
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        description: Foreign key to customers table
+
+      - name: addressee
+        sql: "{CUBE}.addressee"
+        type: string
+        description: Name of the person or business at this address
+
+      - name: address_line_1
+        sql: "{CUBE}.address_line_1"
+        type: string
+        description: First line of the street address
+
+      - name: address_line_2
+        sql: "{CUBE}.address_line_2"
+        type: string
+        description: Second line of the street address (apartment, suite, etc.)
+
+      - name: country
+        sql: "{CUBE}.country"
+        type: string
+        description: Country code for the address
+
+      - name: address_label
+        sql: "{CUBE}.address_label"
+        type: string
+        description: Label or nickname for the address
+
+      - name: is_default_billing
+        sql: "{CUBE}.is_default_billing"
+        type: boolean
+        description: Indicates if this is the default billing address for the customer
+
+      - name: is_default_shipping
+        sql: "{CUBE}.is_default_shipping"
+        type: boolean
+        description: Indicates if this is the default shipping address for the customer
+
+      - name: is_residential
+        sql: "{CUBE}.is_residential"
+        type: boolean
+        description: Indicates if this is a residential address
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of entity (customer, webstore, pos, test)
+
+      - name: is_system_entity
+        sql: "{CUBE}.is_system_entity"
+        type: boolean
+        description: Indicates if this address belongs to a system entity (not a real customer)
+
+    segments:
+      - name: customer_addresses_only
+        sql: "{CUBE}.is_system_entity = FALSE"
+        description: "Excludes system entities (webstore, POS, test) for accurate customer address analysis"
+
+      - name: default_billing_addresses
+        sql: "{CUBE}.is_default_billing = TRUE"
+        description: "Default billing addresses only"
+
+      - name: default_shipping_addresses
+        sql: "{CUBE}.is_default_shipping = TRUE"
+        description: "Default shipping addresses only"
+
+      - name: residential_addresses
+        sql: "{CUBE}.is_residential = TRUE"
+        description: "Residential addresses only"
+
+      - name: commercial_addresses
+        sql: "{CUBE}.is_residential = FALSE"
+        description: "Commercial/business addresses only"

@@ -21,20 +21,15 @@ cubes:
         type: string
         description: Location name
 
-      - name: location_fullname
-        sql: "{CUBE}.location_fullname"
+      - name: location_type
+        sql: "{CUBE}.location_type"
         type: string
-        description: Full hierarchical location name
+        description: Location type classification from source system
 
-      - name: location_external_id
-        sql: "{CUBE}.location_external_id"
-        type: string
-        description: External system identifier for the location
-
-      - name: location_type_id
-        sql: "{CUBE}.location_type_id"
-        type: number
-        description: Location type identifier (FK to location type lookup)
+      - name: is_active
+        sql: "{CUBE}.is_active"
+        type: boolean
+        description: Indicates if the location is active
 
       # CRITICAL: Centralized channel type logic - Rule 4
       - name: channel_type
@@ -57,7 +52,7 @@ cubes:
         type: string
         description: "Channel type: D2C, RETAIL, B2B_WHOLESALE, PARTNER, EVENTS, OTHER"
 
-      - name: location_type
+      - name: derived_location_type
         sql: >
           CASE
             WHEN {CUBE}.location_name IN (
@@ -78,87 +73,12 @@ cubes:
             ELSE 'OTHER'
           END
         type: string
-        description: "Location type: RETAIL, FULFILLMENT, WHOLESALE, B2B_PARTNER, MARKETPLACE, RETURNS_QC, EVENTS, HQ_ADMIN, SOURCING, OTHER"
-
-      - name: region
-        sql: >
-          CASE
-            WHEN {CUBE}.subsidiary_id = 2
-              AND {CUBE}.location_name NOT LIKE 'Bleckmann%'
-              AND {CUBE}.location_name NOT LIKE 'PCH China%'
-            THEN 'IRELAND'
-            WHEN {CUBE}.subsidiary_id = 6
-              AND {CUBE}.location_name NOT LIKE 'Bleckmann Australia%'
-              AND {CUBE}.location_name NOT LIKE 'Bleckmann Aussie%'
-              AND {CUBE}.location_name NOT LIKE 'Bleckmann USA%'
-            THEN 'UK'
-            WHEN {CUBE}.location_name LIKE 'Bleckmann BE%' THEN 'EU'
-            WHEN {CUBE}.location_name = 'Bleckmann UK' THEN 'UK'
-            WHEN {CUBE}.location_name LIKE 'Bleckmann UK%' THEN 'UK'
-            WHEN {CUBE}.location_name = 'Bleckmann Swindon' THEN 'UK'
-            ELSE 'GLOBAL'
-          END
-        type: string
-        description: "Location region: IRELAND (sub 2), UK (sub 6), EU (Bleckmann BE), GLOBAL (overseas warehouses)"
-
-      - name: is_sellable_location
-        sql: "{CUBE}.is_sellable_location"
-        type: boolean
-        description: Indicates if this location can fulfill orders
-
-      - name: subsidiary_id
-        sql: "{CUBE}.subsidiary_id"
-        type: number
-        description: Subsidiary identifier (FK to subsidiaries)
-
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
-        type: boolean
-        description: Indicates if the location is inactive
-
-      - name: make_inventory_available
-        sql: "{CUBE}.make_inventory_available"
-        type: boolean
-        description: Indicates if inventory at this location is available for sale
-
-      - name: include_in_control_tower
-        sql: "{CUBE}.include_in_control_tower"
-        type: boolean
-        description: Indicates if location is included in control tower visibility
-
-      - name: geolocation_method
-        sql: "{CUBE}.geolocation_method"
-        type: string
-        description: Method used for geolocation (e.g., POSTALCODE, LATLONG)
-
-      - name: latitude
-        sql: "CAST({CUBE}.latitude AS FLOAT64)"
-        type: number
-        description: Geographic latitude coordinate
-
-      - name: longitude
-        sql: "CAST({CUBE}.longitude AS FLOAT64)"
-        type: number
-        description: Geographic longitude coordinate
-
-      - name: last_modified_date
-        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
-        type: time
-        description: Last modification timestamp
-
-      - name: main_address_id
-        sql: "{CUBE}.main_address_id"
-        type: number
-        description: Main address identifier (FK to addresses)
+        description: "Derived location type: RETAIL, FULFILLMENT, WHOLESALE, B2B_PARTNER, MARKETPLACE, RETURNS_QC, EVENTS, HQ_ADMIN, SOURCING, OTHER"
 
     segments:
       - name: active_locations
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active locations only"
-
-      - name: sellable_locations
-        sql: "{CUBE}.is_sellable_location = true AND {CUBE}.is_inactive = false"
-        description: "Locations that can fulfill customer orders"
 
       - name: retail_stores
         sql: >
@@ -175,18 +95,12 @@ cubes:
           OR {CUBE}.location_name IN ('Meteor Space', '2Flow')
         description: "Warehouse fulfillment centers for D2C and wholesale"
 
-    joins:
-      - name: subsidiaries
-        relationship: many_to_one
-        sql: "{CUBE}.subsidiary_id = {subsidiaries}.subsidiary_id"
-
     pre_aggregations:
       - name: location_analysis
         measures:
           - location_count
         dimensions:
           - channel_type
-          - location_type
-          - region
+          - derived_location_type
         refresh_key:
           every: 1 day

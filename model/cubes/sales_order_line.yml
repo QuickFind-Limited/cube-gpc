@@ -1,0 +1,217 @@
+cubes:
+  - name: sales_order_line
+    sql_table: gpc_data_2026_01_26.sales_order_line
+    title: Sales Order Lines
+    description: >
+      Sales order line item details including quantities, amounts, and pricing.
+      Grain: one row per sales order line item.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: sales_order_line_count
+        type: count
+        description: Total number of sales order lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity ordered across all lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount (before tax)
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount (including tax)
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total amount in foreign currency
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total revenue from sales lines
+
+      - name: avg_rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit price
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line item identifier
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction ID reference
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID reference
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity ordered
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (quantity × rate)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after adjustments
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount for this line
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount including tax
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/category ID
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Revenue attributed to this line
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS (cost of goods sold) line
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line (vs tax or adjustment)
+
+    segments:
+      - name: sales_lines_only
+        sql: "{CUBE}.is_sales_line = true"
+        description: "Filter to sales lines only, excluding tax and adjustment lines"
+
+      - name: revenue_lines
+        sql: "{CUBE}.is_sales_line = true AND {CUBE}.iscogs = false"
+        description: "Revenue-generating sales lines only"
+
+      - name: cogs_lines
+        sql: "{CUBE}.iscogs = true"
+        description: "Cost of goods sold lines only"
+
+      - name: open_lines
+        sql: "{CUBE}.isclosed = false"
+        description: "Open (unfulfilled) order lines"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = true"
+        description: "Closed (fulfilled) order lines"
+
+      - name: positive_quantity
+        sql: "{CUBE}.quantity > 0"
+        description: "Lines with positive quantities (standard orders)"
+
+      - name: negative_quantity
+        sql: "{CUBE}.quantity < 0"
+        description: "Lines with negative quantities (returns or reversals)"
+
+    pre_aggregations:
+      - name: daily_sales_summary
+        type: rollup
+        external: true
+        measures:
+          - sales_order_line_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_taxamount
+          - total_grossamount
+          - total_line_revenue
+        dimensions:
+          - isclosed
+          - iscogs
+          - is_sales_line
+        refresh_key:
+          every: "24 hour"

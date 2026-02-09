@@ -5,7 +5,7 @@ cubes:
     description: >
       Transaction headers across all transaction types (orders, invoices, cash sales, returns, payments, etc.).
       Grain: one row per transaction header.
-      Entity contamination: Contains entity_type and transaction_in_scope fields for filtering system entities (webstore/POS payment processors).
+      Entity contamination: Contains entity_type field for filtering system entities (webstore/POS payment processors).
 
     joins:
       - name: currencies
@@ -15,6 +15,10 @@ cubes:
       - name: subsidiaries
         relationship: many_to_one
         sql: "{CUBE}.subsidiary = {subsidiaries}.subsidiary_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
 
     measures:
       - name: transactions_count
@@ -28,7 +32,7 @@ cubes:
       - name: fulfilled_orders
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.status = 'B'"
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.status = 'B'"
         description: "Number of fulfilled/billed orders (OM002). Counts billed invoices (CustInvc) and cash sales (CashSale) with status 'B'. Excludes sales orders with status 'G' which are pending billing (not yet fulfilled). For detailed shipment-level fulfillment tracking use the fulfillments cube. FIX (v65): Changed from status IN ('B', 'G') to explicitly filter CustInvc/CashSale with status='B' only, removing 12,303 incorrectly included pending sales orders (status 'G' = approved but not fulfilled)."
 
       - name: cancelled_orders
@@ -40,13 +44,13 @@ cubes:
       - name: customer_credits
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred'"
+          - sql: "{CUBE}.transaction_type = 'CustCred'"
         description: Number of customer credit transactions (returns, refunds, adjustments)
 
       - name: revenue_transaction_count
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
         description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
       # Time-aligned component measures (Feb 2025+) for accurate RET005 calculations
@@ -54,13 +58,13 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred' AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
+          - sql: "{CUBE}.transaction_type = 'CustCred' AND CAST({CUBE}.trandate AS TIMESTAMP) >= '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND TIMESTAMP({CUBE}.trandate) >= '2025-02-01'"
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND CAST({CUBE}.trandate AS TIMESTAMP) >= '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_amount
@@ -92,6 +96,12 @@ cubes:
         type: sum
         description: Sum of exchange rates (for averaging calculations)
 
+      - name: total_revenue
+        sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of revenue amounts (for revenue transactions only)
+
     dimensions:
       - name: id
         sql: "{CUBE}.id"
@@ -104,20 +114,40 @@ cubes:
         type: string
         description: Transaction number/reference (human-readable)
 
-      - name: type
-        sql: "{CUBE}.type"
+      - name: transaction_type
+        sql: "{CUBE}.transaction_type"
         type: string
         description: "Transaction type: SalesOrd, CustInvc, CashSale, CustCred, CustPymt, VendBill, VendPymt, etc."
+
+      - name: type
+        sql: "{CUBE}.transaction_type"
+        type: string
+        description: "Transaction type (alias for backwards compatibility): SalesOrd, CustInvc, CashSale, CustCred, CustPymt, VendBill, VendPymt, etc."
 
       - name: trandate
         sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         description: Transaction date
 
+      - name: trandate_raw
+        sql: "{CUBE}.trandate_raw"
+        type: string
+        description: Raw transaction date string (before parsing)
+
       - name: entity
         sql: "{CUBE}.entity"
         type: number
         description: Entity ID (customer or vendor)
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: "Entity classification: 'customer', 'webstore', 'pos' - used to filter system entities"
+
+      - name: channel
+        sql: "{CUBE}.channel"
+        type: string
+        description: Sales channel (online, retail, wholesale, etc.)
 
       - name: subsidiary
         sql: "{CUBE}.subsidiary"
@@ -154,6 +184,16 @@ cubes:
         type: number
         description: Exchange rate applied to transaction
 
+      - name: is_revenue_transaction
+        sql: "{CUBE}.is_revenue_transaction"
+        type: boolean
+        description: Whether transaction is a revenue transaction (CustInvc or CashSale)
+
+      - name: total_revenue
+        sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
+        type: number
+        description: Revenue amount (populated for revenue transactions only)
+
       - name: status
         sql: "{CUBE}.status"
         type: string
@@ -176,25 +216,15 @@ cubes:
         type: string
         description: Human-readable transaction status
 
-      - name: voided
-        sql: "{CUBE}.voided"
-        type: boolean
-        description: Whether the transaction has been voided
-
       - name: posting
-        sql: "{CUBE}.posting"
+        sql: "{CUBE}.posting = 'T'"
         type: boolean
         description: Whether the transaction posts to GL
 
-      - name: entity_type
-        sql: "{CUBE}.entity_type"
-        type: string
-        description: "Entity classification: 'customer', 'webstore', 'pos' - used to filter system entities"
-
-      - name: transaction_in_scope
-        sql: "{CUBE}.transaction_in_scope"
+      - name: voided
+        sql: "{CUBE}.voided = 'T'"
         type: boolean
-        description: Whether transaction is in scope for customer analytics (excludes system entities)
+        description: Whether the transaction has been voided
 
       - name: paymentmethod
         sql: "{CUBE}.paymentmethod"
@@ -206,20 +236,50 @@ cubes:
         type: number
         description: Source transaction ID (for transactions created from other transactions)
 
+      - name: appliedtotransaction
+        sql: "{CUBE}.appliedtotransaction"
+        type: number
+        description: Transaction ID this payment/credit is applied to
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID (warehouse or store)
+
+      - name: transferlocation
+        sql: "{CUBE}.transferlocation"
+        type: number
+        description: Transfer destination location ID (for transfer orders)
+
+      - name: shipmethod
+        sql: "{CUBE}.shipmethod"
+        type: string
+        description: Shipping method
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: string
+        description: Transaction memo/notes
+
       - name: shipdate
         sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
         type: time
         description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
 
-      - name: closedate
-        sql: "CAST({CUBE}.closedate AS TIMESTAMP)"
-        type: time
-        description: Date when transaction was closed/completed
-
       - name: duedate
         sql: "CAST({CUBE}.duedate AS TIMESTAMP)"
         type: time
         description: Due date (for invoices and bills)
+
+      - name: createddate
+        sql: "{CUBE}.createddate"
+        type: string
+        description: Date transaction was created in system
+
+      - name: lastmodifieddate
+        sql: "{CUBE}.lastmodifieddate"
+        type: string
+        description: Date transaction was last modified
 
       - name: month
         sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
@@ -242,20 +302,24 @@ cubes:
         description: Transaction week
 
     segments:
-      - name: in_scope_only
-        sql: "{CUBE}.transaction_in_scope = true"
-        description: "Excludes system entities (webstore/POS payment processors) for accurate customer analytics"
-
       - name: customer_transactions
         sql: "{CUBE}.entity_type = 'customer'"
         description: "Only transactions from real customers (excludes webstore/POS entities)"
 
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore'"
+        description: "Excludes webstore payment processor entities"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos'"
+        description: "Excludes POS system entities"
+
       - name: revenue_transactions
-        sql: "{CUBE}.type IN ('CustInvc', 'CashSale')"
+        sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
         description: "Revenue-generating transactions (invoices and cash sales)"
 
       - name: sales_orders
-        sql: "{CUBE}.type = 'SalesOrd'"
+        sql: "{CUBE}.transaction_type = 'SalesOrd'"
         description: "Sales orders only"
 
       - name: fulfilled_status
@@ -263,7 +327,7 @@ cubes:
         description: "Billed/fulfilled transactions"
 
       - name: posted_only
-        sql: "{CUBE}.posting = true AND {CUBE}.voided = false"
+        sql: "{CUBE}.posting = 'T' AND {CUBE}.voided = 'F'"
         description: "Posted, non-voided transactions for financial reporting"
 
     pre_aggregations:
@@ -284,14 +348,16 @@ cubes:
           - total_foreigntotal
           - total_foreign_amount
           - total_exchangerate
+          - total_revenue
         dimensions:
-          - type
+          - transaction_type
           - status
           - status_name
           - entity_type
-          - transaction_in_scope
+          - channel
           - subsidiary
           - currency
+          - is_revenue_transaction
         time_dimension: trandate
         granularity: day
         refresh_key:

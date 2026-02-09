@@ -1,0 +1,217 @@
+cubes:
+  - name: customer_transaction_lines
+    sql_table: gpc_data_2026_01_26.customer_transaction_lines
+    title: Customer Transaction Lines
+    description: >
+      Customer transaction line items across all customer-facing transaction types.
+      Grain: one row per customer transaction line item.
+
+    joins:
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions}.id"
+
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: customer_transaction_lines_count
+        type: count
+        description: Total number of customer transaction lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity across all lines
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount (sum of all line amounts)
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount (excluding tax)
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount (including tax)
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total amount in foreign currency
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total revenue from sales lines only
+
+      - name: avg_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: avg
+        description: Average quantity per line
+
+      - name: avg_rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: avg
+        format: currency
+        description: Average unit rate/price
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line ID (unique within transaction)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction ID (foreign key to transactions)
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID (foreign key to items)
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID (foreign key to locations)
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class ID for classification
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID (foreign key to departments)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Line item quantity
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit rate or price
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (quantity * rate)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount excluding tax
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount for this line
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount including tax
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo ID reference
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Revenue amount for sales lines
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS (Cost of Goods Sold) line
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales revenue line
+
+    segments:
+      - name: sales_lines_only
+        sql: "{CUBE}.is_sales_line = TRUE"
+        description: "Filters to sales revenue lines only, excluding COGS and tax lines"
+
+      - name: cogs_lines_only
+        sql: "{CUBE}.iscogs = TRUE"
+        description: "Filters to COGS lines only"
+
+      - name: revenue_lines
+        sql: "{CUBE}.is_sales_line = TRUE AND {CUBE}.iscogs = FALSE"
+        description: "Revenue lines excluding COGS entries"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = TRUE"
+        description: "Closed transaction lines only"
+
+      - name: positive_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) > 0"
+        description: "Lines with positive quantities (sales, not returns)"
+
+      - name: negative_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64) < 0"
+        description: "Lines with negative quantities (returns or COGS)"
+
+    pre_aggregations:
+      - name: daily_summary
+        type: rollup
+        external: true
+        measures:
+          - customer_transaction_lines_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_taxamount
+          - total_grossamount
+          - total_line_revenue
+        dimensions:
+          - is_sales_line
+          - iscogs
+          - isclosed
+        refresh_key:
+          every: "24 hour"
