@@ -1,0 +1,186 @@
+cubes:
+  - name: purchase_order_line
+    sql_table: gpc_data_2026_01_26.purchase_order_line
+    title: Purchase Order Lines
+    description: >
+      Purchase order line items showing products ordered from vendors.
+      Grain: one row per purchase order line item.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: purchase_order_line_count
+        type: count
+        description: Total number of purchase order lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity ordered
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line amount
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount (including fees/adjustments)
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total amount in foreign currency
+
+      - name: avg_rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: avg
+        description: Average unit rate/price
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line sequence number (not unique across transactions)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Purchase order transaction ID
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item/product ID
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity ordered
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit price/rate
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount (quantity * rate)
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount including adjustments
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location/warehouse ID
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class/category ID
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line
+
+    segments:
+      - name: product_lines
+        sql: "{CUBE}.iscogs = false"
+        description: "Product lines only (excludes COGS adjustment lines)"
+
+      - name: open_lines
+        sql: "{CUBE}.isclosed = false"
+        description: "Open purchase order lines not yet fully received/billed"
+
+      - name: closed_lines
+        sql: "{CUBE}.isclosed = true"
+        description: "Closed purchase order lines (fully received and billed)"
+
+    pre_aggregations:
+      - name: daily_rollup
+        type: rollup
+        external: true
+        measures:
+          - purchase_order_line_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_taxamount
+          - total_grossamount
+          - total_foreignamount
+        dimensions:
+          - item
+          - location
+          - department
+          - isclosed
+          - iscogs
+        refresh_key:
+          every: "24 hour"

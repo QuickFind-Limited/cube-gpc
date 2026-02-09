@@ -3,25 +3,44 @@ cubes:
     sql_table: gpc_data_2026_01_26.items
     title: Items
     description: >
-      Product master data dimension.
+      Product master data dimension containing 15,268 items/SKUs.
       Grain: one row per item/product (SKU).
-      Note: This is the normalized schema. Custom GPC fields (category, season, color, etc.)
-      are not available in this normalized table.
+      Contains matrix hierarchy (PARENT/CHILD relationships) for product variants.
 
     measures:
       - name: item_count
         type: count
         description: Total number of items/SKUs
 
-      - name: total_quantity_available
-        sql: "CAST({CUBE}.quantity_available AS FLOAT64)"
+      - name: total_weight
+        sql: "CAST({CUBE}.weight AS FLOAT64)"
         type: sum
-        description: Total quantity available across all items
+        description: Total weight across all items
 
-      - name: avg_quantity_available
-        sql: "CAST({CUBE}.quantity_available AS FLOAT64)"
+      - name: avg_weight
+        sql: "CAST({CUBE}.weight AS FLOAT64)"
         type: avg
-        description: Average quantity available per item
+        description: Average weight per item
+
+      - name: total_standard_cost
+        sql: "CAST({CUBE}.standard_cost AS FLOAT64)"
+        type: sum
+        description: Total standard cost across all items
+
+      - name: avg_standard_cost
+        sql: "CAST({CUBE}.standard_cost AS FLOAT64)"
+        type: avg
+        description: Average standard cost per item
+
+      - name: total_last_purchase_cost
+        sql: "CAST({CUBE}.last_purchase_cost AS FLOAT64)"
+        type: sum
+        description: Total last purchase cost across all items
+
+      - name: avg_last_purchase_cost
+        sql: "CAST({CUBE}.last_purchase_cost AS FLOAT64)"
+        type: avg
+        description: Average last purchase cost per item
 
     dimensions:
       - name: item_id
@@ -30,26 +49,31 @@ cubes:
         primary_key: true
         description: Unique identifier for the item
 
-      - name: item_code
-        sql: "{CUBE}.item_code"
+      - name: sku
+        sql: "{CUBE}.sku"
         type: string
-        title: Item Code / SKU
-        description: Item code/SKU identifier
+        title: SKU
+        description: Item SKU (stock keeping unit)
 
-      - name: item_name
-        sql: "{CUBE}.item_name"
+      - name: external_id
+        sql: "{CUBE}.external_id"
         type: string
-        title: Item Name
-        description: Item name
+        description: External system identifier for the item
 
-      - name: item_fullname
-        sql: "{CUBE}.item_fullname"
+      - name: display_name
+        sql: "{CUBE}.display_name"
         type: string
-        title: Full Item Name
+        title: Display Name
+        description: Item display name
+
+      - name: full_name
+        sql: "{CUBE}.full_name"
+        type: string
+        title: Full Name
         description: Full item name with complete details
 
-      - name: item_description
-        sql: "{CUBE}.item_description"
+      - name: description
+        sql: "{CUBE}.description"
         type: string
         description: Item description
 
@@ -58,50 +82,70 @@ cubes:
         type: string
         description: Item type (e.g., InvtPart, Kit, NonInvtPart)
 
-      - name: matrix_type
-        sql: "{CUBE}.matrix_type"
+      - name: matrix_level
+        sql: "{CUBE}.matrix_level"
         type: string
-        description: Matrix type (PARENT, CHILD, or null for standalone items)
+        description: Matrix level (PARENT, CHILD, or null for standalone items)
 
-      - name: costing_method
-        sql: "{CUBE}.costing_method"
-        type: string
-        description: Costing method code
-
-      - name: costing_method_display
-        sql: "{CUBE}.costing_method_display"
-        type: string
-        description: Costing method display name (e.g., Average, FIFO)
-
-      - name: quantity_available
-        sql: "CAST({CUBE}.quantity_available AS FLOAT64)"
+      - name: parent_item_id
+        sql: "{CUBE}.parent_item_id"
         type: number
-        description: Current quantity available in inventory
+        description: Parent item ID for matrix child items
 
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
+      - name: is_active
+        sql: "{CUBE}.is_active"
         type: boolean
-        description: Whether item is inactive
+        description: Whether item is active
+
+      - name: is_fulfillable
+        sql: "{CUBE}.is_fulfillable"
+        type: boolean
+        description: Whether item can be fulfilled
+
+      - name: is_dropship
+        sql: "{CUBE}.is_dropship"
+        type: boolean
+        description: Whether item is drop-shipped
+
+      - name: is_special_order
+        sql: "{CUBE}.is_special_order"
+        type: boolean
+        description: Whether item is special order only
 
       - name: is_online
         sql: "{CUBE}.is_online"
         type: boolean
         description: Whether item is available for online purchase
 
-      - name: is_dropship_item
-        sql: "{CUBE}.is_dropship_item"
-        type: boolean
-        description: Whether item is drop-shipped
+      - name: weight
+        sql: "CAST({CUBE}.weight AS FLOAT64)"
+        type: number
+        description: Item weight
 
-      - name: is_special_order_item
-        sql: "{CUBE}.is_special_order_item"
-        type: boolean
-        description: Whether item is special order only
+      - name: standard_cost
+        sql: "CAST({CUBE}.standard_cost AS FLOAT64)"
+        type: number
+        description: Standard cost for the item
 
-      - name: is_fulfillable
-        sql: "{CUBE}.is_fulfillable"
+      - name: last_purchase_cost
+        sql: "CAST({CUBE}.last_purchase_cost AS FLOAT64)"
+        type: number
+        description: Last purchase cost for the item
+
+      - name: costing_method
+        sql: "{CUBE}.costing_method"
+        type: string
+        description: Costing method (e.g., Average, FIFO, Standard)
+
+      - name: has_cost_data
+        sql: "{CUBE}.has_cost_data"
         type: boolean
-        description: Whether item can be fulfilled
+        description: Whether item has cost data available
+
+      - name: has_weight_data
+        sql: "{CUBE}.has_weight_data"
+        type: boolean
+        description: Whether item has weight data available
 
       - name: subsidiary_id
         sql: "{CUBE}.subsidiary_id"
@@ -113,15 +157,15 @@ cubes:
         type: number
         description: Income account identifier for revenue posting
 
-      - name: last_modified_date
-        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
-        type: time
-        description: Last modification timestamp
-
       - name: created_date
         sql: "CAST({CUBE}.created_date AS TIMESTAMP)"
         type: time
         description: Item creation timestamp
+
+      - name: last_modified_date
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
+        type: time
+        description: Last modification timestamp
 
     joins:
       - name: subsidiaries
@@ -132,31 +176,43 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.income_account_id = {accounts}.account_id"
 
+      - name: parent_item
+        relationship: many_to_one
+        sql: "{CUBE}.parent_item_id = {items}.item_id"
+
     segments:
       - name: active_items
-        sql: "{CUBE}.is_inactive = false"
-        description: "Active items only (not inactive)"
+        sql: "{CUBE}.is_active = true"
+        description: "Active items only"
+
+      - name: inactive_items
+        sql: "{CUBE}.is_active = false"
+        description: "Inactive items"
 
       - name: online_items
         sql: "{CUBE}.is_online = true"
         description: "Items available for online purchase"
 
       - name: fulfillable_items
-        sql: "{CUBE}.is_fulfillable = true AND {CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_fulfillable = true AND {CUBE}.is_active = true"
         description: "Active items that can be fulfilled"
 
-      - name: in_stock
-        sql: "CAST({CUBE}.quantity_available AS FLOAT64) > 0"
-        description: "Items with available inventory"
-
       - name: parent_items
-        sql: "{CUBE}.matrix_type = 'PARENT'"
+        sql: "{CUBE}.matrix_level = 'PARENT'"
         description: "Parent items in matrix item structures"
 
       - name: child_items
-        sql: "{CUBE}.matrix_type = 'CHILD'"
+        sql: "{CUBE}.matrix_level = 'CHILD'"
         description: "Child items (variants) in matrix item structures"
 
       - name: standalone_items
-        sql: "{CUBE}.matrix_type IS NULL"
+        sql: "{CUBE}.matrix_level IS NULL"
         description: "Standalone items not part of a matrix"
+
+      - name: items_with_cost
+        sql: "{CUBE}.has_cost_data = true"
+        description: "Items with cost data available"
+
+      - name: items_with_weight
+        sql: "{CUBE}.has_weight_data = true"
+        description: "Items with weight data available"

@@ -1,0 +1,52 @@
+cubes:
+  - name: entity_contamination
+    sql_table: gpc_data_2026_01_26.entity_contamination
+    title: System Entity Reference
+    description: >
+      Reference dimension identifying system entities (webstore payment processors, POS terminals, test accounts).
+      Used to filter contamination from customer and vendor analytics.
+      Grain: one row per system entity.
+
+    measures:
+      - name: entity_contamination_count
+        type: count
+        description: Total number of system entities
+
+    dimensions:
+      - name: entity_id
+        sql: "{CUBE}.entity_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the system entity
+
+      - name: entity_name
+        sql: "{CUBE}.entity_name"
+        type: string
+        description: Name of the system entity (e.g., 'EU Webstore', 'UK POS')
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Type of system entity (webstore, pos, test, intercompany)
+
+      - name: channel
+        sql: "{CUBE}.channel"
+        type: string
+        description: Sales channel associated with the system entity
+
+    segments:
+      - name: webstore_entities
+        sql: "{CUBE}.entity_type = 'webstore'"
+        description: "Webstore payment processor entities only"
+
+      - name: pos_entities
+        sql: "{CUBE}.entity_type = 'pos'"
+        description: "POS terminal entities only"
+
+      - name: test_entities
+        sql: "{CUBE}.entity_type = 'test'"
+        description: "Test account entities only"
+
+      - name: intercompany_entities
+        sql: "{CUBE}.entity_type = 'intercompany'"
+        description: "Intercompany entities only"

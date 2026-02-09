@@ -23,14 +23,19 @@ cubes:
         type: string
         description: Display name of the payment method (e.g., VISA, Mastercard, Cash, PayPal)
 
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
+      - name: payment_type
+        sql: "{CUBE}.payment_type"
+        type: string
+        description: Type/category of payment method
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
         type: boolean
-        description: Indicates if the payment method is inactive
+        description: Indicates if the payment method is active
 
     segments:
       - name: active_only
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active payment methods only"
 
       - name: credit_cards

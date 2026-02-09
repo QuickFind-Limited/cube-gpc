@@ -1,0 +1,227 @@
+cubes:
+  - name: customers
+    sql_table: gpc_data_2026_01_26.customers
+    title: Customers
+    description: >
+      Customer dimension containing customer master data.
+      Grain: one row per customer.
+      Note: Contains 26 system entities (webstore/POS/test) that should be filtered for customer analytics.
+
+    measures:
+      - name: customer_count
+        type: count
+        description: Total number of customers
+
+      - name: total_balance
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of customer account balances (semi-additive)
+
+      - name: total_overdue_balance
+        sql: "CAST({CUBE}.overdue_balance AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of overdue customer balances
+
+      - name: total_deposit_balance
+        sql: "CAST({CUBE}.deposit_balance AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of customer deposit balances
+
+      - name: total_unbilled_orders
+        sql: "CAST({CUBE}.unbilled_orders AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of unbilled order amounts
+
+      - name: avg_days_overdue
+        sql: "CAST({CUBE}.days_overdue AS FLOAT64)"
+        type: avg
+        description: Average days overdue across customers
+
+    dimensions:
+      - name: customer_id
+        sql: "{CUBE}.customer_id"
+        type: number
+        primary_key: true
+        description: Unique identifier for the customer
+
+      - name: customer_number
+        sql: "{CUBE}.customer_number"
+        type: string
+        description: Customer account number
+
+      - name: entity_type
+        sql: "{CUBE}.entity_type"
+        type: string
+        description: Entity type classification (customer, webstore, pos, test)
+
+      - name: customer_type
+        sql: "{CUBE}.customer_type"
+        type: string
+        description: Type of customer (e.g., Sports, Wholesale, Organization)
+
+      - name: primary_channel
+        sql: "{CUBE}.primary_channel"
+        type: string
+        description: Primary sales channel for this customer
+
+      - name: company_name
+        sql: "{CUBE}.company_name"
+        type: string
+        description: Company or business name
+
+      - name: is_person
+        sql: "{CUBE}.is_person"
+        type: boolean
+        description: Indicates if customer is an individual (B2C) vs business (B2B)
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
+        type: boolean
+        description: Indicates if customer account is active
+
+      - name: email
+        sql: "{CUBE}.email"
+        type: string
+        description: Customer email address
+
+      - name: phone
+        sql: "{CUBE}.phone"
+        type: string
+        description: Customer phone number
+
+      - name: balance
+        sql: "CAST({CUBE}.balance AS FLOAT64)"
+        type: number
+        description: Current account balance
+
+      - name: overdue_balance
+        sql: "CAST({CUBE}.overdue_balance AS FLOAT64)"
+        type: number
+        description: Overdue balance amount
+
+      - name: deposit_balance
+        sql: "CAST({CUBE}.deposit_balance AS FLOAT64)"
+        type: number
+        description: Customer deposit balance
+
+      - name: unbilled_orders
+        sql: "CAST({CUBE}.unbilled_orders AS FLOAT64)"
+        type: number
+        description: Unbilled order amount
+
+      - name: days_overdue
+        sql: "{CUBE}.days_overdue"
+        type: number
+        description: Number of days account is overdue
+
+      - name: subsidiary_id
+        sql: "{CUBE}.subsidiary_id"
+        type: string
+        description: Associated subsidiary identifier
+
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: string
+        description: Customer currency identifier
+
+      - name: category_id
+        sql: "{CUBE}.category_id"
+        type: string
+        description: Customer category identifier
+
+      - name: price_level_id
+        sql: "{CUBE}.price_level_id"
+        type: string
+        description: Customer price level identifier
+
+      - name: payment_terms_id
+        sql: "{CUBE}.payment_terms_id"
+        type: string
+        description: Payment terms identifier
+
+      - name: pricing_tier_id
+        sql: "{CUBE}.pricing_tier_id"
+        type: string
+        description: Pricing tier identifier for wholesale customers
+
+      - name: wholesale_segment
+        sql: "{CUBE}.wholesale_segment"
+        type: string
+        description: Wholesale market segment classification
+
+      - name: buying_group
+        sql: "{CUBE}.buying_group"
+        type: string
+        description: Buying group affiliation for retail accounts
+
+      - name: shopify_domain
+        sql: "{CUBE}.shopify_domain"
+        type: string
+        description: Shopify domain for ecommerce channel attribution
+
+      - name: is_amazon_sfp
+        sql: "{CUBE}.is_amazon_sfp"
+        type: boolean
+        description: Indicates Amazon Seller Fulfilled Prime customer
+
+      - name: is_amazon_fba
+        sql: "{CUBE}.is_amazon_fba"
+        type: boolean
+        description: Indicates Amazon FBA customer
+
+      - name: is_high_value
+        sql: "{CUBE}.is_high_value"
+        type: boolean
+        description: Indicates high-value customer flag
+
+      - name: tax_registration_number
+        sql: "{CUBE}.tax_registration_number"
+        type: string
+        description: VAT or tax registration number
+
+      - name: created_date
+        sql: "CAST({CUBE}.created_date AS TIMESTAMP)"
+        type: time
+        description: Customer account creation date
+
+      - name: last_modified_date
+        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
+        type: time
+        description: Last modification timestamp
+
+    segments:
+      - name: customers_only
+        sql: "{CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes system entities (webstore, POS, test) for accurate customer metrics"
+
+      - name: exclude_webstore
+        sql: "{CUBE}.entity_type != 'webstore' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes webstore payment processor entities only"
+
+      - name: exclude_pos
+        sql: "{CUBE}.entity_type != 'pos' OR {CUBE}.entity_type IS NULL"
+        description: "Excludes POS system entities only"
+
+      - name: active_customers
+        sql: "{CUBE}.is_active = true AND ({CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL)"
+        description: "Active customers only, excluding system entities"
+
+      - name: b2b_customers
+        sql: "{CUBE}.is_person = false AND {CUBE}.company_name IS NOT NULL AND ({CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL)"
+        description: "Business customers (B2B) only"
+
+      - name: b2c_customers
+        sql: "({CUBE}.is_person = true OR {CUBE}.company_name IS NULL) AND ({CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL)"
+        description: "Individual customers (B2C) only"
+
+      - name: wholesale_customers
+        sql: "{CUBE}.customer_type = 'Wholesale' AND ({CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL)"
+        description: "Wholesale customers only"
+
+      - name: overdue_customers
+        sql: "{CUBE}.overdue_balance > 0 AND ({CUBE}.entity_type = 'customer' OR {CUBE}.entity_type IS NULL)"
+        description: "Customers with overdue balances"

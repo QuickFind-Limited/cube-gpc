@@ -1,0 +1,175 @@
+cubes:
+  - name: customer_payment_line
+    sql_table: gpc_data_2026_01_26.customer_payment_line
+    title: Customer Payment Lines
+    description: >
+      Customer payment line items showing payment application details.
+      Grain: one row per customer payment line item.
+      Note: High POS/webstore contamination per report. Use entity filtering for customer analytics.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: customer_payment_line_count
+        type: count
+        description: Total number of customer payment lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total payment quantity
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total payment amount
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net payment amount
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total foreign currency amount
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line revenue
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line item identifier
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction header identifier
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item identifier (FK to items)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Payment quantity
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Payment rate
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment amount
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net payment amount
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Foreign currency amount
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location identifier (FK to locations)
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class identifier
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department identifier (FK to departments)
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the payment line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Line revenue amount
+
+    pre_aggregations:
+      - name: main
+        type: rollup
+        external: true
+        measures:
+          - customer_payment_line_count
+          - total_amount
+          - total_netamount
+          - total_taxamount
+        dimensions:
+          - isclosed
+          - iscogs
+          - is_sales_line
+        refresh_key:
+          every: "24 hour"

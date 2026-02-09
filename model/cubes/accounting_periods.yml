@@ -23,35 +23,10 @@ cubes:
         type: string
         description: Display name of the accounting period
 
-      - name: is_adjustment_period
-        sql: "{CUBE}.is_adjustment_period"
-        type: boolean
-        description: Indicates if this is an adjustment period
-
-      - name: is_quarter
-        sql: "{CUBE}.is_quarter"
-        type: boolean
-        description: Indicates if this period represents a quarter
-
-      - name: is_year
-        sql: "{CUBE}.is_year"
-        type: boolean
-        description: Indicates if this period represents a full year
-
-      - name: is_closed
-        sql: "{CUBE}.is_closed"
-        type: boolean
-        description: Indicates if the period is closed for transactions
-
-      - name: is_posting
-        sql: "{CUBE}.is_posting"
-        type: boolean
-        description: Indicates if this period allows posting transactions
-
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
-        type: boolean
-        description: Indicates if the period is inactive
+      - name: fiscal_year_type
+        sql: "{CUBE}.fiscal_year_type"
+        type: string
+        description: Type of fiscal year (calendar vs fiscal)
 
       - name: start_date
         sql: "CAST({CUBE}.start_date AS TIMESTAMP)"
@@ -63,10 +38,40 @@ cubes:
         type: time
         description: Period end date
 
-      - name: closed_on_date
-        sql: "CAST({CUBE}.closed_on_date AS TIMESTAMP)"
+      - name: closed_date
+        sql: "CAST({CUBE}.closed_date AS TIMESTAMP)"
         type: time
         description: Date when the period was closed
+
+      - name: is_closed
+        sql: "{CUBE}.is_closed"
+        type: boolean
+        description: Indicates if the period is closed for transactions
+
+      - name: is_adjustment_period
+        sql: "{CUBE}.is_adjustment_period"
+        type: boolean
+        description: Indicates if this is an adjustment period
+
+      - name: allows_posting
+        sql: "{CUBE}.allows_posting"
+        type: boolean
+        description: Indicates if this period allows posting transactions
+
+      - name: is_quarter
+        sql: "{CUBE}.is_quarter"
+        type: boolean
+        description: Indicates if this period represents a quarter
+
+      - name: is_year
+        sql: "{CUBE}.is_year"
+        type: boolean
+        description: Indicates if this period represents a full year
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
+        type: boolean
+        description: Indicates if the period is active
 
       - name: is_all_locked
         sql: "{CUBE}.is_all_locked"
@@ -94,7 +99,7 @@ cubes:
         description: "Periods that are still open for transactions"
 
       - name: posting_periods
-        sql: "{CUBE}.is_posting = true AND {CUBE}.is_inactive = false"
+        sql: "{CUBE}.allows_posting = true AND {CUBE}.is_active = true"
         description: "Active periods that allow posting transactions"
 
       - name: adjustment_periods
@@ -104,3 +109,7 @@ cubes:
       - name: regular_periods
         sql: "{CUBE}.is_adjustment_period = false AND {CUBE}.is_quarter = false AND {CUBE}.is_year = false"
         description: "Regular monthly periods only"
+
+      - name: active_periods
+        sql: "{CUBE}.is_active = true"
+        description: "Active periods only"

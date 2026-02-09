@@ -6,11 +6,6 @@ cubes:
       Department reference data (eCommerce, Retail, Wholesale, etc.).
       Grain: one row per department.
 
-    joins:
-      - name: departments
-        relationship: many_to_one
-        sql: "{CUBE}.department_id = {departments.department_id}"
-
     measures:
       - name: department_count
         type: count
@@ -19,7 +14,7 @@ cubes:
       - name: active_department_count
         type: count
         filters:
-          - sql: "{CUBE}.is_inactive = false"
+          - sql: "{CUBE}.is_active = true"
         description: Number of active departments
 
     dimensions:
@@ -34,28 +29,19 @@ cubes:
         type: string
         description: Department name (eCommerce, Retail, Wholesale)
 
-      - name: department_fullname
-        sql: "{CUBE}.department_fullname"
-        type: string
-        description: Full department name
-
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
+      - name: is_active
+        sql: "{CUBE}.is_active"
         type: boolean
-        description: Whether department is inactive
-
-      - name: last_modified_date
-        sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
-        type: time
-        description: Date when the department record was last modified
+        description: Whether department is active
 
     segments:
       - name: active
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active departments only"
 
     pre_aggregations:
       - name: department_analysis
+        type: rollup
         measures:
           - department_count
           - active_department_count

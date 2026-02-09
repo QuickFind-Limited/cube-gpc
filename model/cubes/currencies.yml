@@ -9,6 +9,11 @@ cubes:
         type: count
         description: Total number of currencies
 
+      - name: avg_exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: avg
+        description: Average exchange rate across currencies
+
     dimensions:
       - name: currency_id
         sql: "{CUBE}.currency_id"
@@ -16,40 +21,46 @@ cubes:
         primary_key: true
         description: Unique identifier for the currency
 
-      - name: currency_name
-        sql: "{CUBE}.currency_name"
+      - name: currency_code
+        sql: "{CUBE}.currency_code"
         type: string
-        description: Currency name (EUR, GBP, USD, etc.)
+        description: Currency code (EUR, GBP, USD, etc.)
 
       - name: currency_symbol
         sql: "{CUBE}.currency_symbol"
         type: string
         description: Currency symbol
 
-      - name: is_base_currency
-        sql: "{CUBE}.is_base_currency"
-        type: boolean
-        description: Indicates if this is the base currency for the organization
+      - name: exchange_rate
+        sql: "CAST({CUBE}.exchange_rate AS FLOAT64)"
+        type: number
+        description: Exchange rate relative to base currency
 
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
+      - name: is_active
+        sql: "{CUBE}.is_active"
         type: boolean
-        description: Indicates if the currency is inactive
+        description: Indicates if the currency is active
+
+      - name: is_base_currency
+        sql: "{CUBE}.exchange_rate = 1.0"
+        type: boolean
+        description: Indicates if this is the base currency for the organization (exchange rate = 1)
 
     segments:
       - name: active_currencies
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active currencies only"
 
       - name: base_currency
-        sql: "{CUBE}.is_base_currency = true"
+        sql: "{CUBE}.exchange_rate = 1.0"
         description: "The organization's base currency"
 
     pre_aggregations:
       - name: currency_analysis
+        type: rollup
         measures:
           - currency_count
         dimensions:
-          - currency_name
+          - currency_code
         refresh_key:
           every: 1 day

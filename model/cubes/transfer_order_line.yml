@@ -1,0 +1,177 @@
+cubes:
+  - name: transfer_order_line
+    sql_table: gpc_data_2026_01_26.transfer_order_line
+    title: Transfer Order Lines
+    description: >
+      Transfer order line items for inter-location inventory transfers.
+      Grain: one row per transfer order line.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: transfer_order_line_count
+        type: count
+        description: Total number of transfer order lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Total quantity transferred
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total transfer amount
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total net amount
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total tax amount
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total gross amount
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total foreign currency amount
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line revenue
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Transfer order line ID
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction ID reference
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID foreign key
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Quantity transferred
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Unit rate for transfer
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Line amount
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net line amount
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Foreign currency amount
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID foreign key
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class ID
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department ID foreign key
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if transfer is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference ID
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Revenue for this line
+
+    pre_aggregations:
+      - name: transfer_order_line_rollup
+        type: rollup
+        external: true
+        measures:
+          - transfer_order_line_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_line_revenue
+        dimensions:
+          - item
+          - location
+          - department
+          - isclosed
+          - iscogs
+        refresh_key:
+          every: "24 hour"

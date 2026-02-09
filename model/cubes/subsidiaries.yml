@@ -11,10 +11,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.currency_id = {currencies}.currency_id"
 
-      - name: parent_subsidiary
-        relationship: many_to_one
-        sql: "{CUBE}.parent_subsidiary_id = {subsidiaries}.subsidiary_id"
-
     measures:
       - name: subsidiary_count
         type: count
@@ -32,6 +28,21 @@ cubes:
         type: string
         description: Subsidiary name
 
+      - name: currency_id
+        sql: "{CUBE}.currency_id"
+        type: number
+        description: Currency ID for the subsidiary's base currency
+
+      - name: is_elimination
+        sql: "{CUBE}.is_elimination"
+        type: boolean
+        description: Indicates if this is an elimination subsidiary for consolidation
+
+      - name: is_active
+        sql: "{CUBE}.is_active"
+        type: boolean
+        description: Indicates if the subsidiary is active
+
       - name: subsidiary_legal_name
         sql: "{CUBE}.subsidiary_legal_name"
         type: string
@@ -47,25 +58,10 @@ cubes:
         type: string
         description: Country code (IE, GB)
 
-      - name: currency_id
-        sql: "{CUBE}.currency_id"
-        type: number
-        description: Currency ID for the subsidiary's base currency
-
       - name: parent_subsidiary_id
         sql: "{CUBE}.parent_subsidiary_id"
         type: number
         description: Parent subsidiary ID for hierarchical relationships
-
-      - name: is_inactive
-        sql: "{CUBE}.is_inactive"
-        type: boolean
-        description: Indicates if the subsidiary is inactive
-
-      - name: is_elimination
-        sql: "{CUBE}.is_elimination"
-        type: boolean
-        description: Indicates if this is an elimination subsidiary for consolidation
 
       - name: last_modified_date
         sql: "CAST({CUBE}.last_modified_date AS TIMESTAMP)"
@@ -74,19 +70,13 @@ cubes:
 
     segments:
       - name: active_subsidiaries
-        sql: "{CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_active = true"
         description: "Active subsidiaries only"
 
       - name: operating_subsidiaries
-        sql: "{CUBE}.is_elimination = false AND {CUBE}.is_inactive = false"
+        sql: "{CUBE}.is_elimination = false AND {CUBE}.is_active = true"
         description: "Operating subsidiaries excluding elimination entities"
 
-    pre_aggregations:
-      - name: subsidiary_analysis
-        measures:
-          - subsidiary_count
-        dimensions:
-          - subsidiary_name
-          - country_code
-        refresh_key:
-          every: 1 day
+      - name: elimination_subsidiaries
+        sql: "{CUBE}.is_elimination = true"
+        description: "Elimination subsidiaries for consolidation"

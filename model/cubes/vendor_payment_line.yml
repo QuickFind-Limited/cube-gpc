@@ -1,0 +1,173 @@
+cubes:
+  - name: vendor_payment_line
+    sql_table: gpc_data_2026_01_26.vendor_payment_line
+    title: Vendor Payment Lines
+    description: >
+      Vendor payment line detail fact table.
+      Grain: one row per vendor payment line.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.item_id"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.location_id"
+
+      - name: departments
+        relationship: many_to_one
+        sql: "{CUBE}.department = {departments}.department_id"
+
+    measures:
+      - name: vendor_payment_line_count
+        type: count
+        description: Total number of vendor payment lines
+
+      - name: total_quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Sum of payment line quantities
+
+      - name: total_amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of payment line amounts
+
+      - name: total_netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of net amounts
+
+      - name: total_taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of tax amounts
+
+      - name: total_grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of gross amounts
+
+      - name: total_foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of foreign currency amounts
+
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Sum of line revenue (should be zero for vendor payments)
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: number
+        primary_key: true
+        description: Line identifier (part of composite key)
+
+      - name: transaction
+        sql: "{CUBE}.transaction"
+        type: number
+        description: Transaction identifier (part of composite key)
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item reference (foreign key to items)
+
+      - name: quantity
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: number
+        description: Payment line quantity
+
+      - name: rate
+        sql: "CAST({CUBE}.rate AS FLOAT64)"
+        type: number
+        description: Payment line rate
+
+      - name: amount
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: number
+        description: Payment line amount
+
+      - name: netamount
+        sql: "CAST({CUBE}.netamount AS FLOAT64)"
+        type: number
+        description: Net amount after adjustments
+
+      - name: taxamount
+        sql: "CAST({CUBE}.taxamount AS FLOAT64)"
+        type: number
+        description: Tax amount
+
+      - name: grossamount
+        sql: "CAST({CUBE}.grossamount AS FLOAT64)"
+        type: number
+        description: Gross amount
+
+      - name: foreignamount
+        sql: "CAST({CUBE}.foreignamount AS FLOAT64)"
+        type: number
+        description: Amount in foreign currency
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location reference (foreign key to locations)
+
+      - name: class
+        sql: "{CUBE}.class"
+        type: number
+        description: Class identifier
+
+      - name: department
+        sql: "{CUBE}.department"
+        type: number
+        description: Department reference (foreign key to departments)
+
+      - name: isclosed
+        sql: "{CUBE}.isclosed"
+        type: boolean
+        description: Indicates if the line is closed
+
+      - name: iscogs
+        sql: "{CUBE}.iscogs"
+        type: boolean
+        description: Indicates if this is a COGS line
+
+      - name: memo
+        sql: "{CUBE}.memo"
+        type: number
+        description: Memo reference
+
+      - name: is_sales_line
+        sql: "{CUBE}.is_sales_line"
+        type: boolean
+        description: Indicates if this is a sales line (should be false for vendor payments)
+
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Line revenue amount (should be zero for vendor payments)
+
+    pre_aggregations:
+      - name: vendor_payment_summary
+        type: rollup
+        external: true
+        measures:
+          - vendor_payment_line_count
+          - total_amount
+          - total_netamount
+          - total_taxamount
+        dimensions:
+          - isclosed
+          - iscogs
+        refresh_key:
+          every: "24 hour"
