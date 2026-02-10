@@ -89,13 +89,12 @@ cubes:
         sql: "{CUBE}.id"
         type: number
         primary_key: true
-        description: Line ID (part of composite primary key with transaction)
+        description: Line ID (primary key)
 
       - name: transaction
         sql: "{CUBE}.transaction"
         type: number
-        primary_key: true
-        description: Transaction ID (part of composite primary key with id)
+        description: Transaction ID (foreign key to transaction header)
 
       - name: item
         sql: "{CUBE}.item"
@@ -193,22 +192,3 @@ cubes:
       - name: closed_lines
         sql: "{CUBE}.isclosed = true"
         description: "Filter to closed deposit lines"
-
-    pre_aggregations:
-      - name: daily_summary
-        type: rollup
-        external: true
-        measures:
-          - customer_deposit_line_count
-          - total_amount
-          - total_netamount
-          - total_taxamount
-          - total_line_revenue
-        dimensions:
-          - item
-          - location
-          - department
-          - is_sales_line
-          - iscogs
-        refresh_key:
-          every: 24 hour

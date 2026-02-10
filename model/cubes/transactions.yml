@@ -53,8 +53,6 @@ cubes:
           - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
         description: Number of revenue transactions (CustInvc + CashSale) - component measure for RET005 calculation
 
-      # Time-aligned component measures (Feb 2025+) for accurate RET005 calculations
-      # Note: return_authorizations measures removed - RtnAuth transaction type not used in D2C workflow
       - name: customer_credits_aligned
         type: count
         filters:
@@ -331,7 +329,6 @@ cubes:
         description: "Posted, non-voided transactions for financial reporting"
 
     pre_aggregations:
-      # Main rollup for transaction analysis
       - name: transactions_daily
         type: rollup
         external: true

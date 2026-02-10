@@ -190,21 +190,7 @@ cubes:
         type: number
         description: Revenue amount for this line
 
-      - name: entity_type
-        sql: "{CUBE}.entity_type"
-        type: string
-        description: Entity type classification (for contamination filtering)
-
-      - name: transaction_in_scope
-        sql: "{CUBE}.transaction_in_scope"
-        type: boolean
-        description: Indicates if transaction is in scope for analysis
-
     segments:
-      - name: in_scope_only
-        sql: "{CUBE}.transaction_in_scope = true"
-        description: "Excludes system entities for accurate business metrics"
-
       - name: has_item
         sql: "{CUBE}.item IS NOT NULL"
         description: "Lines with an associated item"
@@ -224,18 +210,6 @@ cubes:
       - name: cogs_lines_only
         sql: "{CUBE}.iscogs = true"
         description: "COGS lines only"
-
-      - name: customers_only
-        sql: "{CUBE}.entity_type = 'customer'"
-        description: "Real customer transactions only (excludes webstore/POS system entities)"
-
-      - name: exclude_webstore
-        sql: "{CUBE}.entity_type != 'webstore'"
-        description: "Excludes webstore system entities"
-
-      - name: exclude_pos
-        sql: "{CUBE}.entity_type != 'pos'"
-        description: "Excludes POS system entities"
 
     pre_aggregations:
       - name: daily_summary
