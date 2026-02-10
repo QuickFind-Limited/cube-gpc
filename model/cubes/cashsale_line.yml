@@ -204,7 +204,5 @@ cubes:
           - department
           - is_sales_line
           - iscogs
-        granularity: day
-        partition_granularity: month
         refresh_key:
           every: 24 hour

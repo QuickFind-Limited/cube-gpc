@@ -224,7 +224,5 @@ cubes:
         dimensions:
           - iscogs
           - is_sales_line
-        granularity: day
-        partition_granularity: month
         refresh_key:
           every: 24 hour
