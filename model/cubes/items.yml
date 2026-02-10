@@ -176,10 +176,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.income_account_id = {accounts}.account_id"
 
-      - name: parent_item
-        relationship: many_to_one
-        sql: "{CUBE}.parent_item_id = {items}.item_id"
-
     segments:
       - name: active_items
         sql: "{CUBE}.is_active = true"

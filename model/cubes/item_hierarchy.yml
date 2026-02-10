@@ -12,10 +12,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.parent_item_id = {items}.item_id"
 
-      - name: items_children
-        relationship: many_to_one
-        sql: "{CUBE}.child_item_id = {items}.item_id"
-
     measures:
       - name: relationship_count
         type: count
@@ -32,6 +28,12 @@ cubes:
         description: Count of distinct child items
 
     dimensions:
+      - name: relationship_id
+        sql: "CONCAT(CAST({CUBE}.parent_item_id AS STRING), '-', CAST({CUBE}.child_item_id AS STRING), '-', COALESCE({CUBE}.relationship_type, ''))"
+        type: string
+        primary_key: true
+        description: Synthetic primary key for the parent-child relationship row
+
       - name: parent_item_id
         sql: "{CUBE}.parent_item_id"
         type: number
