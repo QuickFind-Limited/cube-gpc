@@ -187,10 +187,10 @@ cubes:
         type: boolean
         description: Whether transaction is a revenue transaction (CustInvc or CashSale)
 
-      - name: total_revenue
+      - name: total_revenue_value
         sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
         type: number
-        description: Revenue amount (populated for revenue transactions only)
+        description: Raw revenue amount (populated for revenue transactions only)
 
       - name: status
         sql: "{CUBE}.status"

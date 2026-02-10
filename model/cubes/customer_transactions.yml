@@ -148,10 +148,10 @@ cubes:
         type: boolean
         description: Indicates if this is a revenue transaction
 
-      - name: total_revenue
+      - name: total_revenue_value
         sql: "CAST({CUBE}.total_revenue AS FLOAT64)"
         type: number
-        description: Revenue amount (for revenue transactions)
+        description: Raw revenue amount (for revenue transactions)
 
       - name: currency
         sql: "{CUBE}.currency"
