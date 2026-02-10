@@ -78,6 +78,18 @@ cubes:
         title: Supplier ID
         description: Vendor entity ID
 
+      - name: location
+        sql: location
+        type: number
+        title: Receiving Location ID
+        description: Receiving/location ID on the PO header
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        title: Receiving Location
+        description: Receiving/location name (from locations join)
+
       - name: currency
         sql: currency
         type: number
@@ -112,8 +124,13 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.entity = {vendors}.id"
 
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
     pre_aggregations:
-      - name: po_summary
+      # Totals rollup (rollup-only safe for scalar queries with date filters)
+      - name: po_totals
         measures:
           - po_count
           - total_po_value
@@ -122,11 +139,35 @@ cubes:
           - partially_received_count
           - pending_billing_count
           - open_po_count
+        time_dimension: trandate
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        refresh_key:
+          every: 1 day
+
+      # Breakdown rollup for supplier/location analysis (PO001/PO002/OOI* use cases)
+      - name: po_summary
+        measures:
+          - po_count
+          - total_po_value
+          - pending_receipt_count
+          - partially_received_count
+          - pending_billing_count
+          - open_po_count
         dimensions:
           - status
           - supplier
+          - location
+          - locations.name
           - vendors.vendor_name
           - vendors.factory_code      # PO002 fix
           - vendors.company_name      # PO002 fix
+        time_dimension: trandate
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
         refresh_key:
           every: 1 day

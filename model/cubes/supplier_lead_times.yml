@@ -13,6 +13,7 @@ cubes:
         CAST(po.trandate AS TIMESTAMP) as po_date,
         po.tranid as po_number,
         po.entity as supplier_id,
+        po.subsidiary as subsidiary,
         DATE_DIFF(PARSE_DATE('%d/%m/%Y', ir.trandate), po.trandate, DAY) as lead_time_days
       FROM gpc.item_receipt_lines irl
       INNER JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
@@ -91,6 +92,12 @@ cubes:
         title: Supplier ID
         description: Vendor entity ID
 
+      - name: subsidiary
+        sql: subsidiary
+        type: number
+        title: Subsidiary ID
+        description: Subsidiary ID from PO header (2=Ireland, 6=UK)
+
       - name: item
         sql: item
         type: number
@@ -162,6 +169,7 @@ cubes:
         dimensions:
           - item
           - supplier_id
+          - subsidiary
         time_dimension: receipt_date
         granularity: day
         build_range_end:

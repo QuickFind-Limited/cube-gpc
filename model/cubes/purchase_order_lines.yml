@@ -95,6 +95,12 @@ cubes:
         title: Purchase Order ID
         description: Reference to purchase order header (transaction field)
 
+      - name: location
+        sql: location
+        type: number
+        title: Receiving Location ID
+        description: Line-level receiving/location ID
+
       - name: item
         sql: item
         type: number
@@ -137,6 +143,12 @@ cubes:
         type: time
         title: PO Date
         description: Purchase order transaction date (from header via denormalization)
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        title: Receiving Location
+        description: Line-level receiving/location name (from locations join)
 
       # SEA-003: Product attributes from items join (NEW v71)
       - name: season
@@ -189,6 +201,10 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.item = {pricing}.item_id"
 
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
     pre_aggregations:
       - name: on_order_summary
         measures:
@@ -204,6 +220,8 @@ cubes:
         dimensions:
           - item
           - po_id               # SEA-003 v71
+          - location
+          - locations.name
           - season              # SEA-003 v71
           - category            # SEA-003 v71
           - purchase_orders.supplier
