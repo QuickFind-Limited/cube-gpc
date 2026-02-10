@@ -59,6 +59,12 @@ cubes:
         format: currency
         description: Total amount in foreign currency
 
+      - name: total_line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Total line revenue
+
       - name: avg_rate
         sql: "CAST({CUBE}.rate AS FLOAT64)"
         type: avg
@@ -151,6 +157,11 @@ cubes:
         type: boolean
         description: Indicates if this is a sales line
 
+      - name: line_revenue
+        sql: "CAST({CUBE}.line_revenue AS FLOAT64)"
+        type: number
+        description: Line revenue amount
+
     segments:
       - name: product_lines
         sql: "{CUBE}.iscogs = false"
@@ -176,6 +187,7 @@ cubes:
           - total_taxamount
           - total_grossamount
           - total_foreignamount
+          - total_line_revenue
         dimensions:
           - item
           - location

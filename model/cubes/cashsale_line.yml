@@ -21,6 +21,10 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.department = {departments}.department_id"
 
+      - name: transactions
+        relationship: many_to_one
+        sql: "{CUBE}.transaction = {transactions}.id"
+
     measures:
       - name: cashsale_line_count
         type: count
@@ -180,3 +184,27 @@ cubes:
       - name: closed_lines
         sql: "{CUBE}.isclosed = true"
         description: "Closed lines only"
+
+    pre_aggregations:
+      - name: daily_rollup
+        type: rollup
+        external: true
+        measures:
+          - cashsale_line_count
+          - total_quantity
+          - total_amount
+          - total_netamount
+          - total_taxamount
+          - total_grossamount
+          - total_foreignamount
+          - total_line_revenue
+        dimensions:
+          - item
+          - location
+          - department
+          - is_sales_line
+          - iscogs
+        granularity: day
+        partition_granularity: month
+        refresh_key:
+          every: 24 hour
