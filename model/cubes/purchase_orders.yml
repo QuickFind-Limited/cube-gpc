@@ -61,7 +61,9 @@ cubes:
         description: Purchase order transaction number
 
       - name: trandate
-        sql: trandate
+        # BigQuery column is DATE; cast to TIMESTAMP to avoid Cube generating
+        # DATETIME(date, 'UTC') (invalid in BigQuery).
+        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
         type: time
         title: PO Date
         description: Purchase order transaction date
