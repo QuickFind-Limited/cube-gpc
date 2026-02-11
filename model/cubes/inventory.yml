@@ -78,14 +78,20 @@ cubes:
       # Some consumers (and older prompt logic) refer to these measure names.
       # They are cost-based values (not retail MSRP).
       - name: total_stock_value
-        sql: "{inventory_value_at_cost}"
-        type: number
+        sql: >
+          CAST({CUBE}.calculated_quantity_available *
+          COALESCE((SELECT MAX(rate) FROM gpc.item_receipt_lines irl
+                    WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
+        type: sum
         format: currency
         description: Alias for inventory_value_at_cost (total inventory value at cost).
 
       - name: total_cost_value
-        sql: "{inventory_value_at_cost}"
-        type: number
+        sql: >
+          CAST({CUBE}.calculated_quantity_available *
+          COALESCE((SELECT MAX(rate) FROM gpc.item_receipt_lines irl
+                    WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
+        type: sum
         format: currency
         description: Alias for inventory_value_at_cost (total inventory cost value).
 
