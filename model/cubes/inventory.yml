@@ -163,6 +163,8 @@ cubes:
           - zero_stock_positions
           - negative_stock_positions
           - inventory_value_at_cost
+          - total_stock_value
+          - total_cost_value
         dimensions:
           - location
           - stock_status
@@ -188,6 +190,9 @@ cubes:
           - available_stock
           - backorder_units
           - position_count
+          - inventory_value_at_cost
+          - total_stock_value
+          - total_cost_value
         dimensions:
           - item
           - itemid
