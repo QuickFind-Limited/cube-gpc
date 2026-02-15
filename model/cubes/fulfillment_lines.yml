@@ -213,5 +213,6 @@ cubes:
         dimensions:
           - location
           - locations.name
+          - location_label
         refresh_key:
           every: 1 day
