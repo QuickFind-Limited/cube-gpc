@@ -166,6 +166,10 @@ cubes:
           - total_qty_received
           - sum_lead_time_days
           - sum_lead_time_days_squared
+          # Include calculated measures as materialized columns in the rollup to keep rollup-only queries compatible.
+          - avg_lead_time_days
+          - lead_time_variance
+          - lead_time_std_dev
         dimensions:
           - item
           - supplier_id
