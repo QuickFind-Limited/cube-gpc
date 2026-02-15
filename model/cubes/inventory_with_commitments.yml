@@ -88,6 +88,28 @@ cubes:
           - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
         description: Zero stock positions with NO outstanding orders (critical issue!)
 
+      # STOCK001 (preferred): Distinct SKU counts (avoid double-counting the same SKU across multiple locations)
+      - name: zero_stock_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0"
+        description: Approx distinct SKUs with zero current stock (STOCK001, preferred when user says "products/SKUs")
+
+      - name: zero_stock_sku_with_orders
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order > 0"
+        description: Approx distinct zero-stock SKUs that have outstanding purchase orders (STOCK001)
+
+      - name: zero_stock_sku_without_orders
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
+        description: Approx distinct zero-stock SKUs with NO outstanding purchase orders (STOCK001)
+
       - name: backorder_count
         type: count
         filters:
@@ -204,6 +226,9 @@ cubes:
           - zero_stock_count
           - zero_stock_with_orders
           - zero_stock_without_orders
+          - zero_stock_sku_count
+          - zero_stock_sku_with_orders
+          - zero_stock_sku_without_orders
           - backorder_count
           - backorder_with_orders
           - backorder_without_orders
@@ -232,6 +257,9 @@ cubes:
           - zero_stock_count
           - zero_stock_with_orders
           - zero_stock_without_orders
+          - zero_stock_sku_count
+          - zero_stock_sku_with_orders
+          - zero_stock_sku_without_orders
           - backorder_count
           - backorder_with_orders
           - backorder_without_orders
