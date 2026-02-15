@@ -212,9 +212,11 @@ cubes:
           - itemid
           - stock_status
           - items.category
+          - items.category_base
           - items.section
           - items.season
           - items.gender
+          - items.is_markdown
           - locations.channel_type
         refresh_key:
           every: 1 day
@@ -236,7 +238,9 @@ cubes:
         dimensions:
           - stock_status
           - items.category
+          - items.category_base
           - items.gender
+          - items.is_markdown
           - locations.channel_type
         refresh_key:
           every: 1 day
