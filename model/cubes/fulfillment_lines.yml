@@ -3,11 +3,12 @@ cubes:
     sql: >
       SELECT
         fl.*,
-        PARSE_DATE('%Y-%m-%d', fl.shipdate) as shipdate_parsed,
+        SAFE_CAST(fl.createdfrom AS INT64) as createdfrom_id,
+        PARSE_DATE('%Y-%m-%d', CAST(fl.shipdate AS STRING)) as shipdate_parsed,
         t.trandate as order_date
       FROM gpc.fulfillment_lines fl
       LEFT JOIN gpc.transactions_analysis t
-        ON CAST(fl.createdfrom AS INT64) = t.id
+        ON SAFE_CAST(fl.createdfrom AS INT64) = t.id
     title: Fulfillment Lines
     description: >
       Individual line items for fulfillments tracking what products were shipped.
@@ -21,7 +22,7 @@ cubes:
 
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.createdfrom = {transactions.id}"
+        sql: "{CUBE}.createdfrom_id = {transactions.id}"
 
       - name: items
         relationship: many_to_one
@@ -99,7 +100,7 @@ cubes:
         description: Parent fulfillment ID
 
       - name: createdfrom
-        sql: "{CUBE}.createdfrom"
+        sql: "{CUBE}.createdfrom_id"
         type: number
         description: Source order ID
 

@@ -167,11 +167,13 @@ cubes:
           - location
           - stock_status
           - items.category
+          - items.category_base
           - items.section
           - items.season
           - items.size
           - items.range
           - items.markdown
+          - items.is_markdown
           - locations.name
           - locations.region         # ← ADDED: Enable filtering by region (IRELAND, UK, EU, GLOBAL)
           - locations.channel_type   # ← ADDED: Enable filtering by channel (D2C, RETAIL, B2B_WHOLESALE, etc.)

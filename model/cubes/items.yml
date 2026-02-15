@@ -62,6 +62,19 @@ cubes:
         type: string
         description: Product category
 
+      - name: category_base
+        sql: >
+          CASE
+            WHEN {CUBE}.custitem_gpc_category IS NULL THEN NULL
+            WHEN REGEXP_CONTAINS({CUBE}.custitem_gpc_category, r'\\([^)]*[Mm][Aa][Rr][Kk][ -]?[Dd][Oo][Ww][Nn][^)]*\\)\\s*$')
+              THEN TRIM(REGEXP_REPLACE({CUBE}.custitem_gpc_category, r'\\s*\\([^)]*[Mm][Aa][Rr][Kk][ -]?[Dd][Oo][Ww][Nn][^)]*\\)\\s*$', ''))
+            ELSE {CUBE}.custitem_gpc_category
+          END
+        type: string
+        description: >
+          Category normalized to remove markdown suffix variants (e.g., "Women (Mark Down)" -> "Women").
+          Use this for breakdowns where markdown is a separate filter/dimension.
+
       - name: gender
         sql: "{CUBE}.custitem_gpc_category"
         type: string
@@ -164,6 +177,18 @@ cubes:
         type: string
         description: Markdown status for inventory analysis
 
+      - name: is_markdown
+        sql: >
+          CASE
+            WHEN {CUBE}.custitemmarkdown IN ('T', 'true', 'TRUE', '1') THEN TRUE
+            WHEN REGEXP_CONTAINS(COALESCE({CUBE}.custitem_gpc_category, ''), r'[Mm][Aa][Rr][Kk][ -]?[Dd][Oo][Ww][Nn]') THEN TRUE
+            ELSE FALSE
+          END
+        type: boolean
+        description: >
+          Boolean markdown flag. Prefer this over `items.markdown` when filtering/segmenting markdown vs full-price.
+          It treats obvious category-label variants ("Mark Down"/"Markdown") as markdown = true.
+
     segments:
       - name: categorized_products
         sql: "{CUBE}.custitem_gpc_category IS NOT NULL"
@@ -184,6 +209,7 @@ cubes:
           - active_product_count  # LIFE001 fix - active product count
         dimensions:
           - category
+          - category_base
           - gender  # v68.2 fix - added to enable gender-based queries
           - section
           - season
@@ -192,6 +218,7 @@ cubes:
           - itemtype
           - season_type
           - markdown  # LIFE001 - needed for full price vs markdown analysis
+          - is_markdown
           - country_of_origin  # PO002 fix - country of origin for sourcing analysis
         refresh_key:
           every: 1 day
