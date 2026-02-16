@@ -1021,6 +1021,8 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
+          - gl_based_cogs
+          - operating_expenses
           - gross_margin           # DEPRECATED - kept for backward compatibility
         dimensions:
           - location_name
@@ -1367,6 +1369,7 @@ cubes:
         dimensions:
           - size              # Required for size-specific breakdown
           - transaction_type  # Required to separate returns (RtnAuth, CustCred) from sales
+          - billing_country   # Required for SIZ-002 country breakdowns
           - category          # Context: Returns may vary by product category
           - season            # Context: Seasonal return patterns
           - channel_type      # Context: Return rates may differ by channel (D2C vs Retail)
@@ -1380,5 +1383,9 @@ cubes:
             columns:
               - size
               - transaction_type
+          - name: size_country_idx
+            columns:
+              - size
+              - billing_country
         refresh_key:
           every: 365 days
