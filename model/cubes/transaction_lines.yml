@@ -15,6 +15,31 @@ cubes:
         FROM gpc.transaction_accounting_lines_opex
         GROUP BY transaction
       ),
+      opex_by_month AS (
+        SELECT
+          DATE_TRUNC(PARSE_DATE('%d/%m/%Y', trandate), MONTH) as month_start,
+          SUM(ABS(SAFE_CAST(amount AS FLOAT64))) as month_opex
+        FROM gpc.transaction_accounting_lines_opex
+        WHERE trandate IS NOT NULL
+        GROUP BY month_start
+      ),
+      item_master AS (
+        SELECT
+          id as item_id,
+          NULLIF(TRIM(custitem_gpc_stylenumber), '') as style_number,
+          SAFE.PARSE_DATE('%d/%m/%Y', createddate) as item_created_date
+        FROM gpc.items
+      ),
+      style_first_sale AS (
+        SELECT
+          COALESCE(im.style_number, CONCAT('ITEM_', CAST(tl.item AS STRING))) as style_key,
+          MIN(tl.transaction_date) as style_first_sale_date
+        FROM gpc.transaction_lines_denormalized_mv tl
+        LEFT JOIN item_master im ON tl.item = im.item_id
+        WHERE tl.transaction_type IN ('CustInvc', 'CashSale')
+          AND tl.quantity < 0
+        GROUP BY style_key
+      ),
       transaction_ship_days AS (
         SELECT
           CAST(tl.transaction AS INT64) as transaction_id,
@@ -42,16 +67,47 @@ cubes:
         t.billing_country as transaction_billing_country,
         t.shipping_country as transaction_shipping_country,
         PARSE_DATE('%d/%m/%Y', t.createddate) as transaction_createddate,
+        im.style_number as style_number,
+        im.item_created_date as item_created_date,
+        COALESCE(im.style_number, CONCAT('ITEM_', CAST(tl.item AS STRING))) as style_key,
+        sfs.style_first_sale_date as style_first_sale_date,
+        DATE_DIFF(tl.transaction_date, sfs.style_first_sale_date, DAY) as style_age_days,
         ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
-        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
+        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated,
+        -- RET-004 proxy: allocate monthly OpEx pool to sales lines by revenue share.
+        -- This is deterministic and reconciles exactly to monthly OpEx totals, but remains a proxy.
+        COALESCE(opex_month.month_opex, 0) * SAFE_DIVIDE(
+          CAST(
+            CASE
+              WHEN tl.transaction_type IN ('CustInvc', 'CashSale') THEN
+                (CASE WHEN tl.rate IS NULL THEN tl.amount * -1 ELSE tl.rate * tl.quantity * -1 END) * COALESCE(tl.transaction_exchange_rate, 1.0)
+              ELSE 0
+            END
+          AS FLOAT64),
+          NULLIF(
+            SUM(
+              CAST(
+                CASE
+                  WHEN tl.transaction_type IN ('CustInvc', 'CashSale') THEN
+                    (CASE WHEN tl.rate IS NULL THEN tl.amount * -1 ELSE tl.rate * tl.quantity * -1 END) * COALESCE(tl.transaction_exchange_rate, 1.0)
+                  ELSE 0
+                END
+              AS FLOAT64)
+            ) OVER (PARTITION BY DATE_TRUNC(tl.transaction_date, MONTH)),
+            0
+          )
+        ) as line_opex_allocated_revenue_share
       FROM gpc.transaction_lines_denormalized_mv tl
       LEFT JOIN gpc.transactions t ON CAST(tl.transaction AS STRING) = t.id
+      LEFT JOIN item_master im ON tl.item = im.item_id
+      LEFT JOIN style_first_sale sfs ON COALESCE(im.style_number, CONCAT('ITEM_', CAST(tl.item AS STRING))) = sfs.style_key
       LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
+      LEFT JOIN opex_by_month opex_month ON DATE_TRUNC(tl.transaction_date, MONTH) = opex_month.month_start
       LEFT JOIN transaction_ship_days ship_days ON CAST(tl.transaction AS INT64) = ship_days.transaction_id
     title: Transaction Lines
-    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), location details, and allocated COGS/OPEX. Country fields are sourced from transaction headers (gpc.transactions) because the denormalized MV country columns are null."
+    description: "Line items from all transactions - the main fact table for metrics. Uses transaction_lines_denormalized_mv which includes enriched fields: customer_email, blandedcost, foreignamount, landedcostperline, subsidiary, plus item attributes (category, collection, color, season, section, size, product_name, sku), lifecycle fields (style key, first-sale date, lifecycle stage), location details, and allocated COGS/OPEX. Country fields are sourced from transaction headers (gpc.transactions) because the denormalized MV country columns are null."
 
     joins:
       - name: transactions
@@ -400,6 +456,12 @@ cubes:
         format: currency
         description: "✅ DENORMALIZED & ALLOCATED: Operating expenses from GL accounting lines (expense account type). Transaction-level OpEx is allocated across all lines in that transaction, so SUM gives correct total. Used for FIN-002 (EBIT) calculation. Note: Corporate-level only (31% location coding in source data)."
 
+      - name: operating_expenses_revenue_allocated
+        sql: "{CUBE}.line_opex_allocated_revenue_share"
+        type: sum
+        format: currency
+        description: "RET-004 proxy component: monthly OpEx pool allocated to sales lines by revenue share. Reconciles exactly to monthly OpEx totals, but is not strict accounting attribution at true store cost-center grain."
+
       # EBIT (Operating Income) Measure - Added 2026-02-02 for FIN-002
       # Formula: Revenue - COGS - OpEx
       - name: ebit
@@ -407,6 +469,17 @@ cubes:
         type: number
         format: currency
         description: "FIN-002: EBIT (Earnings Before Interest and Taxes) = Revenue - COGS - Operating Expenses. Also known as Operating Income. Note: This is EBIT, not EBITDA (Depreciation & Amortization not available). Corporate-level only due to OpEx location coding limitations."
+
+      - name: store_ebit_proxy
+        sql: "{transaction_lines.total_revenue} - {transaction_lines.gl_based_cogs} - {transaction_lines.operating_expenses_revenue_allocated}"
+        type: number
+        format: currency
+        description: "RET-004 proxy EBIT using revenue-share allocated OpEx. Use for store/location analysis only with explicit proxy disclosure."
+
+      - name: store_operating_margin_pct_proxy
+        sql: "100.0 * ({transaction_lines.store_ebit_proxy}) / NULLIF({transaction_lines.total_revenue}, 0)"
+        type: number
+        description: "RET-004 proxy operating margin % = (Revenue - COGS - revenue-share allocated OpEx) / Revenue * 100. This is not a strict GAAP store P&L margin."
 
       # Gross Profit Measure (for convenience)
       - name: gross_profit
@@ -747,6 +820,41 @@ cubes:
         type: string
         description: "Product season (e.g., AW25, SS24). DATA QUALITY WARNING: Approximately 27% of sales (€7.7m annually) are from products without season codes assigned ('Uncategorised' or NULL). This indicates gaps in master data maintenance or products not properly categorized. For accurate seasonal analysis, consider filtering out uncategorised products or investigating missing season assignments in the source system."
 
+      - name: style_number
+        sql: "{CUBE}.style_number"
+        type: string
+        description: "Style number from item master. Used for product lifecycle grouping (PRD-004)."
+
+      - name: style_key
+        sql: "{CUBE}.style_key"
+        type: string
+        description: "Canonical style key for lifecycle analysis. Uses style_number when present; otherwise falls back to ITEM_<item_id>."
+
+      - name: style_first_sale_date
+        sql: "CAST({CUBE}.style_first_sale_date AS TIMESTAMP)"
+        type: time
+        description: "First observed sale date for this style_key (CustInvc/CashSale, quantity < 0)."
+
+      - name: item_created_date
+        sql: "CAST({CUBE}.item_created_date AS TIMESTAMP)"
+        type: time
+        description: "Item master created date (launch proxy input)."
+
+      - name: style_age_days
+        sql: "{CUBE}.style_age_days"
+        type: number
+        description: "Days since first observed sale for this style_key."
+
+      - name: product_lifecycle_stage
+        sql: >
+          CASE
+            WHEN {CUBE}.style_first_sale_date IS NULL THEN 'UNKNOWN'
+            WHEN DATE_DIFF({CUBE}.transaction_date, {CUBE}.style_first_sale_date, DAY) <= 180 THEN 'NEW'
+            ELSE 'CARRYOVER'
+          END
+        type: string
+        description: "PRD-004 canonical lifecycle classification from observed sales history. NEW = style sold for <=180 days since first sale; CARRYOVER = >180 days; UNKNOWN = no style linkage."
+
       # SEA-004: Pre-Season Booking dimension
       - name: season_timing
         type: string
@@ -888,6 +996,7 @@ cubes:
           - total_revenue_aligned      # RET005: Total revenue denominator (Feb 2025+)
           - gl_based_cogs       # INV-001: DENORMALIZED GL-based COGS for GMROI calculation
           - operating_expenses  # FIN-002: Operating expenses for EBIT calculation (v68.11)
+          - operating_expenses_revenue_allocated  # RET-004 proxy: month-level OpEx allocated by revenue share
           # NOTE: ebit measure is calculated client-side from: total_revenue - gl_based_cogs - operating_expenses
           # Calculated measures (type: number) cannot be pre-aggregated - use component measures instead
           - total_customers     # CUS-004: Component for churn rate calculation
@@ -905,6 +1014,7 @@ cubes:
           - season_timing     # 2 values - Pre-Season, In-Season (SEA-004 v73)
           - billing_country   # 50 values
           - transaction_type  # 15 values - CustInvc, CashSale, etc.
+          - product_lifecycle_stage  # PRD-004 canonical NEW/CARRYOVER stage
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -956,6 +1066,7 @@ cubes:
           - transaction_count
           - pre_season_revenue      # SEA-004: Component for pre-season booking % (v73)
           - pre_season_units        # SEA-004: Component for pre-season booking % (v73)
+          - sku_count               # PRD-004: required for per-SKU velocity
         dimensions:
           - category
           - section
@@ -965,6 +1076,7 @@ cubes:
           - collection
           - pricing_type
           - channel_type
+          - product_lifecycle_stage # PRD-004 canonical NEW/CARRYOVER stage
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -975,6 +1087,10 @@ cubes:
             columns:
               - category
               - season
+          - name: lifecycle_range_idx
+            columns:
+              - product_lifecycle_stage
+              - product_range
         refresh_key:
           every: 365 days
 
@@ -997,6 +1113,7 @@ cubes:
           - size
           - color
           - product_range
+          - product_lifecycle_stage # PRD-004 canonical NEW/CARRYOVER stage
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
@@ -1007,6 +1124,9 @@ cubes:
             columns:
               - category
               - season
+          - name: lifecycle_idx
+            columns:
+              - product_lifecycle_stage
         refresh_key:
           every: 365 days
 
@@ -1023,6 +1143,7 @@ cubes:
           - transaction_count
           - gl_based_cogs
           - operating_expenses
+          - operating_expenses_revenue_allocated
           - gross_margin           # DEPRECATED - kept for backward compatibility
         dimensions:
           - location_name
@@ -1152,12 +1273,14 @@ cubes:
           - min_transaction_date
           - max_transaction_date
           - total_discount
+          - sku_count
         dimensions:
           - product_range
           - collection
           - category
           - section
           - season
+          - product_lifecycle_stage
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
@@ -1168,6 +1291,10 @@ cubes:
             columns:
               - collection
               - product_range
+          - name: lifecycle_collection_idx
+            columns:
+              - product_lifecycle_stage
+              - collection
         refresh_key:
           every: 365 days
 
@@ -1300,6 +1427,8 @@ cubes:
           - total_revenue
           - units_sold
           - transaction_count
+          - gl_based_cogs
+          - operating_expenses_revenue_allocated
         dimensions:
           - location_name      # 50 values
           - category           # 10 values
