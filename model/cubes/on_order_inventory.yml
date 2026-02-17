@@ -205,7 +205,7 @@ cubes:
           every: 1 day
 
       # OOI002: Rollup by expected receipt date for "units due next week" queries
-      - name: on_order_by_receipt_date
+      - name: on_order_by_receipt_date_v2
         measures:
           - total_on_order_units
           - on_order_value
@@ -227,6 +227,8 @@ cubes:
         granularity: day
         partition_granularity: month
         build_range_end:
-          sql: SELECT '2026-12-31'
+          # BQ validation (magical-desktop:gpc.purchase_orders): MAX(duedate) for open POs is 2025-12-01,
+          # so building out to end-of-2025 avoids unnecessary empty partitions.
+          sql: SELECT '2025-12-31'
         refresh_key:
           every: 1 day
