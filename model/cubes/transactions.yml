@@ -45,18 +45,18 @@ cubes:
           - sql: "{CUBE}.type = 'CustCred'"
         description: Number of customer credit transactions (returns, refunds, adjustments)
 
-      # RET-007: Exchange vs Refund measures (NEW v72)
+      # RET-006: Exchange vs Refund measures (legacy ID RET-007)
       - name: exchanges
         type: count
         filters:
           - sql: "{CUBE}.type = 'RtnAuth'"
-        description: "RET-007: Number of return authorization transactions (exchanges). Customer returns item and receives replacement/different item."
+        description: "RET-006 (legacy RET-007): Number of return authorization transactions (exchanges). Customer returns item and receives replacement/different item."
 
       - name: refunds
         type: count
         filters:
           - sql: "{CUBE}.type IN ('CustCred', 'CashRfnd')"
-        description: "RET-007: Number of refund transactions (CustCred + CashRfnd). Customer returns item and receives money back."
+        description: "RET-006 (legacy RET-007): Number of refund transactions (CustCred + CashRfnd). Customer returns item and receives money back."
 
       - name: revenue_transaction_count
         type: count
