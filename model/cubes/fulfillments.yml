@@ -9,7 +9,8 @@ cubes:
         f.status,
         f.shipcarrier,
         f.shipmethod,
-        ANY_VALUE(fl.createdfrom) as order_id
+        ANY_VALUE(fl.createdfrom) as order_id,
+        ANY_VALUE(fl.location) as location
       FROM gpc.fulfillments f
       LEFT JOIN gpc.fulfillment_lines fl
         ON f.id = fl.transaction
@@ -68,6 +69,16 @@ cubes:
         type: number
         description: Source sales transaction ID from fulfillment line linkage
 
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Shipping location ID (derived from fulfillment lines)
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        description: Shipping location name (from locations join)
+
       - name: tranid
         sql: "{CUBE}.tranid"
         type: string
@@ -110,6 +121,11 @@ cubes:
         type: number
         description: Shipping method ID
 
+    joins:
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
     segments:
       - name: shipped
         sql: "{CUBE}.status = 'C'"
@@ -134,6 +150,8 @@ cubes:
           - status
           - status_name
           - shipcarrier
+          - location
+          - locations.name
         time_dimension: trandate
         granularity: day
         build_range_end:

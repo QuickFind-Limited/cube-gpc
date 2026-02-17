@@ -92,11 +92,23 @@ cubes:
         title: Supplier ID
         description: Vendor entity ID
 
+      - name: supplier_name
+        sql: "{vendors.vendor_name}"
+        type: string
+        title: Supplier Name
+        description: Supplier name (from vendors table)
+
       - name: subsidiary
         sql: subsidiary
         type: number
         title: Subsidiary ID
         description: Subsidiary ID from PO header (2=Ireland, 6=UK)
+
+      - name: subsidiary_name
+        sql: "{subsidiaries.name}"
+        type: string
+        title: Subsidiary Name
+        description: Subsidiary name (from subsidiaries table)
 
       - name: item
         sql: item
@@ -154,10 +166,14 @@ cubes:
           else:
             label: "90+ days"
 
-    # joins:
-    #   - name: items
-    #     relationship: many_to_one
-    #     sql: "{CUBE}.item = {items}.id"
+    joins:
+      - name: vendors
+        relationship: many_to_one
+        sql: "{CUBE}.supplier_id = {vendors.id}"
+
+      - name: subsidiaries
+        relationship: many_to_one
+        sql: "{CUBE}.subsidiary = {subsidiaries.id}"
 
     pre_aggregations:
       - name: lead_time_rollup
@@ -173,7 +189,9 @@ cubes:
         dimensions:
           - item
           - supplier_id
+          - vendors.vendor_name
           - subsidiary
+          - subsidiaries.name
         time_dimension: receipt_date
         granularity: day
         build_range_end:
