@@ -174,6 +174,26 @@ cubes:
         type: sum
         description: Total units returned
 
+      # RET-006 components at channel/country grain (count distinct transactions by return intent)
+      - name: exchange_transactions
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type = 'RtnAuth'"
+        description: "RET-006 component: distinct exchange transactions (RtnAuth), classified by transaction_lines.channel_type and billing_country."
+
+      - name: refund_transactions
+        sql: "{CUBE}.transaction"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type IN ('CustCred', 'CashRfnd')"
+        description: "RET-006 component: distinct refund transactions (CustCred + CashRfnd), classified by transaction_lines.channel_type and billing_country."
+
+      - name: exchange_rate
+        sql: "100.0 * {exchange_transactions} / NULLIF({exchange_transactions} + {refund_transactions}, 0)"
+        type: number
+        description: "RET-006 derived metric: exchange share of total returns (%). Computed from exchange_transactions and refund_transactions."
+
       # Time-aligned revenue measures for RET005 (Return Rate by Value)
       # Uses Feb 2025+ data for consistency with current D2C return workflow
       - name: returns_revenue_aligned
@@ -881,6 +901,11 @@ cubes:
         type: string
         description: Product range
 
+      - name: product_range_canonical
+        sql: "COALESCE(NULLIF(TRIM({CUBE}.product_range), ''), 'UNKNOWN')"
+        type: string
+        description: "Canonical product range for PRD-004 and range-season breakdowns. Uses 'UNKNOWN' instead of null/blank."
+
       - name: collection
         sql: "{CUBE}.collection"
         type: string
@@ -1007,6 +1032,8 @@ cubes:
           - pre_season_units              # SEA-004: Component for pre-season booking %
           - return_cost_estimate         # RET008: Return cost impact
           - return_estimated_gross_profit # RET009: Return margin erosion
+          - exchange_transactions         # RET-006: exchange counts by channel/country
+          - refund_transactions           # RET-006: refund counts by channel/country
         dimensions:
           - channel_type      # 5 values - D2C, RETAIL, B2B, etc.
           - category          # 10 values - Mens, Womens, etc.
@@ -1073,6 +1100,7 @@ cubes:
           - season
           - season_timing           # SEA-004: Pre-Season vs In-Season (v73)
           - product_range
+          - product_range_canonical
           - collection
           - pricing_type
           - channel_type
@@ -1113,6 +1141,7 @@ cubes:
           - size
           - color
           - product_range
+          - product_range_canonical
           - product_lifecycle_stage # PRD-004 canonical NEW/CARRYOVER stage
         time_dimension: transaction_date
         granularity: day
@@ -1276,6 +1305,7 @@ cubes:
           - sku_count
         dimensions:
           - product_range
+          - product_range_canonical
           - collection
           - category
           - section
@@ -1291,10 +1321,30 @@ cubes:
             columns:
               - collection
               - product_range
+          - name: collection_range_canonical_idx
+            columns:
+              - collection
+              - product_range_canonical
           - name: lifecycle_collection_idx
             columns:
               - product_lifecycle_stage
               - collection
+        refresh_key:
+          every: 365 days
+
+      # RET-006 rollup at requested business grain (channel x country)
+      - name: returns_channel_country
+        measures:
+          - exchange_transactions
+          - refund_transactions
+        dimensions:
+          - channel_type
+          - billing_country
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
         refresh_key:
           every: 365 days
 

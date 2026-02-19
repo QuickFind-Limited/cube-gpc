@@ -1,0 +1,160 @@
+cubes:
+  - name: inventory_turnover_proxy
+    sql: >
+      WITH sales_window AS (
+        SELECT
+          item,
+          location,
+          COALESCE(NULLIF(TRIM(season), ''), 'UNKNOWN') AS season,
+          COALESCE(NULLIF(TRIM(category), ''), 'UNKNOWN') AS category,
+          SUM(
+            CASE
+              WHEN transaction_type IN ('CustInvc', 'CashSale') AND quantity < 0
+                THEN quantity * -1
+              ELSE 0
+            END
+          ) AS units_sold_window
+        FROM gpc.transaction_lines_denormalized_mv
+        WHERE transaction_date BETWEEN DATE '2024-11-01' AND DATE '2025-10-31'
+        GROUP BY 1, 2, 3, 4
+      ),
+      stock_snapshot AS (
+        SELECT
+          ic.item,
+          ic.location,
+          COALESCE(NULLIF(TRIM(i.custitem_gpc_season), ''), 'UNKNOWN') AS season,
+          COALESCE(NULLIF(TRIM(i.custitem_gpc_category), ''), 'UNKNOWN') AS category,
+          SAFE_CAST(ic.calculated_quantity_available AS FLOAT64) AS available_stock_snapshot
+        FROM gpc.inventory_calculated ic
+        LEFT JOIN gpc.items i
+          ON ic.item = i.id
+      )
+      SELECT
+        COALESCE(s.item, st.item) AS item,
+        COALESCE(s.location, st.location) AS location,
+        COALESCE(s.season, st.season) AS season,
+        COALESCE(s.category, st.category) AS category,
+        COALESCE(s.units_sold_window, 0.0) AS units_sold_window,
+        COALESCE(st.available_stock_snapshot, 0.0) AS available_stock_snapshot,
+        DATE '2024-11-01' AS sales_window_start,
+        DATE '2025-10-31' AS sales_window_end,
+        DATE '2025-10-31' AS snapshot_date
+      FROM sales_window s
+      FULL OUTER JOIN stock_snapshot st
+        ON s.item = st.item
+       AND s.location = st.location
+       AND s.season = st.season
+       AND s.category = st.category
+
+    title: Inventory Turnover Proxy
+    description: >
+      INV002 dedicated proxy model at season x category x location grain.
+      Numerator is units sold in fixed operational window 2024-11-01 to 2025-10-31.
+      Denominator is current snapshot stock (as of 2025-10-31). This is a proxy turnover lens, not true average-inventory turnover.
+
+    joins:
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      - name: position_count
+        type: count
+        description: Number of item-location-season-category positions in the turnover proxy model.
+
+      - name: units_sold_window
+        sql: "{CUBE}.units_sold_window"
+        type: sum
+        description: Units sold in fixed analysis window (2024-11-01 to 2025-10-31).
+
+      - name: available_stock_snapshot
+        sql: "{CUBE}.available_stock_snapshot"
+        type: sum
+        description: Snapshot stock level at 2025-10-31 (can include zero/negative positions).
+
+      - name: available_stock_positive
+        sql: "{CUBE}.available_stock_snapshot"
+        type: sum
+        filters:
+          - sql: "{CUBE}.available_stock_snapshot > 0"
+        description: Positive snapshot stock only (denominator used for turnover proxy).
+
+      - name: turnover_proxy
+        sql: "1.0 * {units_sold_window} / NULLIF({available_stock_positive}, 0)"
+        type: number
+        description: INV002 proxy turnover = units_sold_window / positive snapshot stock.
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.item AS STRING), '-',
+            CAST({CUBE}.location AS STRING), '-',
+            COALESCE({CUBE}.season, 'UNKNOWN'), '-',
+            COALESCE({CUBE}.category, 'UNKNOWN')
+          )
+        type: string
+        primary_key: true
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+        description: Item ID.
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+        description: Location ID.
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        description: Location name (from locations cube).
+
+      - name: channel_type
+        sql: "{locations.channel_type}"
+        type: string
+        description: Channel type derived from location mapping.
+
+      - name: season
+        sql: "{CUBE}.season"
+        type: string
+        description: Season key used for turnover proxy grouping.
+
+      - name: category
+        sql: "{CUBE}.category"
+        type: string
+        description: Category used for turnover proxy grouping.
+
+      - name: sales_window_start
+        sql: "CAST({CUBE}.sales_window_start AS TIMESTAMP)"
+        type: time
+        description: Start date of fixed sales analysis window.
+
+      - name: sales_window_end
+        sql: "CAST({CUBE}.sales_window_end AS TIMESTAMP)"
+        type: time
+        description: End date of fixed sales analysis window.
+
+      - name: snapshot_date
+        sql: "CAST({CUBE}.snapshot_date AS TIMESTAMP)"
+        type: time
+        description: Snapshot date for denominator stock (fixed at 2025-10-31).
+
+    pre_aggregations:
+      - name: turnover_by_season_category_location
+        measures:
+          - units_sold_window
+          - available_stock_snapshot
+          - available_stock_positive
+          - position_count
+        dimensions:
+          - season
+          - category
+          - location
+          - locations.name
+          - locations.channel_type
+        time_dimension: snapshot_date
+        granularity: day
+        refresh_key:
+          every: 1 day
