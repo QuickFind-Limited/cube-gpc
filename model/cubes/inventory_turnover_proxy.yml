@@ -1,22 +1,29 @@
 cubes:
   - name: inventory_turnover_proxy
     sql: >
-      WITH sales_window AS (
+      WITH month_calendar AS (
+        SELECT month_date
+        FROM UNNEST(
+          GENERATE_DATE_ARRAY(DATE '2024-11-01', DATE '2025-10-01', INTERVAL 1 MONTH)
+        ) AS month_date
+      ),
+      sales_monthly AS (
         SELECT
           item,
           location,
           COALESCE(NULLIF(TRIM(season), ''), 'UNKNOWN') AS season,
           COALESCE(NULLIF(TRIM(category), ''), 'UNKNOWN') AS category,
+          DATE_TRUNC(transaction_date, MONTH) AS analysis_month,
           SUM(
             CASE
               WHEN transaction_type IN ('CustInvc', 'CashSale') AND quantity < 0
                 THEN quantity * -1
               ELSE 0
             END
-          ) AS units_sold_window
+          ) AS units_sold_month
         FROM gpc.transaction_lines_denormalized_mv
         WHERE transaction_date BETWEEN DATE '2024-11-01' AND DATE '2025-10-31'
-        GROUP BY 1, 2, 3, 4
+        GROUP BY 1, 2, 3, 4, 5
       ),
       stock_snapshot AS (
         SELECT
@@ -28,23 +35,36 @@ cubes:
         FROM gpc.inventory_calculated ic
         LEFT JOIN gpc.items i
           ON ic.item = i.id
+      ),
+      stock_month_grid AS (
+        SELECT
+          st.item,
+          st.location,
+          st.season,
+          st.category,
+          st.available_stock_snapshot,
+          mc.month_date AS analysis_month
+        FROM stock_snapshot st
+        CROSS JOIN month_calendar mc
       )
       SELECT
-        COALESCE(s.item, st.item) AS item,
-        COALESCE(s.location, st.location) AS location,
-        COALESCE(s.season, st.season) AS season,
-        COALESCE(s.category, st.category) AS category,
-        COALESCE(s.units_sold_window, 0.0) AS units_sold_window,
-        COALESCE(st.available_stock_snapshot, 0.0) AS available_stock_snapshot,
+        COALESCE(s.item, g.item) AS item,
+        COALESCE(s.location, g.location) AS location,
+        COALESCE(s.season, g.season) AS season,
+        COALESCE(s.category, g.category) AS category,
+        COALESCE(s.analysis_month, g.analysis_month) AS analysis_month,
+        COALESCE(s.units_sold_month, 0.0) AS units_sold_month,
+        COALESCE(g.available_stock_snapshot, 0.0) AS available_stock_snapshot,
         DATE '2024-11-01' AS sales_window_start,
         DATE '2025-10-31' AS sales_window_end,
         DATE '2025-10-31' AS snapshot_date
-      FROM sales_window s
-      FULL OUTER JOIN stock_snapshot st
-        ON s.item = st.item
-       AND s.location = st.location
-       AND s.season = st.season
-       AND s.category = st.category
+      FROM sales_monthly s
+      FULL OUTER JOIN stock_month_grid g
+        ON s.item = g.item
+       AND s.location = g.location
+       AND s.season = g.season
+       AND s.category = g.category
+       AND s.analysis_month = g.analysis_month
 
     title: Inventory Turnover Proxy
     description: >
@@ -62,27 +82,47 @@ cubes:
         type: count
         description: Number of item-location-season-category positions in the turnover proxy model.
 
+      - name: units_sold_month
+        sql: "{CUBE}.units_sold_month"
+        type: sum
+        description: Units sold in each analysis month (sales-only numerator component).
+
       - name: units_sold_window
-        sql: "{CUBE}.units_sold_window"
+        sql: "{CUBE}.units_sold_month"
         type: sum
         description: Units sold in fixed analysis window (2024-11-01 to 2025-10-31).
 
       - name: available_stock_snapshot
         sql: "{CUBE}.available_stock_snapshot"
         type: sum
-        description: Snapshot stock level at 2025-10-31 (can include zero/negative positions).
+        description: Snapshot stock level at 2025-10-31, repeated per month row for trendability.
 
       - name: available_stock_positive
         sql: "{CUBE}.available_stock_snapshot"
         type: sum
         filters:
           - sql: "{CUBE}.available_stock_snapshot > 0"
-        description: Positive snapshot stock only (denominator used for turnover proxy).
+        description: Positive snapshot stock, repeated per month row.
+
+      - name: month_count
+        sql: "{CUBE}.analysis_month"
+        type: count_distinct
+        description: Number of distinct analysis months included in query scope.
+
+      - name: available_stock_positive_normalized
+        sql: "1.0 * {available_stock_positive} / NULLIF({month_count}, 0)"
+        type: number
+        description: Month-normalized positive stock denominator.
 
       - name: turnover_proxy
-        sql: "1.0 * {units_sold_window} / NULLIF({available_stock_positive}, 0)"
+        sql: "1.0 * {units_sold_window} / NULLIF({available_stock_positive_normalized}, 0)"
         type: number
         description: INV002 proxy turnover = units_sold_window / positive snapshot stock.
+
+      - name: turnover_proxy_month
+        sql: "1.0 * {units_sold_month} / NULLIF({available_stock_positive}, 0)"
+        type: number
+        description: Monthly proxy turnover using month-level units sold and snapshot denominator.
 
     dimensions:
       - name: id
@@ -91,7 +131,8 @@ cubes:
             CAST({CUBE}.item AS STRING), '-',
             CAST({CUBE}.location AS STRING), '-',
             COALESCE({CUBE}.season, 'UNKNOWN'), '-',
-            COALESCE({CUBE}.category, 'UNKNOWN')
+            COALESCE({CUBE}.category, 'UNKNOWN'), '-',
+            CAST({CUBE}.analysis_month AS STRING)
           )
         type: string
         primary_key: true
@@ -126,6 +167,11 @@ cubes:
         type: string
         description: Category used for turnover proxy grouping.
 
+      - name: analysis_month
+        sql: "CAST({CUBE}.analysis_month AS TIMESTAMP)"
+        type: time
+        description: Analysis month used for INV002 trend/YoY proxy outputs.
+
       - name: sales_window_start
         sql: "CAST({CUBE}.sales_window_start AS TIMESTAMP)"
         type: time
@@ -144,9 +190,11 @@ cubes:
     pre_aggregations:
       - name: turnover_by_season_category_location
         measures:
+          - units_sold_month
           - units_sold_window
           - available_stock_snapshot
           - available_stock_positive
+          - month_count
           - position_count
         dimensions:
           - season
@@ -154,7 +202,8 @@ cubes:
           - location
           - locations.name
           - locations.channel_type
-        time_dimension: snapshot_date
-        granularity: day
+        time_dimension: analysis_month
+        granularity: month
+        partition_granularity: month
         refresh_key:
           every: 1 day

@@ -1332,6 +1332,67 @@ cubes:
         refresh_key:
           every: 365 days
 
+      # LIFE004 support: joint season x category x location velocity breakdowns
+      - name: lifecycle_velocity_by_location
+        measures:
+          - units_sold
+          - total_revenue
+          - sku_count
+          - min_transaction_date
+          - max_transaction_date
+        dimensions:
+          - season
+          - category
+          - location_name
+          - channel_type
+          - product_range_canonical
+          - product_lifecycle_stage
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: season_category_location_idx
+            columns:
+              - season
+              - category
+              - location_name
+          - name: lifecycle_range_location_idx
+            columns:
+              - product_lifecycle_stage
+              - product_range_canonical
+              - location_name
+        refresh_key:
+          every: 365 days
+
+      # PRD-004 support: canonical NEW/CARRYOVER x range x season query path
+      - name: lifecycle_range_season
+        measures:
+          - units_sold
+          - total_revenue
+          - sku_count
+          - min_transaction_date
+          - max_transaction_date
+        dimensions:
+          - product_lifecycle_stage
+          - product_range_canonical
+          - season
+          - channel_type
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_end:
+          sql: SELECT '2025-10-31'
+        indexes:
+          - name: lifecycle_range_season_idx
+            columns:
+              - product_lifecycle_stage
+              - product_range_canonical
+              - season
+        refresh_key:
+          every: 365 days
+
       # RET-006 rollup at requested business grain (channel x country)
       - name: returns_channel_country
         measures:
