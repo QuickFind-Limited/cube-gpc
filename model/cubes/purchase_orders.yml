@@ -120,11 +120,11 @@ cubes:
     joins:
       - name: purchase_order_lines
         relationship: one_to_many
-        sql: "{CUBE}.id = {purchase_order_lines}.po_id"
+        sql: "{CUBE}.id = {purchase_order_lines.po_id}"
 
       - name: vendors
         relationship: many_to_one
-        sql: "{CUBE}.entity = {vendors}.id"
+        sql: "{CUBE}.entity = {vendors.id}"
 
       - name: locations
         relationship: many_to_one

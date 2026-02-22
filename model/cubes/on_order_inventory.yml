@@ -160,7 +160,7 @@ cubes:
     joins:
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items}.id"
+        sql: "{CUBE}.item = {items.id}"
 
       - name: locations
         relationship: many_to_one

@@ -191,15 +191,15 @@ cubes:
     joins:
       - name: purchase_orders
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {purchase_orders}.id"
+        sql: "{CUBE}.transaction = {purchase_orders.id}"
 
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items}.id"
+        sql: "{CUBE}.item = {items.id}"
 
       - name: pricing
         relationship: many_to_one
-        sql: "{CUBE}.item = {pricing}.item_id"
+        sql: "{CUBE}.item = {pricing.item_id}"
 
       - name: locations
         relationship: many_to_one

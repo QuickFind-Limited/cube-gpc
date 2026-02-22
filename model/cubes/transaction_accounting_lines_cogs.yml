@@ -8,7 +8,7 @@ cubes:
     joins:
       - name: transaction_lines
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {transaction_lines}.transaction"
+        sql: "{CUBE}.transaction = {transaction_lines.transaction}"
 
     dimensions:
       - name: id

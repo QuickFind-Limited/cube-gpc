@@ -181,11 +181,11 @@ cubes:
     joins:
       - name: item_receipts
         relationship: many_to_one
-        sql: "CAST({CUBE}.transaction AS INT64) = CAST({item_receipts}.id AS INT64)"
+        sql: "CAST({CUBE}.transaction AS INT64) = CAST({item_receipts.id} AS INT64)"
 
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items}.id"
+        sql: "{CUBE}.item = {items.id}"
 
       - name: locations
         relationship: many_to_one
@@ -197,7 +197,7 @@ cubes:
 
       - name: purchase_order_lines
         relationship: many_to_one
-        sql: "{CUBE}.createdfrom = {purchase_order_lines}.id"
+        sql: "{CUBE}.createdfrom = {purchase_order_lines.id}"
 
     pre_aggregations:
       # DC intake analysis for GMROI calculations and intake vs sales comparisons

@@ -435,12 +435,12 @@ cubes:
         type: number
         description: "DEPRECATED - Use gl_based_gross_margin_pct instead. This measure uses costestimate field which contains corrupt data. Gross margin percentage"
 
-      # Alias for business-friendly naming
-      - name: gross_profit
+      # Legacy alias retained under a unique name to avoid duplicate-measure collisions
+      - name: gross_profit_legacy
         sql: "{gross_margin}"
         type: number
         format: currency
-        description: "DEPRECATED - Use gl_based_gross_margin instead. This is an alias for gross_margin which uses corrupt costestimate data. Gross Profit (alias for gross_margin) - Revenue minus COGS. Same as gross_margin measure, provided for clarity in AI queries."
+        description: "DEPRECATED - Use gl_based_gross_margin instead. Legacy alias for gross_margin (costestimate-based, known-corrupt source). Kept only for backward compatibility."
 
       # ============================================================================
       # INV-001: GMROI (Gross Margin Return on Investment)
