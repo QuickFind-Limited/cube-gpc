@@ -58,11 +58,6 @@ cubes:
     title: B2C Customer Channel Analytics
     description: Customer metrics broken down by channel - tracks customer behavior per channel (email + country + channel grain)
 
-    joins:
-      - name: locations
-        relationship: many_to_one
-        sql: "{CUBE}.channel_type = {locations.channel_type}"
-
     measures:
       - name: customer_count
         type: count

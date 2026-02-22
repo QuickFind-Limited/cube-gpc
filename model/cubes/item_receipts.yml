@@ -11,13 +11,13 @@ cubes:
         description: Number of item receipts
 
       - name: total_receipt_value
-        sql: total
+        sql: "SAFE_CAST({CUBE}.total AS FLOAT64)"
         type: sum
         format: currency
         description: Total receipt value in base currency
 
       - name: avg_receipt_value
-        sql: total
+        sql: "SAFE_CAST({CUBE}.total AS FLOAT64)"
         type: avg
         format: currency
         description: Average receipt value

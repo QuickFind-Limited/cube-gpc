@@ -30,7 +30,7 @@ cubes:
         description: Outstanding quantity not yet received
 
       - name: total_po_line_value
-        sql: line_total
+        sql: amount
         type: sum
         format: currency
         description: Total PO line value in base currency
@@ -188,6 +188,11 @@ cubes:
       - name: pricing
         relationship: many_to_one
         sql: "{CUBE}.item = {pricing}.item_id"
+
+      # Explicit vendor join to support vendor dimensions in this cube.
+      - name: vendors
+        relationship: many_to_one
+        sql: "{purchase_orders.supplier} = {vendors}.id"
 
     pre_aggregations:
       - name: on_order_summary

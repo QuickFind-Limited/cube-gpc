@@ -6,6 +6,7 @@ cubes:
         CAST(PARSE_DATE('%d/%m/%Y', ir.trandate) AS TIMESTAMP) as receipt_date,
         i.displayname as item_displayname,
         i.itemid as item_sku,
+        ir.memo as receipt_memo,
         CAST(NULL AS FLOAT64) as item_baseprice,
         i.cost as item_cost
       FROM gpc.item_receipt_lines irl
@@ -132,7 +133,7 @@ cubes:
         description: Links to purchase_order_lines.id for lead time calculation
 
       - name: memo
-        sql: memo
+        sql: receipt_memo
         type: string
         title: Memo
         description: Line memo (used to identify landed costs)

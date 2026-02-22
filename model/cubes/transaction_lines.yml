@@ -54,7 +54,7 @@ cubes:
     joins:
       - name: transactions
         relationship: many_to_one
-        sql: "CAST({CUBE}.transaction AS STRING) = {transactions.id}"
+        sql: "{CUBE}.transaction = {transactions.id}"
 
       # NEW: Enable sales vs stock analysis (e.g. "high sales, low stock" reorder alerts)
       # Join to current inventory. Note: Inventory is point-in-time (current stock levels).
@@ -475,7 +475,11 @@ cubes:
         sql: >
           1.0 * SUM(CASE WHEN {CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0 THEN ABS({CUBE}.quantity) ELSE 0 END) /
           NULLIF(
-            (MAX(CAST({CUBE}.transaction_date AS DATE)) - MIN(CAST({CUBE}.transaction_date AS DATE))) / 7.0 + 1,
+            DATE_DIFF(
+              MAX(CAST({CUBE}.transaction_date AS DATE)),
+              MIN(CAST({CUBE}.transaction_date AS DATE)),
+              DAY
+            ) / 7.0 + 1,
             0
           )
         type: number
