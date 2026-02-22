@@ -2,7 +2,7 @@ cubes:
   - name: pricing
     sql: >
       SELECT item AS item_id, unitprice AS base_price_eur
-      FROM gpc.pricing
+      FROM gpc_prod_native_v1.pricing
       WHERE currency = 1 AND pricelevel = 1 AND priceqty = 1 AND unitprice > 0
 
     title: Pricing

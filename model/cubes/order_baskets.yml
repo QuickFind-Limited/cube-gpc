@@ -4,7 +4,11 @@ cubes:
     sql: >
       SELECT
         tl.transaction as order_id,
-        CAST(t.trandate AS TIMESTAMP) as trandate,
+        COALESCE(
+          SAFE_CAST(t.trandate AS TIMESTAMP),
+          TIMESTAMP(SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.trandate AS STRING))),
+          TIMESTAMP(SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.trandate AS STRING)))
+        ) as trandate,
         t.type,
         tl.customer_email,
         tl.billing_country,
@@ -21,10 +25,10 @@ cubes:
           WHEN b2b.id IS NOT NULL THEN 'B2B/Wholesale'
           ELSE 'Retail/D2C'
         END as customer_type
-      FROM gpc.transaction_lines_denormalized_patched tl
-      JOIN gpc.transactions_analysis t ON CAST(tl.transaction AS INT64) = t.id
-      LEFT JOIN gpc.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
-      GROUP BY tl.transaction, CAST(t.trandate AS TIMESTAMP), t.type, tl.customer_email, tl.billing_country, customer_type
+      FROM gpc_prod_native_v1.transaction_lines_denormalized_patched tl
+      JOIN gpc_prod_native_v1.transactions_analysis t ON CAST(tl.transaction AS INT64) = t.id
+      LEFT JOIN gpc_prod_native_v1.b2b_customers b2b ON CAST(t.entity AS INT64) = b2b.id
+      GROUP BY tl.transaction, 2, t.type, tl.customer_email, tl.billing_country, customer_type
     title: Order Baskets
     description: >
       Order-level basket analysis with line count buckets (BASK003).

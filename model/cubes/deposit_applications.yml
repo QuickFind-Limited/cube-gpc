@@ -17,10 +17,10 @@ cubes:
         t.tranid as application_number,
         t.status,
         t.memo
-      FROM gpc.transaction_lines tl
-      LEFT JOIN gpc.transaction t
+      FROM gpc_prod_native_v1.transaction_lines tl
+      LEFT JOIN gpc_prod_native_v1.transaction t
         ON tl.transaction = SAFE_CAST(t.id AS INT64)
-      LEFT JOIN gpc.transaction_lines cd
+      LEFT JOIN gpc_prod_native_v1.transaction_lines cd
         ON tl.createdfrom = cd.transaction
         AND cd.transaction_type = 'CustDep'
         AND COALESCE(cd.mainline, 'F') = 'F'

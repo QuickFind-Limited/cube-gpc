@@ -3,10 +3,20 @@ cubes:
     sql: >
       SELECT
         fl.*,
-        PARSE_DATE('%Y-%m-%d', fl.shipdate) as shipdate_parsed,
-        t.trandate as order_date
-      FROM gpc.fulfillment_lines fl
-      LEFT JOIN gpc.transactions_analysis t
+        COALESCE(
+          SAFE_CAST(CAST(fl.shipdate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(fl.shipdate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(fl.shipdate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(fl.shipdate AS STRING))
+        ) as shipdate_parsed,
+        COALESCE(
+          SAFE_CAST(CAST(t.trandate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(t.trandate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.trandate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.trandate AS STRING))
+        ) as order_date
+      FROM gpc_prod_native_v1.fulfillment_lines fl
+      LEFT JOIN gpc_prod_native_v1.transactions_analysis t
         ON CAST(fl.createdfrom AS INT64) = t.id
     title: Fulfillment Lines
     description: >

@@ -9,9 +9,9 @@ cubes:
         ir.memo as receipt_memo,
         CAST(NULL AS FLOAT64) as item_baseprice,
         i.cost as item_cost
-      FROM gpc.item_receipt_lines irl
-      LEFT JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
-      LEFT JOIN gpc.items i ON irl.item = i.id
+      FROM gpc_prod_native_v1.item_receipt_lines irl
+      LEFT JOIN gpc_prod_native_v1.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
+      LEFT JOIN gpc_prod_native_v1.items i ON irl.item = i.id
       WHERE irl.mainline = 'F'
 
     title: Item Receipt Lines

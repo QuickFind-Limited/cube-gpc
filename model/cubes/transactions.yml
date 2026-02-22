@@ -2,7 +2,27 @@
 cubes:
   - name: transactions
     sql: >
-      SELECT * FROM gpc.transactions_analysis
+      SELECT
+        t.*,
+        COALESCE(
+          SAFE_CAST(CAST(t.trandate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(t.trandate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.trandate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.trandate AS STRING))
+        ) AS trandate_parsed,
+        COALESCE(
+          SAFE_CAST(CAST(t.shipdate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(t.shipdate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.shipdate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.shipdate AS STRING))
+        ) AS shipdate_parsed,
+        COALESCE(
+          SAFE_CAST(CAST(t.createddate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(t.createddate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.createddate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.createddate AS STRING))
+        ) AS createddate_parsed
+      FROM gpc_prod_native_v1.transactions_analysis t
     title: Transactions
     description: >
       Transaction headers excluding voided/non-posted transactions per NetSuite AUDIT standards (includes orders, invoices, cash sales, and returns).
@@ -69,13 +89,13 @@ cubes:
       - name: customer_credits_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type = 'CustCred' AND {CUBE}.trandate_parsed >= DATE '2025-02-01'"
         description: Customer credits from Feb 2025 onwards (time-aligned for RET005 calculation)
 
       - name: revenue_transaction_count_aligned
         type: count
         filters:
-          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate >= '2025-02-01'"
+          - sql: "{CUBE}.type IN ('CustInvc', 'CashSale') AND {CUBE}.trandate_parsed >= DATE '2025-02-01'"
         description: Revenue transactions from Feb 2025 onwards (time-aligned denominator for RET004/RET005)
 
       - name: total_foreign_amount
@@ -125,27 +145,27 @@ cubes:
         description: Human-readable transaction status
 
       - name: trandate
-        sql: "CAST({CUBE}.trandate AS TIMESTAMP)"
+        sql: "CAST({CUBE}.trandate_parsed AS TIMESTAMP)"
         type: time
         description: Transaction date
 
       - name: month
-        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), MONTH)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate_parsed AS TIMESTAMP), MONTH)"
         type: time
         description: Transaction month
 
       - name: quarter
-        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), QUARTER)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate_parsed AS TIMESTAMP), QUARTER)"
         type: time
         description: Transaction quarter
 
       - name: year
-        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), YEAR)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate_parsed AS TIMESTAMP), YEAR)"
         type: time
         description: Transaction year
 
       - name: week
-        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate AS TIMESTAMP), WEEK)"
+        sql: "TIMESTAMP_TRUNC(CAST({CUBE}.trandate_parsed AS TIMESTAMP), WEEK)"
         type: time
         description: Transaction week
 
@@ -165,12 +185,12 @@ cubes:
         description: Shipping country
 
       - name: shipdate
-        sql: "CAST({CUBE}.shipdate AS TIMESTAMP)"
+        sql: "CAST({CUBE}.shipdate_parsed AS TIMESTAMP)"
         type: time
         description: Ship date (when order was shipped) - used for FUL-001 fulfillment speed metrics
 
       - name: createddate
-        sql: "CAST({CUBE}.createddate AS TIMESTAMP)"
+        sql: "CAST({CUBE}.createddate_parsed AS TIMESTAMP)"
         type: time
         description: Created date (when order was created) - used for FUL-001 fulfillment speed metrics
 

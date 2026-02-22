@@ -15,7 +15,7 @@ cubes:
         transaction_type,
         trandate,
         co_purchase_count
-      FROM gpc.cross_sell_deduplicated
+      FROM gpc_prod_native_v1.cross_sell_deduplicated
     title: Cross-Sell Analysis
     description: >
       Product affinity pairs by transaction date showing items purchased together (BASK002).

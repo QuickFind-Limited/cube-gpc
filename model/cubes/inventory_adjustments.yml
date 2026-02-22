@@ -19,8 +19,8 @@ cubes:
         SAFE_CAST(th.subsidiary AS INT64) as subsidiary,
         SAFE_CAST(th.total AS FLOAT64) as header_total,
         th.tranid as adjustment_number
-      FROM gpc.inventory_adjustments tl
-      LEFT JOIN gpc.inventory_adjustment_headers th
+      FROM gpc_prod_native_v1.inventory_adjustments tl
+      LEFT JOIN gpc_prod_native_v1.inventory_adjustment_headers th
         ON tl.transaction = SAFE_CAST(th.id AS INT64)
       WHERE tl.mainline = 'F'
         AND COALESCE(tl.taxline, 'F') = 'F'

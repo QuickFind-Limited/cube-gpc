@@ -15,7 +15,7 @@ cubes:
         PARSE_DATE('%d/%m/%Y', vb.closedate) as close_date,
         vb.status,
         vb.approvalstatus
-      FROM gpc.vendor_bills vb
+      FROM gpc_prod_native_v1.vendor_bills vb
       WHERE COALESCE(vb.voided, 'F') = 'F'
         AND COALESCE(vb.posting, 'T') = 'T'
     title: Vendor Spend

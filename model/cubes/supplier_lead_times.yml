@@ -14,9 +14,9 @@ cubes:
         po.tranid as po_number,
         po.entity as supplier_id,
         DATE_DIFF(PARSE_DATE('%d/%m/%Y', ir.trandate), po.trandate, DAY) as lead_time_days
-      FROM gpc.item_receipt_lines irl
-      INNER JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
-      INNER JOIN gpc.purchase_orders po ON CAST(irl.createdfrom AS INT64) = CAST(po.id AS INT64)
+      FROM gpc_prod_native_v1.item_receipt_lines irl
+      INNER JOIN gpc_prod_native_v1.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
+      INNER JOIN gpc_prod_native_v1.purchase_orders po ON CAST(irl.createdfrom AS INT64) = CAST(po.id AS INT64)
       WHERE irl.createdfrom IS NOT NULL
         AND irl.mainline = 'F'
         AND irl.item IS NOT NULL

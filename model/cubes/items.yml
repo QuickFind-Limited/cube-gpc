@@ -4,7 +4,7 @@ cubes:
       SELECT
         * EXCEPT(isinactive),
         CASE WHEN isinactive = 'T' THEN TRUE ELSE FALSE END as isinactive
-      FROM gpc.items
+      FROM gpc_prod_native_v1.items
     title: Items
     description: Product master data with dimensions like category, season, size, color
 

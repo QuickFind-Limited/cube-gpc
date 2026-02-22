@@ -12,7 +12,7 @@ cubes:
         CAST(tl.subsidiary AS INT64) as subsidiary_id,
         tl.transaction_date as receipt_date,
         tl.transaction_type
-      FROM gpc.transaction_lines_denormalized_mv tl
+      FROM gpc_prod_native_v1.transaction_lines_denormalized_mv tl
       WHERE tl.transaction_type = 'ItemRcpt'
         AND tl.mainline = 'F'
         AND CAST(tl.amount AS FLOAT64) > 0

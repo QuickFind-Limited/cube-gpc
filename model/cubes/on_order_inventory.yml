@@ -17,9 +17,9 @@ cubes:
         i.displayname,
         i.parent as parent_item,
         i.custitem_gpc_stylenumber
-      FROM gpc.purchase_order_lines pol
-      LEFT JOIN gpc.purchase_orders po ON pol.transaction = po.id
-      LEFT JOIN gpc.items i ON pol.item = i.id
+      FROM gpc_prod_native_v1.purchase_order_lines pol
+      LEFT JOIN gpc_prod_native_v1.purchase_orders po ON pol.transaction = po.id
+      LEFT JOIN gpc_prod_native_v1.items i ON pol.item = i.id
       WHERE po.status IN ('B', 'D', 'E')
         AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
 

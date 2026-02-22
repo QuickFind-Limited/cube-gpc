@@ -1,6 +1,6 @@
 cubes:
   - name: purchase_order_lines
-    sql_table: gpc.purchase_order_lines
+    sql_table: gpc_prod_native_v1.purchase_order_lines
 
     title: Purchase Order Lines
     description: >
