@@ -13,11 +13,10 @@ cubes:
         CAST(po.trandate AS TIMESTAMP) as po_date,
         po.tranid as po_number,
         po.entity as supplier_id,
-        po.subsidiary as subsidiary,
         DATE_DIFF(PARSE_DATE('%d/%m/%Y', ir.trandate), po.trandate, DAY) as lead_time_days
-      FROM gpc.item_receipt_lines irl
-      INNER JOIN gpc.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
-      INNER JOIN gpc.purchase_orders po ON CAST(irl.createdfrom AS INT64) = CAST(po.id AS INT64)
+      FROM gpc_prod_native_v1.item_receipt_lines irl
+      INNER JOIN gpc_prod_native_v1.item_receipts ir ON CAST(irl.transaction AS INT64) = CAST(ir.id AS INT64)
+      INNER JOIN gpc_prod_native_v1.purchase_orders po ON CAST(irl.createdfrom AS INT64) = CAST(po.id AS INT64)
       WHERE irl.createdfrom IS NOT NULL
         AND irl.mainline = 'F'
         AND irl.item IS NOT NULL
@@ -49,7 +48,7 @@ cubes:
 
       # CALCULATED MEASURES (computed from pre-aggregation components)
       - name: avg_lead_time_days
-        sql: "CASE WHEN {receipt_count} > 0 THEN 1.0 * {sum_lead_time_days} / {receipt_count} ELSE 0 END"
+        sql: "CASE WHEN {receipt_count} > 0 THEN CAST({sum_lead_time_days} AS FLOAT64) / {receipt_count} ELSE 0 END"
         type: number
         description: Average lead time in days (SLT001 - calculated from sum/count)
 
@@ -91,24 +90,6 @@ cubes:
         type: number
         title: Supplier ID
         description: Vendor entity ID
-
-      - name: supplier_name
-        sql: "{vendors.vendor_name}"
-        type: string
-        title: Supplier Name
-        description: Supplier name (from vendors table)
-
-      - name: subsidiary
-        sql: subsidiary
-        type: number
-        title: Subsidiary ID
-        description: Subsidiary ID from PO header (2=Ireland, 6=UK)
-
-      - name: subsidiary_name
-        sql: "{subsidiaries.name}"
-        type: string
-        title: Subsidiary Name
-        description: Subsidiary name (from subsidiaries table)
 
       - name: item
         sql: item
@@ -166,14 +147,10 @@ cubes:
           else:
             label: "90+ days"
 
-    joins:
-      - name: vendors
-        relationship: many_to_one
-        sql: "{CUBE}.supplier_id = {vendors.id}"
-
-      - name: subsidiaries
-        relationship: many_to_one
-        sql: "{CUBE}.subsidiary = {subsidiaries.id}"
+    # joins:
+    #   - name: items
+    #     relationship: many_to_one
+    #     sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
       - name: lead_time_rollup
@@ -182,16 +159,9 @@ cubes:
           - total_qty_received
           - sum_lead_time_days
           - sum_lead_time_days_squared
-          # Include calculated measures as materialized columns in the rollup to keep rollup-only queries compatible.
-          - avg_lead_time_days
-          - lead_time_variance
-          - lead_time_std_dev
         dimensions:
           - item
           - supplier_id
-          - vendors.vendor_name
-          - subsidiary
-          - subsidiaries.name
         time_dimension: receipt_date
         granularity: day
         build_range_end:

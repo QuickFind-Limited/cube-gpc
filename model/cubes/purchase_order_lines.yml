@@ -1,6 +1,6 @@
 cubes:
   - name: purchase_order_lines
-    sql_table: gpc.purchase_order_lines
+    sql_table: gpc_prod_native_v1.purchase_order_lines
 
     title: Purchase Order Lines
     description: >
@@ -30,7 +30,7 @@ cubes:
         description: Outstanding quantity not yet received
 
       - name: total_po_line_value
-        sql: "quantity * rate"
+        sql: amount
         type: sum
         format: currency
         description: Total PO line value in base currency
@@ -95,12 +95,6 @@ cubes:
         title: Purchase Order ID
         description: Reference to purchase order header (transaction field)
 
-      - name: location
-        sql: location
-        type: number
-        title: Receiving Location ID
-        description: Line-level receiving/location ID
-
       - name: item
         sql: item
         type: number
@@ -144,12 +138,6 @@ cubes:
         title: PO Date
         description: Purchase order transaction date (from header via denormalization)
 
-      - name: location_name
-        sql: "{locations.name}"
-        type: string
-        title: Receiving Location
-        description: Line-level receiving/location name (from locations join)
-
       # SEA-003: Product attributes from items join (NEW v71)
       - name: season
         sql: "{items.season}"
@@ -191,19 +179,20 @@ cubes:
     joins:
       - name: purchase_orders
         relationship: many_to_one
-        sql: "{CUBE}.transaction = {purchase_orders.id}"
+        sql: "{CUBE}.transaction = {purchase_orders}.id"
 
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items.id}"
+        sql: "{CUBE}.item = {items}.id"
 
       - name: pricing
         relationship: many_to_one
-        sql: "{CUBE}.item = {pricing.item_id}"
+        sql: "{CUBE}.item = {pricing}.item_id"
 
-      - name: locations
+      # Explicit vendor join to support vendor dimensions in this cube.
+      - name: vendors
         relationship: many_to_one
-        sql: "{CUBE}.location = {locations.id}"
+        sql: "{purchase_orders.supplier} = {vendors}.id"
 
     pre_aggregations:
       - name: on_order_summary
@@ -220,8 +209,6 @@ cubes:
         dimensions:
           - item
           - po_id               # SEA-003 v71
-          - location
-          - locations.name
           - season              # SEA-003 v71
           - category            # SEA-003 v71
           - purchase_orders.supplier

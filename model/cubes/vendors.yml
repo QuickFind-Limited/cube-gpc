@@ -1,6 +1,6 @@
 cubes:
   - name: vendors
-    sql_table: gpc.vendors
+    sql_table: gpc_prod_native_v1.vendors
 
     title: Vendors
     description: >

@@ -18,8 +18,8 @@ cubes:
         SAFE_CAST(jh.subsidiary AS INT64) as subsidiary,
         jh.memo as header_memo,
         SAFE_CAST(jh.currency AS INT64) as currency
-      FROM gpc.accounting_lines_journal jl
-      LEFT JOIN gpc.journal_headers jh
+      FROM gpc_prod_native_v1.accounting_lines_journal jl
+      LEFT JOIN gpc_prod_native_v1.journal_headers jh
         ON SAFE_CAST(jl.transaction AS INT64) = SAFE_CAST(jh.id AS INT64)
       WHERE jl.posting = 'T'
     title: Journal Entries

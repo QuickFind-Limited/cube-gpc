@@ -3,12 +3,21 @@ cubes:
     sql: >
       SELECT
         fl.*,
-        SAFE_CAST(fl.createdfrom AS INT64) as createdfrom_id,
-        PARSE_DATE('%Y-%m-%d', CAST(fl.shipdate AS STRING)) as shipdate_parsed,
-        t.trandate as order_date
-      FROM gpc.fulfillment_lines fl
-      LEFT JOIN gpc.transactions_analysis t
-        ON SAFE_CAST(fl.createdfrom AS INT64) = t.id
+        COALESCE(
+          SAFE_CAST(CAST(fl.shipdate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(fl.shipdate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(fl.shipdate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(fl.shipdate AS STRING))
+        ) as shipdate_parsed,
+        COALESCE(
+          SAFE_CAST(CAST(t.trandate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(t.trandate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(t.trandate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(t.trandate AS STRING))
+        ) as order_date
+      FROM gpc_prod_native_v1.fulfillment_lines fl
+      LEFT JOIN gpc_prod_native_v1.transactions_analysis t
+        ON CAST(fl.createdfrom AS INT64) = t.id
     title: Fulfillment Lines
     description: >
       Individual line items for fulfillments tracking what products were shipped.
@@ -22,7 +31,7 @@ cubes:
 
       - name: transactions
         relationship: many_to_one
-        sql: "{CUBE}.createdfrom_id = {transactions.id}"
+        sql: "{CUBE}.createdfrom = {transactions.id}"
 
       - name: items
         relationship: many_to_one
@@ -100,7 +109,7 @@ cubes:
         description: Parent fulfillment ID
 
       - name: createdfrom
-        sql: "{CUBE}.createdfrom_id"
+        sql: "{CUBE}.createdfrom"
         type: number
         description: Source order ID
 
@@ -213,6 +222,5 @@ cubes:
         dimensions:
           - location
           - locations.name
-          - location_label
         refresh_key:
           every: 1 day

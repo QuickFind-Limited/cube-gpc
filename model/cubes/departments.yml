@@ -1,6 +1,6 @@
 cubes:
   - name: departments
-    sql: SELECT * FROM gpc.departments
+    sql: SELECT * FROM gpc_prod_native_v1.departments
     title: Departments
     description: Department reference data (eCommerce, Retail, Wholesale, etc.)
 

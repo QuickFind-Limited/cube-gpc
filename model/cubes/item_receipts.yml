@@ -1,6 +1,6 @@
 cubes:
   - name: item_receipts
-    sql_table: gpc.item_receipts
+    sql_table: gpc_prod_native_v1.item_receipts
 
     title: Item Receipts
     description: Item receipt transaction headers (goods received from suppliers)
@@ -11,13 +11,13 @@ cubes:
         description: Number of item receipts
 
       - name: total_receipt_value
-        sql: "CAST(total AS FLOAT64)"
+        sql: "SAFE_CAST({CUBE}.total AS FLOAT64)"
         type: sum
         format: currency
         description: Total receipt value in base currency
 
       - name: avg_receipt_value
-        sql: "CAST(total AS FLOAT64)"
+        sql: "SAFE_CAST({CUBE}.total AS FLOAT64)"
         type: avg
         format: currency
         description: Average receipt value
@@ -36,7 +36,7 @@ cubes:
         description: Item receipt transaction number
 
       - name: trandate
-        sql: "CAST(PARSE_DATE('%d/%m/%Y', trandate) AS TIMESTAMP)"
+        sql: trandate
         type: time
         title: Receipt Date
         description: Date of receipt
@@ -49,9 +49,9 @@ cubes:
 
       - name: currency
         sql: currency
-        type: number
+        type: string
         title: Currency
-        description: Transaction currency ID
+        description: Transaction currency code
 
       - name: exchangerate
         sql: exchangerate
@@ -68,42 +68,8 @@ cubes:
     joins:
       - name: item_receipt_lines
         relationship: one_to_many
-        sql: "{CUBE}.id = {item_receipt_lines.receipt_id}"
+        sql: "{CUBE}.id = {item_receipt_lines}.receipt_id"
 
       - name: vendors
         relationship: many_to_one
-        sql: "{CUBE}.entity = {vendors.id}"
-
-    pre_aggregations:
-      - name: receipt_summary
-        measures:
-          - receipt_count
-          - total_receipt_value
-          - avg_receipt_value
-        dimensions:
-          - supplier
-          - currency
-          - vendors.vendor_name
-        time_dimension: trandate
-        granularity: day
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        refresh_key:
-          every: 1 day
-
-      - name: receipt_monthly
-        measures:
-          - receipt_count
-          - total_receipt_value
-          - avg_receipt_value
-        dimensions:
-          - supplier
-          - currency
-        time_dimension: trandate
-        granularity: month
-        partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
-        refresh_key:
-          every: 1 day
+        sql: "{CUBE}.entity = {vendors}.id"

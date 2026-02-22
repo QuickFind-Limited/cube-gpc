@@ -1,18 +1,6 @@
 cubes:
   - name: landed_costs
     sql: >
-      WITH receipt_context AS (
-        SELECT
-          CAST(irl.transaction AS INT64) as receipt_transaction_id,
-          ANY_VALUE(CAST(irl.location AS INT64)) as location_id,
-          ANY_VALUE(CAST(po.entity AS INT64)) as supplier_id,
-          ANY_VALUE(CAST(po.subsidiary AS INT64)) as po_subsidiary_id
-        FROM gpc.item_receipt_lines irl
-        LEFT JOIN gpc.purchase_orders po
-          ON irl.createdfrom = po.id
-        WHERE irl.mainline = 'F'
-        GROUP BY irl.transaction
-      )
       SELECT
         tl.transaction,
         tl.id as line_id,
@@ -21,14 +9,10 @@ cubes:
         CAST(tl.foreignamount AS FLOAT64) as foreign_landed_cost,
         CAST(tl.estgrossprofit AS FLOAT64) as estimated_gross_profit,
         CAST(tl.estgrossprofitpercent AS FLOAT64) as estimated_gp_percent,
-        COALESCE(rc.po_subsidiary_id, CAST(tl.subsidiary AS INT64)) as subsidiary_id,
-        rc.supplier_id as supplier_id,
-        rc.location_id as location_id,
+        CAST(tl.subsidiary AS INT64) as subsidiary_id,
         tl.transaction_date as receipt_date,
         tl.transaction_type
-      FROM gpc.transaction_lines_denormalized_mv tl
-      LEFT JOIN receipt_context rc
-        ON CAST(tl.transaction AS INT64) = rc.receipt_transaction_id
+      FROM gpc_prod_native_v1.transaction_lines_denormalized_mv tl
       WHERE tl.transaction_type = 'ItemRcpt'
         AND tl.mainline = 'F'
         AND CAST(tl.amount AS FLOAT64) > 0
@@ -79,15 +63,10 @@ cubes:
         description: "Number of individual landed cost line items"
 
     dimensions:
-      - name: id
-        sql: "CONCAT(CAST({CUBE}.transaction AS STRING), '-', CAST({CUBE}.line_id AS STRING))"
-        type: string
-        primary_key: true
-        description: "Unique landed-cost row key (transaction + line_id)"
-
       - name: transaction
         sql: "{CUBE}.transaction"
         type: number
+        primary_key: true
         description: "Item Receipt transaction ID"
 
       - name: line_id
@@ -99,26 +78,6 @@ cubes:
         sql: "{CUBE}.item"
         type: number
         description: "Item ID (for landed cost allocation)"
-
-      - name: supplier_id
-        sql: "{CUBE}.supplier_id"
-        type: number
-        description: "Supplier ID from source purchase order"
-
-      - name: supplier_name
-        sql: "{vendors.vendor_name}"
-        type: string
-        description: "Supplier name from vendors table"
-
-      - name: location_id
-        sql: "{CUBE}.location_id"
-        type: number
-        description: "Receiving location ID from item receipt lines"
-
-      - name: location_name
-        sql: "{locations.name}"
-        type: string
-        description: "Receiving location name from locations table"
 
       - name: transaction_type
         sql: "{CUBE}.transaction_type"
@@ -140,14 +99,6 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.item = {items.id}"
 
-      - name: vendors
-        relationship: many_to_one
-        sql: "{CUBE}.supplier_id = {vendors.id}"
-
-      - name: locations
-        relationship: many_to_one
-        sql: "{CUBE}.location_id = {locations.id}"
-
       - name: subsidiaries
         relationship: many_to_one
         sql: "{CUBE}.subsidiary_id = {subsidiaries.id}"
@@ -163,10 +114,6 @@ cubes:
           - landed_cost_line_count
         dimensions:
           - item
-          - supplier_id
-          - vendors.vendor_name
-          - location_id
-          - locations.name
           - subsidiary_id
         time_dimension: receipt_date
         granularity: month

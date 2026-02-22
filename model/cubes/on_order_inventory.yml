@@ -5,7 +5,6 @@ cubes:
         CAST(pol.id AS INT64) as id,
         CAST(pol.transaction AS INT64) as po_id,
         CAST(pol.item AS INT64) as item,
-        CAST(pol.location AS INT64) as location,
         CAST(pol.quantity AS INT64) as quantity,
         CAST(pol.quantityshiprecv AS INT64) as quantityshiprecv,
         CAST(pol.rate AS FLOAT64) as unit_cost,
@@ -16,14 +15,11 @@ cubes:
         CAST(po.duedate AS TIMESTAMP) as expected_receipt_date,
         i.itemid,
         i.displayname,
-        i.custitem_gpc_category as category,
-        i.custitem_gpc_sections as section,
-        i.custitem_gpc_season as season,
         i.parent as parent_item,
-        i.custitem_gpc_stylenumber as style_number
-      FROM gpc.purchase_order_lines pol
-      LEFT JOIN gpc.purchase_orders po ON pol.transaction = po.id
-      LEFT JOIN gpc.items i ON pol.item = i.id
+        i.custitem_gpc_stylenumber
+      FROM gpc_prod_native_v1.purchase_order_lines pol
+      LEFT JOIN gpc_prod_native_v1.purchase_orders po ON pol.transaction = po.id
+      LEFT JOIN gpc_prod_native_v1.items i ON pol.item = i.id
       WHERE po.status IN ('B', 'D', 'E')
         AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
 
@@ -50,7 +46,6 @@ cubes:
       - name: open_po_count
         sql: po_id
         type: count_distinct_approx
-        public: false
         description: Total number of open POs (approximate with HyperLogLog)
 
       - name: item_count
@@ -85,18 +80,6 @@ cubes:
         title: Item ID
         description: NetSuite item ID
 
-      - name: location
-        sql: location
-        type: number
-        title: Receiving Location ID
-        description: Receiving/location ID from PO line
-
-      - name: location_name
-        sql: "{locations.name}"
-        type: string
-        title: Receiving Location
-        description: Receiving/location name (from locations join)
-
       - name: itemid
         sql: itemid
         type: string
@@ -108,30 +91,6 @@ cubes:
         type: string
         title: Product Name
         description: Item display name
-
-      - name: category
-        sql: category
-        type: string
-        title: Product Category
-        description: Product category (from items)
-
-      - name: section
-        sql: section
-        type: string
-        title: Product Section
-        description: Product section (from items)
-
-      - name: season
-        sql: season
-        type: string
-        title: Product Season
-        description: Product season code (e.g., AW25, SS24) (from items)
-
-      - name: style_number
-        sql: style_number
-        type: string
-        title: Product Style Number
-        description: Product style number (multiple SKUs share a style number) (from items)
 
       - name: qty_on_order
         sql: qty_on_order
@@ -160,11 +119,7 @@ cubes:
     joins:
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items.id}"
-
-      - name: locations
-        relationship: many_to_one
-        sql: "{CUBE}.location = {locations.id}"
+        sql: "{CUBE}.item = {items}.id"
 
     pre_aggregations:
       - name: on_order_rollup
@@ -176,18 +131,11 @@ cubes:
           - product_count
         dimensions:
           - item
-          - location
-          - locations.name
           - itemid
           - displayname
-          - category
-          - section
-          - season
-          - style_number
           - po_status
         time_dimension: po_date
         granularity: day
-        partition_granularity: month
         build_range_end:
           sql: SELECT '2025-10-31'
         refresh_key:
@@ -205,7 +153,7 @@ cubes:
           every: 1 day
 
       # OOI002: Rollup by expected receipt date for "units due next week" queries
-      - name: on_order_by_receipt_date_v2
+      - name: on_order_by_receipt_date
         measures:
           - total_on_order_units
           - on_order_value
@@ -214,21 +162,12 @@ cubes:
           - product_count
         dimensions:
           - item
-          - location
-          - locations.name
           - itemid
           - displayname
-          - category
-          - section
-          - season
-          - style_number
           - po_status
         time_dimension: expected_receipt_date
         granularity: day
-        partition_granularity: month
         build_range_end:
-          # BQ validation (magical-desktop:gpc.purchase_orders): MAX(duedate) for open POs is 2025-12-01,
-          # so building out to end-of-2025 avoids unnecessary empty partitions.
-          sql: SELECT '2025-12-31'
+          sql: SELECT '2026-12-31'
         refresh_key:
           every: 1 day
