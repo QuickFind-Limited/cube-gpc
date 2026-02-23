@@ -208,7 +208,7 @@ cubes:
           - items.gender
           - locations.channel_type
         refresh_key:
-          every: 1 day
+          every: 365 days
 
       # Aggregate analysis for totals
       - name: commitment_summary
@@ -230,4 +230,4 @@ cubes:
           - items.gender
           - locations.channel_type
         refresh_key:
-          every: 1 day
+          every: 365 days

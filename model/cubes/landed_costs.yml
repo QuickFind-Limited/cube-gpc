@@ -121,5 +121,5 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days
           # Force rebuild after v68 fix - quantity-based landed cost identification (2026-02-05)

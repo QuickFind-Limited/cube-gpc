@@ -220,4 +220,4 @@ cubes:
         time_dimension: trandate
         granularity: day
         refresh_key:
-          every: 1 day
+          every: 365 days

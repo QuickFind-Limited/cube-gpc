@@ -140,7 +140,7 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days
 
       # Rollup without dimensions for total queries
       - name: on_order_totals
@@ -151,7 +151,7 @@ cubes:
           - item_count
           - product_count
         refresh_key:
-          every: 1 day
+          every: 365 days
 
       # OOI002: Rollup by expected receipt date for "units due next week" queries
       - name: on_order_by_receipt_date
@@ -171,4 +171,4 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days

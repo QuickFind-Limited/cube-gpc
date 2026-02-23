@@ -222,5 +222,5 @@ cubes:
           - is_markdown
           - country_of_origin  # PO002 fix - country of origin for sourcing analysis
         refresh_key:
-          every: 1 day
+          every: 365 days
           # Force rebuild after v68.2 fix (2026-01-31)

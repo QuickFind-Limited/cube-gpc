@@ -122,10 +122,12 @@ cubes:
         time_dimension: bill_date
         granularity: day
         partition_granularity: month
+        incremental: true
+        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days
 
       # Monthly rollup for trending
       - name: vendor_spend_monthly
@@ -139,7 +141,9 @@ cubes:
         time_dimension: bill_date
         granularity: month
         partition_granularity: month
+        incremental: true
+        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days

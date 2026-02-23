@@ -135,10 +135,12 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
+        incremental: true
+        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days
 
       # Monthly rollup for faster queries
       - name: cogs_monthly_totals
@@ -153,7 +155,9 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
+        incremental: true
+        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 1 day
+          every: 365 days
