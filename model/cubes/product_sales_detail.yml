@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: product_sales_detail
     sql_table: gpc_prod_native_v1.transaction_lines_denormalized_mv
@@ -82,8 +83,7 @@ cubes:
         type: rollup
         refresh_key:
           every: 1 day
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
 
     segments:
       - name: sales_lines

@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: inventory
     sql: SELECT * FROM gpc_prod_native_v1.inventory_calculated
@@ -80,7 +81,7 @@ cubes:
       - name: total_stock_value
         sql: >
           CAST({CUBE}.calculated_quantity_available *
-          COALESCE((SELECT MAX(rate) FROM gpc.item_receipt_lines irl
+          COALESCE((SELECT MAX(rate) FROM gpc_prod_native_v1.item_receipt_lines irl
                     WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
         type: sum
         format: currency
@@ -89,7 +90,7 @@ cubes:
       - name: total_cost_value
         sql: >
           CAST({CUBE}.calculated_quantity_available *
-          COALESCE((SELECT MAX(rate) FROM gpc.item_receipt_lines irl
+          COALESCE((SELECT MAX(rate) FROM gpc_prod_native_v1.item_receipt_lines irl
                     WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
         type: sum
         format: currency

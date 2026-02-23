@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: on_order_inventory
     sql: >
@@ -136,8 +137,7 @@ cubes:
           - po_status
         time_dimension: po_date
         granularity: day
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day
 
@@ -167,7 +167,6 @@ cubes:
           - po_status
         time_dimension: expected_receipt_date
         granularity: day
-        build_range_end:
-          sql: SELECT '2026-12-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day

@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: vendor_spend
     sql: >
@@ -121,8 +122,7 @@ cubes:
         time_dimension: bill_date
         granularity: day
         partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day
 
@@ -138,7 +138,6 @@ cubes:
         time_dimension: bill_date
         granularity: month
         partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day

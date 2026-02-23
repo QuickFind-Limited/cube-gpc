@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: customer_payments
     sql: >
@@ -134,7 +135,6 @@ cubes:
         time_dimension: payment_date
         granularity: day
         partition_granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day

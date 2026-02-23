@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: inventory_turnover_proxy
     sql: >
@@ -21,7 +22,7 @@ cubes:
               ELSE 0
             END
           ) AS units_sold_month
-        FROM gpc.transaction_lines_denormalized_mv
+        FROM gpc_prod_native_v1.transaction_lines_denormalized_mv
         WHERE transaction_date BETWEEN DATE '2024-11-01' AND DATE '2025-10-31'
         GROUP BY 1, 2, 3, 4, 5
       ),
@@ -32,8 +33,8 @@ cubes:
           COALESCE(NULLIF(TRIM(i.custitem_gpc_season), ''), 'UNKNOWN') AS season,
           COALESCE(NULLIF(TRIM(i.custitem_gpc_category), ''), 'UNKNOWN') AS category,
           SAFE_CAST(ic.calculated_quantity_available AS FLOAT64) AS available_stock_snapshot
-        FROM gpc.inventory_calculated ic
-        LEFT JOIN gpc.items i
+        FROM gpc_prod_native_v1.inventory_calculated ic
+        LEFT JOIN gpc_prod_native_v1.items i
           ON ic.item = i.id
       ),
       stock_month_grid AS (

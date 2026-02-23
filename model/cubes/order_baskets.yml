@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 # Updated: 2026-02-03 07:30 - Switched to transaction_lines_denormalized_patched view for real geographic data
 cubes:
   - name: order_baskets
@@ -156,7 +157,6 @@ cubes:
           - customer_type        # B2B/Wholesale vs Retail/D2C (NEW v57)
         time_dimension: trandate
         granularity: month
-        build_range_end:
-          sql: SELECT '2025-10-31'
+        build_range_start: '2022-01-01'
         refresh_key:
           every: 1 day

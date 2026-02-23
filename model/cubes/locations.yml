@@ -1,3 +1,4 @@
+# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: locations
     sql: SELECT * FROM gpc_prod_native_v1.locations
