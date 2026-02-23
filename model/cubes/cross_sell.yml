@@ -148,6 +148,7 @@ cubes:
           - transaction_type  # Added for filter compatibility (SKILL defaults)
         time_dimension: trandate
         granularity: month
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         refresh_key:
           every: 1 day

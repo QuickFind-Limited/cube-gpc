@@ -186,7 +186,8 @@ cubes:
           - location_label  # FD002 fix (FD002-fix-1): Added for labeled location queries
         time_dimension: shipdate
         granularity: day
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         indexes:
           - name: location_idx
             columns:
@@ -204,7 +205,8 @@ cubes:
           - location
         time_dimension: shipdate
         granularity: day
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         indexes:
           - name: item_idx
             columns:

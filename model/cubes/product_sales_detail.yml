@@ -83,7 +83,8 @@ cubes:
         type: rollup
         refresh_key:
           every: 1 day
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
 
     segments:
       - name: sales_lines

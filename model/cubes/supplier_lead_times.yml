@@ -165,6 +165,7 @@ cubes:
           - supplier_id
         time_dimension: receipt_date
         granularity: day
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         refresh_key:
           every: 1 day

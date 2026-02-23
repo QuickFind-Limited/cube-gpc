@@ -182,7 +182,8 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         refresh_key:
           every: 1 day
 
@@ -201,6 +202,7 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
-        build_range_start: '2022-01-01'
+        build_range_start:
+          sql: SELECT '2022-01-01'
         refresh_key:
           every: 1 day
