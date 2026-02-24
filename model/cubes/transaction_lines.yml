@@ -934,8 +934,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Geography-focused sales analysis (6 dimensions)
       # SHP002 ENHANCEMENT: Added line_count for Items Per Order calculation
@@ -965,8 +963,6 @@ cubes:
               - shipping_country
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Product-focused sales analysis (8 dimensions)
       - name: sales_product_detail
@@ -998,8 +994,6 @@ cubes:
               - season
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # REMOVED: product_analysis (8 dimensions with SKU+product_name - ultra-high cardinality)
       # REPLACED WITH: 2 focused pre-aggs below (product_category_analysis, top_products_detail)
@@ -1032,8 +1026,6 @@ cubes:
               - season
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Top products detail (4 dimensions - FILTERED to top 200 SKUs only)
 
@@ -1061,8 +1053,6 @@ cubes:
               - location_name
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Geographic + Location + Channel analysis (v61 - NEW)
       # For queries combining billing_country, channel_type, and location_name
@@ -1091,8 +1081,6 @@ cubes:
               - channel_type
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Catch-all pre-agg for single-dimension queries (v68.3)
       # Enables querying channel_type, location_name, or section alone
@@ -1113,8 +1101,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Discount analysis
       - name: discount_analysis
@@ -1145,8 +1131,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Customer geography analysis
       - name: customer_geography
@@ -1173,8 +1157,6 @@ cubes:
               - customer_email
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Product range/collection analysis for LIFE004 and other product metrics
       - name: product_range_analysis
@@ -1203,8 +1185,6 @@ cubes:
               - product_range
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Size/color by geography
       - name: size_geography
@@ -1224,8 +1204,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Transaction type breakdown
       - name: transaction_type_analysis
@@ -1244,8 +1222,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Weekly trends
       - name: weekly_metrics
@@ -1264,8 +1240,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # REMOVED: product_geography (7 dimensions with SKU+product_name - astronomical cardinality)
       # WHY: 3,000 SKUs × 3,000 product_names × 50 countries × other dims = 2.25 TRILLION combinations
@@ -1306,8 +1280,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # REMOVED: size_location_analysis (8 dimensions - confirmed timeout)
       # WHY: 50 sizes × 50 locations × other dims = 187.5M combinations, timed out at 10+ minutes
@@ -1336,8 +1308,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Location performance analysis (no size detail)
       - name: location_performance
@@ -1362,8 +1332,6 @@ cubes:
               - category
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Yearly metrics for YoY comparisons
       - name: yearly_metrics
@@ -1384,8 +1352,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # REMOVED v62: transaction_grain_aov pre-aggregation
       #
@@ -1433,5 +1399,3 @@ cubes:
               - transaction_type
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day

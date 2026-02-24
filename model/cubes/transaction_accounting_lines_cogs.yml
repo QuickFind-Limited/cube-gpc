@@ -139,8 +139,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Monthly rollup for faster queries
       - name: cogs_monthly_totals
@@ -159,5 +157,3 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day

@@ -83,8 +83,6 @@ cubes:
         type: rollup
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
 

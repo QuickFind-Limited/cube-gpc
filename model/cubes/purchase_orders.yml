@@ -149,8 +149,6 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Breakdown rollup for supplier/location analysis (PO001/PO002/OOI* use cases)
       - name: po_summary
@@ -176,5 +174,3 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
