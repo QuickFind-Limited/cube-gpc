@@ -42,6 +42,20 @@ cubes:
         title: Receipt Date
         description: Date of receipt
 
+      - name: receipt_date
+        sql: >
+          CAST(
+            COALESCE(
+              SAFE_CAST(CAST({CUBE}.trandate AS STRING) AS DATE),
+              CAST(SAFE_CAST(CAST({CUBE}.trandate AS STRING) AS TIMESTAMP) AS DATE),
+              SAFE.PARSE_DATE('%Y-%m-%d', CAST({CUBE}.trandate AS STRING)),
+              SAFE.PARSE_DATE('%d/%m/%Y', CAST({CUBE}.trandate AS STRING))
+            ) AS TIMESTAMP
+          )
+        type: time
+        public: false
+        description: Parsed receipt date used for pre-aggregations
+
       - name: supplier
         sql: entity
         type: number
@@ -74,3 +88,19 @@ cubes:
       - name: vendors
         relationship: many_to_one
         sql: "{CUBE}.entity = {vendors}.id"
+
+    pre_aggregations:
+      - name: receipt_analysis
+        measures:
+          - receipt_count
+          - total_receipt_value
+        dimensions:
+          - supplier
+          - currency
+        time_dimension: receipt_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
