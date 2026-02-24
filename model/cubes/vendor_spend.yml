@@ -12,8 +12,20 @@ cubes:
         SAFE_CAST(vb.subsidiary AS INT64) as subsidiary,
         vb.memo,
         vb.tranid as bill_number,
-        PARSE_DATE('%d/%m/%Y', vb.trandate) as bill_date,
-        PARSE_DATE('%d/%m/%Y', vb.closedate) as close_date,
+        COALESCE(
+          SAFE_CAST(CAST(vb.trandate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(vb.trandate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(vb.trandate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(vb.trandate AS STRING)),
+          SAFE.PARSE_DATE('%m/%d/%Y', CAST(vb.trandate AS STRING))
+        ) as bill_date,
+        COALESCE(
+          SAFE_CAST(CAST(vb.closedate AS STRING) AS DATE),
+          CAST(SAFE_CAST(CAST(vb.closedate AS STRING) AS TIMESTAMP) AS DATE),
+          SAFE.PARSE_DATE('%Y-%m-%d', CAST(vb.closedate AS STRING)),
+          SAFE.PARSE_DATE('%d/%m/%Y', CAST(vb.closedate AS STRING)),
+          SAFE.PARSE_DATE('%m/%d/%Y', CAST(vb.closedate AS STRING))
+        ) as close_date,
         vb.status,
         vb.approvalstatus
       FROM gpc_prod_native_v1.vendor_bills vb
@@ -126,6 +138,8 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day
 
       # Monthly rollup for trending
       - name: vendor_spend_monthly
@@ -143,3 +157,5 @@ cubes:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day
