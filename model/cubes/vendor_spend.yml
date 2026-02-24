@@ -140,7 +140,6 @@ cubes:
           every: 365 days
           incremental: true
           update_window: 28 day
-
       # Monthly rollup for trending
       - name: vendor_spend_monthly
         measures:

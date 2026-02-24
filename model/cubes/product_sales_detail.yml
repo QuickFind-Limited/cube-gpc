@@ -81,11 +81,12 @@ cubes:
         granularity: day
         partition_granularity: month
         type: rollup
-        refresh_key:
-          every: 365 days
         build_range_start:
           sql: SELECT '2022-01-01'
-
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
     segments:
       - name: sales_lines
         sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
