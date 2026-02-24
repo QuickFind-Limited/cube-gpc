@@ -182,12 +182,12 @@ cubes:
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
-        incremental: true
-        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day
 
       # Monthly rollup for high-level trending
       - name: adjustment_monthly
@@ -204,9 +204,9 @@ cubes:
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
-        incremental: true
-        update_window: 28 day
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day
