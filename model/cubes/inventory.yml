@@ -172,6 +172,20 @@ cubes:
         sql: "{CUBE}.calculated_quantity_available < 0"
 
     pre_aggregations:
+      # Snapshot metadata rollup for freshness/lineage checks in rollup-only mode
+      - name: inventory_snapshot_metadata
+        measures:
+          - position_count
+          - sku_count
+          - total_stock
+          - available_stock
+        dimensions:
+          - source_table
+          - source_max_last_transaction_date
+          - snapshot_loaded_at
+        refresh_key:
+          every: 365 days
+
       # Inventory analysis by location and item attributes
       - name: inventory_analysis
         measures:

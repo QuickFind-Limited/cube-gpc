@@ -235,6 +235,23 @@ cubes:
         description: Negative stock positions
 
     pre_aggregations:
+      # Snapshot metadata rollup for commitment freshness/lineage checks
+      - name: commitment_snapshot_metadata
+        measures:
+          - position_count
+          - sku_count
+          - total_current_stock
+          - total_on_order
+          - zero_stock_count
+          - zero_stock_sku_count
+        dimensions:
+          - source_table
+          - source_max_last_transaction_date
+          - snapshot_loaded_at
+          - stock_status
+        refresh_key:
+          every: 365 days
+
       # SKU-level analysis for "which products are zero stock with/without orders?"
       - name: sku_commitment_analysis
         measures:
