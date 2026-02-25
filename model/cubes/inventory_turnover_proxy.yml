@@ -33,9 +33,13 @@ cubes:
           COALESCE(NULLIF(TRIM(i.custitem_gpc_season), ''), 'UNKNOWN') AS season,
           COALESCE(NULLIF(TRIM(i.custitem_gpc_category), ''), 'UNKNOWN') AS category,
           SAFE_CAST(ic.calculated_quantity_available AS FLOAT64) AS available_stock_snapshot
-        FROM gpc_prod_native_v1.inventory_calculated ic
+        FROM gpc_prod_native_v1.inventory_current ic
         LEFT JOIN gpc_prod_native_v1.items i
           ON ic.item = i.id
+      ),
+      inventory_snapshot_meta AS (
+        SELECT MAX(source_max_last_transaction_date) AS snapshot_date
+        FROM gpc_prod_native_v1.inventory_current
       ),
       stock_month_grid AS (
         SELECT
@@ -58,7 +62,7 @@ cubes:
         COALESCE(g.available_stock_snapshot, 0.0) AS available_stock_snapshot,
         DATE '2024-11-01' AS sales_window_start,
         DATE '2025-10-31' AS sales_window_end,
-        DATE '2025-10-31' AS snapshot_date
+        m.snapshot_date AS snapshot_date
       FROM sales_monthly s
       FULL OUTER JOIN stock_month_grid g
         ON s.item = g.item
@@ -66,12 +70,14 @@ cubes:
        AND s.season = g.season
        AND s.category = g.category
        AND s.analysis_month = g.analysis_month
+      CROSS JOIN inventory_snapshot_meta m
 
     title: Inventory Turnover Proxy
     description: >
       INV002 dedicated proxy model at season x category x location grain.
       Numerator is units sold in fixed operational window 2024-11-01 to 2025-10-31.
-      Denominator is current snapshot stock (as of 2025-10-31). This is a proxy turnover lens, not true average-inventory turnover.
+      Denominator is current snapshot stock from inventory_current (snapshot_date metadata included in output).
+      This is a proxy turnover lens, not true average-inventory turnover.
 
     joins:
       - name: locations
@@ -186,7 +192,7 @@ cubes:
       - name: snapshot_date
         sql: "CAST({CUBE}.snapshot_date AS TIMESTAMP)"
         type: time
-        description: Snapshot date for denominator stock (fixed at 2025-10-31).
+        description: Snapshot date for denominator stock from canonical inventory snapshot metadata.
 
     pre_aggregations:
       - name: turnover_by_season_category_location

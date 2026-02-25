@@ -8,14 +8,27 @@ cubes:
         inv.displayname,
         inv.location,
         inv.calculated_quantity_available as current_stock,
-        COALESCE(SUM(CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)), 0) as qty_on_order,
-        COALESCE(SUM((CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.rate AS FLOAT64)), 0) as on_order_value,
-        COUNT(DISTINCT CASE WHEN (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0 THEN pol.transaction END) as open_po_count
-      FROM gpc_prod_native_v1.inventory_calculated inv
-      LEFT JOIN gpc_prod_native_v1.purchase_order_lines pol ON inv.item = pol.item
+        MAX(inv.source_max_last_transaction_date) as source_max_last_transaction_date,
+        MAX(inv.snapshot_loaded_at) as snapshot_loaded_at,
+        ANY_VALUE(inv.source_table) as source_table,
+        COALESCE(SUM(CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)
+          ELSE 0
+        END), 0) as qty_on_order,
+        COALESCE(SUM(CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) * CAST(pol.rate AS FLOAT64)
+          ELSE 0
+        END), 0) as on_order_value,
+        COUNT(DISTINCT CASE
+          WHEN po.id IS NOT NULL AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
+          THEN pol.transaction
+        END) as open_po_count
+      FROM gpc_prod_native_v1.inventory_current inv
+      LEFT JOIN gpc_prod_native_v1.purchase_order_lines pol ON inv.item = pol.item AND inv.location = pol.location
       LEFT JOIN gpc_prod_native_v1.purchase_orders po ON pol.transaction = po.id
         AND po.status IN ('B', 'D', 'E')
-        AND (CAST(pol.quantity AS INT64) - COALESCE(CAST(pol.quantityshiprecv AS INT64), 0)) > 0
       GROUP BY inv.item, inv.itemid, inv.displayname, inv.location, inv.calculated_quantity_available
 
     title: Inventory with Commitments
@@ -28,7 +41,7 @@ cubes:
     joins:
       - name: items
         relationship: many_to_one
-        sql: "{CUBE}.item = {items}.id"
+        sql: "{CUBE}.item = {items.id}"
 
       - name: locations
         relationship: many_to_one
@@ -78,6 +91,28 @@ cubes:
         filters:
           - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
         description: Zero stock positions with NO outstanding orders (critical issue!)
+
+      # STOCK001 (preferred): Distinct SKU counts (avoid double-counting the same SKU across multiple locations)
+      - name: zero_stock_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0"
+        description: Approx distinct SKUs with zero current stock (STOCK001, preferred when user says "products/SKUs")
+
+      - name: zero_stock_sku_with_orders
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order > 0"
+        description: Approx distinct zero-stock SKUs that have outstanding purchase orders (STOCK001)
+
+      - name: zero_stock_sku_without_orders
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.current_stock = 0 AND {CUBE}.qty_on_order = 0"
+        description: Approx distinct zero-stock SKUs with NO outstanding purchase orders (STOCK001)
 
       - name: backorder_count
         type: count
@@ -167,6 +202,21 @@ cubes:
         title: Stock + Orders
         description: Current stock plus outstanding orders (projected availability)
 
+      - name: source_max_last_transaction_date
+        sql: "CAST({CUBE}.source_max_last_transaction_date AS TIMESTAMP)"
+        type: time
+        description: Maximum stock_asof_date present in the canonical inventory snapshot source.
+
+      - name: snapshot_loaded_at
+        sql: "CAST({CUBE}.snapshot_loaded_at AS TIMESTAMP)"
+        type: time
+        description: Timestamp when inventory_current was materialized in BigQuery.
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+        description: Source table lineage for canonical inventory snapshot data.
+
     segments:
       - name: zero_stock
         sql: "{CUBE}.current_stock = 0"
@@ -195,6 +245,9 @@ cubes:
           - zero_stock_count
           - zero_stock_with_orders
           - zero_stock_without_orders
+          - zero_stock_sku_count
+          - zero_stock_sku_with_orders
+          - zero_stock_sku_without_orders
           - backorder_count
           - backorder_with_orders
           - backorder_without_orders
@@ -203,9 +256,11 @@ cubes:
           - itemid
           - stock_status
           - items.category
+          - items.category_base
           - items.section
           - items.season
           - items.gender
+          - items.is_markdown
           - locations.channel_type
         refresh_key:
           every: 365 days
@@ -221,13 +276,18 @@ cubes:
           - zero_stock_count
           - zero_stock_with_orders
           - zero_stock_without_orders
+          - zero_stock_sku_count
+          - zero_stock_sku_with_orders
+          - zero_stock_sku_without_orders
           - backorder_count
           - backorder_with_orders
           - backorder_without_orders
         dimensions:
           - stock_status
           - items.category
+          - items.category_base
           - items.gender
+          - items.is_markdown
           - locations.channel_type
         refresh_key:
           every: 365 days

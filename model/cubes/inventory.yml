@@ -1,9 +1,9 @@
 # redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: inventory
-    sql: SELECT * FROM gpc_prod_native_v1.inventory_calculated
+    sql: SELECT * FROM gpc_prod_native_v1.inventory_current
     title: Inventory
-    description: "Current inventory positions from inventory_calculated table (Rule 6). IMPORTANT LIMITATION: This is a point-in-time snapshot as of 31 October 2025. NO HISTORICAL INVENTORY DATA is available. Inventory turnover calculations (INV002) cannot use average inventory and must use current stock levels instead, which may not accurately represent turnover for the full period. Historical stock movements are not tracked."
+    description: "Current inventory positions from canonical inventory_current table. IMPORTANT LIMITATION: Inventory remains snapshot-only (not event history). Always disclose source_max_last_transaction_date and snapshot_loaded_at for inventory outputs."
 
     joins:
       - name: items
@@ -130,6 +130,26 @@ cubes:
         sql: "{CUBE}.calculated_quantity_available"
         type: number
         description: Quantity available
+
+      - name: stock_asof_date
+        sql: "CAST({CUBE}.stock_asof_date AS TIMESTAMP)"
+        type: time
+        description: Last transaction date for this item-location inventory position.
+
+      - name: source_max_last_transaction_date
+        sql: "CAST({CUBE}.source_max_last_transaction_date AS TIMESTAMP)"
+        type: time
+        description: Maximum stock_asof_date present in the inventory snapshot source.
+
+      - name: snapshot_loaded_at
+        sql: "CAST({CUBE}.snapshot_loaded_at AS TIMESTAMP)"
+        type: time
+        description: Timestamp when inventory_current was materialized in BigQuery.
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+        description: Source lineage marker for this inventory snapshot row.
 
       - name: stock_status
         sql: >
