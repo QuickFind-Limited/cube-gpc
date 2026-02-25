@@ -272,6 +272,7 @@ cubes:
           - item
           - itemid
           - stock_status
+          - items.itemtype
           - items.category
           - items.category_base
           - items.section
@@ -301,6 +302,7 @@ cubes:
           - backorder_without_orders
         dimensions:
           - stock_status
+          - items.itemtype
           - items.category
           - items.category_base
           - items.gender
