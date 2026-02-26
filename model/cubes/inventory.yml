@@ -253,3 +253,18 @@ cubes:
           - location
         refresh_key:
           every: 365 days
+
+      # Report-semantics support rollup:
+      # Enables explicit exclusion filters on items.itemid / items.section
+      # together with location-level available stock totals.
+      - name: inventory_scope_filter_support
+        measures:
+          - total_stock
+          - available_stock
+          - position_count
+        dimensions:
+          - locations.name
+          - items.itemid
+          - items.section
+        refresh_key:
+          every: 365 days
