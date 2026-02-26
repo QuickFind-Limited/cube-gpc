@@ -141,6 +141,7 @@ def fetch_rows(client: SuiteQLClient, location: int, lo: int, hi: int) -> List[D
       i.displayname,
       i.itemtype,
       ail.location,
+      ail.quantityonhand AS quantity_on_hand,
       ail.quantityavailable AS calculated_quantity_available,
       TO_CHAR(ail.lastmodifieddate, 'YYYY-MM-DD') AS last_transaction_date,
       0 AS transaction_count
@@ -186,6 +187,7 @@ def main() -> int:
         "displayname",
         "itemtype",
         "location",
+        "quantity_on_hand",
         "calculated_quantity_available",
         "last_transaction_date",
         "transaction_count",

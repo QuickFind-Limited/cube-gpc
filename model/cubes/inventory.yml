@@ -32,6 +32,18 @@ cubes:
         type: sum
         description: Total stock (can be negative for backorders)
 
+      - name: total_on_hand
+        sql: "CAST({CUBE}.quantity_on_hand AS FLOAT64)"
+        type: sum
+        description: Total on-hand stock from NetSuite AggregateItemLocation (signed)
+
+      - name: on_hand_stock
+        sql: "CAST({CUBE}.quantity_on_hand AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.quantity_on_hand > 0"
+        description: On-hand stock (positive only)
+
       - name: available_stock
         sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
         type: sum
@@ -148,6 +160,11 @@ cubes:
         type: number
         description: Quantity available
 
+      - name: quantity_on_hand
+        sql: "{CUBE}.quantity_on_hand"
+        type: number
+        description: On-hand quantity from NetSuite AggregateItemLocation.
+
       - name: stock_asof_date
         sql: "CAST({CUBE}.stock_asof_date AS TIMESTAMP)"
         type: time
@@ -194,6 +211,8 @@ cubes:
         measures:
           - position_count
           - sku_count
+          - total_on_hand
+          - on_hand_stock
           - total_stock
           - available_stock
         dimensions:
@@ -206,6 +225,8 @@ cubes:
       # Inventory analysis by location and item attributes
       - name: inventory_analysis
         measures:
+          - total_on_hand
+          - on_hand_stock
           - total_stock
           - available_stock
           - backorder_units
@@ -240,6 +261,8 @@ cubes:
       # Item-level inventory (for SKU lookups)
       - name: item_inventory
         measures:
+          - total_on_hand
+          - on_hand_stock
           - total_stock
           - available_stock
           - backorder_units
@@ -259,6 +282,8 @@ cubes:
       # together with location-level available stock totals.
       - name: inventory_scope_filter_support
         measures:
+          - total_on_hand
+          - on_hand_stock
           - total_stock
           - available_stock
           - position_count

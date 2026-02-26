@@ -7,6 +7,7 @@ cubes:
         inv.itemid,
         inv.displayname,
         inv.location,
+        inv.quantity_on_hand as current_on_hand,
         inv.calculated_quantity_available as current_stock,
         MAX(inv.source_max_last_transaction_date) as source_max_last_transaction_date,
         MAX(inv.snapshot_loaded_at) as snapshot_loaded_at,
@@ -37,7 +38,7 @@ cubes:
         AND UPPER(COALESCE(i.itemid, inv.itemid, '')) NOT LIKE '%GRAPHIC_STUFFBAG%'
         AND UPPER(COALESCE(i.custitem_gpc_sections, '')) NOT LIKE '%CONSUMABLE%'
         AND COALESCE(i.subsidiary, '1') = '1'
-      GROUP BY inv.item, inv.itemid, inv.displayname, inv.location, inv.calculated_quantity_available
+      GROUP BY inv.item, inv.itemid, inv.displayname, inv.location, inv.quantity_on_hand, inv.calculated_quantity_available
 
     title: Inventory with Commitments
     description: >
@@ -60,7 +61,12 @@ cubes:
       - name: total_current_stock
         sql: "CAST({CUBE}.current_stock AS FLOAT64)"
         type: sum
-        description: Total current stock on hand
+        description: Total current available stock (quantity available)
+
+      - name: total_current_on_hand
+        sql: "CAST({CUBE}.current_on_hand AS FLOAT64)"
+        type: sum
+        description: Total on-hand stock from NetSuite AggregateItemLocation
 
       - name: total_on_order
         sql: "CAST({CUBE}.qty_on_order AS FLOAT64)"
@@ -185,6 +191,12 @@ cubes:
         title: Current Stock
         description: Current quantity available
 
+      - name: current_on_hand
+        sql: "{CUBE}.current_on_hand"
+        type: number
+        title: Current On Hand
+        description: On-hand quantity from NetSuite AggregateItemLocation
+
       - name: qty_on_order
         sql: "{CUBE}.qty_on_order"
         type: number
@@ -249,6 +261,7 @@ cubes:
         measures:
           - position_count
           - sku_count
+          - total_current_on_hand
           - total_current_stock
           - total_on_order
           - zero_stock_count
@@ -264,6 +277,7 @@ cubes:
       # SKU-level analysis for "which products are zero stock with/without orders?"
       - name: sku_commitment_analysis
         measures:
+          - total_current_on_hand
           - total_current_stock
           - total_on_order
           - total_committed_value
@@ -295,6 +309,7 @@ cubes:
       # Aggregate analysis for totals
       - name: commitment_summary
         measures:
+          - total_current_on_hand
           - total_current_stock
           - total_on_order
           - total_committed_value
