@@ -1,0 +1,166 @@
+# redeploy_stamp: 2026-02-26T060500Z
+cubes:
+  - name: inventory_all_locations
+    sql: >
+      SELECT
+        inv.*
+      FROM gpc_prod_native_v1.inventory_current inv
+      LEFT JOIN gpc_prod_native_v1.items i
+        ON inv.item = i.id
+      WHERE COALESCE(i.itemtype, inv.itemtype) = 'InvtPart'
+    title: Inventory (All Locations)
+    description: >
+      Current inventory positions from canonical inventory_current table across all
+      locations (including retail stores). Use this cube when users ask for
+      non-3PL locations (for example, Liffey Valley). Unlike the `inventory`
+      cube, this cube does not hard-scope to the SC | Current Inventory 3PLs
+      report criteria.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      - name: total_stock
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
+        type: sum
+        description: Total stock (can be negative for backorders)
+
+      - name: available_stock
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available > 0"
+        description: Available stock (positive only)
+
+      - name: backorder_units
+        sql: "CAST(ABS({CUBE}.calculated_quantity_available) AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available < 0"
+        description: Backorder units (negative stock as positive number)
+
+      - name: position_count
+        type: count
+        description: Total number of inventory positions
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        description: Number of unique SKUs in inventory (approximate with HyperLogLog)
+
+      - name: location_count
+        sql: "{CUBE}.location"
+        type: count_distinct_approx
+        description: Number of locations with inventory (approximate with HyperLogLog)
+
+    dimensions:
+      - name: id
+        sql: "CONCAT(CAST({CUBE}.item AS STRING), '-', CAST({CUBE}.location AS STRING))"
+        type: string
+        primary_key: true
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: itemid
+        sql: "{CUBE}.itemid"
+        type: string
+        title: SKU
+        description: Item SKU code
+
+      - name: itemtype
+        sql: "{CUBE}.itemtype"
+        type: string
+        description: Item type from canonical inventory_current snapshot (e.g., InvtPart)
+
+      - name: displayname
+        sql: "{CUBE}.displayname"
+        type: string
+        description: Item display name
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: quantity
+        sql: "{CUBE}.calculated_quantity_available"
+        type: number
+        description: Quantity available
+
+      - name: stock_asof_date
+        sql: "CAST({CUBE}.stock_asof_date AS TIMESTAMP)"
+        type: time
+        description: Last transaction date for this item-location inventory position.
+
+      - name: source_max_last_transaction_date
+        sql: "CAST({CUBE}.source_max_last_transaction_date AS TIMESTAMP)"
+        type: time
+        description: Maximum stock_asof_date present in the inventory snapshot source.
+
+      - name: snapshot_loaded_at
+        sql: "CAST({CUBE}.snapshot_loaded_at AS TIMESTAMP)"
+        type: time
+        description: Timestamp when inventory_current was materialized in BigQuery.
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+        description: Source lineage marker for this inventory snapshot row.
+
+      - name: stock_status
+        sql: >
+          CASE
+            WHEN {CUBE}.calculated_quantity_available > 0 THEN 'In Stock'
+            WHEN {CUBE}.calculated_quantity_available = 0 THEN 'Zero Stock'
+            ELSE 'Backorder'
+          END
+        type: string
+        description: Stock status category
+
+    pre_aggregations:
+      - name: inventory_all_snapshot_metadata
+        measures:
+          - position_count
+          - sku_count
+          - location_count
+          - total_stock
+          - available_stock
+        dimensions:
+          - source_table
+          - source_max_last_transaction_date
+          - snapshot_loaded_at
+        refresh_key:
+          every: 365 days
+
+      - name: inventory_all_location_analysis
+        measures:
+          - total_stock
+          - available_stock
+          - backorder_units
+          - position_count
+          - sku_count
+          - location_count
+        dimensions:
+          - locations.name
+          - locations.region
+          - locations.channel_type
+          - locations.location_type
+          - stock_status
+          - items.itemid
+          - items.section
+          - items.category
+          - items.category_base
+          - items.season
+          - items.size
+          - items.range
+          - items.markdown
+          - items.is_markdown
+        refresh_key:
+          every: 365 days
