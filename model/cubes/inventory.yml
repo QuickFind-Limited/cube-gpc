@@ -1,9 +1,21 @@
 # redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: inventory
-    sql: SELECT * FROM gpc_prod_native_v1.inventory_current
+    sql: >
+      SELECT
+        inv.*
+      FROM gpc_prod_native_v1.inventory_current inv
+      LEFT JOIN gpc_prod_native_v1.items i
+        ON inv.item = i.id
+      WHERE inv.location IN (103, 219, 232, 244)
+        AND COALESCE(i.itemtype, inv.itemtype) = 'InvtPart'
+        AND UPPER(COALESCE(i.itemid, inv.itemid, '')) NOT LIKE '%FRIDGE%'
+        AND UPPER(COALESCE(i.itemid, inv.itemid, '')) NOT LIKE '%GCGIFT%'
+        AND UPPER(COALESCE(i.itemid, inv.itemid, '')) NOT LIKE '%GRAPHIC_STUFFBAG%'
+        AND UPPER(COALESCE(i.custitem_gpc_sections, '')) NOT LIKE '%CONSUMABLE%'
+        AND COALESCE(i.subsidiary, '1') = '1'
     title: Inventory
-    description: "Current inventory positions from canonical inventory_current table. IMPORTANT LIMITATION: Inventory remains snapshot-only (not event history). Always disclose source_max_last_transaction_date and snapshot_loaded_at for inventory outputs."
+    description: "Current inventory positions from canonical inventory_current table. Scope auto-applies NetSuite SC | Current Inventory 3PLs filters: locations (Lifestyle Sports FC, Bleckmann UK, Wholesale UK, Meteor Space), itemtype InvtPart, item name exclusions (Fridge/GCGIFT/GRAPHIC_STUFFBAG), section exclusion (CONSUMABLE), subsidiary context. IMPORTANT LIMITATION: Inventory remains snapshot-only (not event history). Always disclose source_max_last_transaction_date and snapshot_loaded_at for inventory outputs."
 
     joins:
       - name: items
