@@ -1,7 +1,11 @@
 # redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: product_sales_detail
-    sql_table: gpc_prod_native_v1.transaction_lines_denormalized_mv
+    sql: >
+      SELECT *
+      FROM gpc_prod_native_v1.transaction_lines_denormalized_mv
+      WHERE product_name IS NOT NULL
+        AND TRIM(product_name) != ''
     title: Product Sales Detail
     description: Product-level sales metrics (PRD-001, PRD-002). Supports product-level ranking plus product + context breakdowns (country/location/channel) via dedicated pre-aggregations.
 
