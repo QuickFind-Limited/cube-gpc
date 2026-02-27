@@ -3,7 +3,12 @@ cubes:
   - name: product_sales_detail
     sql_table: gpc_prod_native_v1.transaction_lines_denormalized_mv
     title: Product Sales Detail
-    description: Product-level sales metrics (PRD-001, PRD-002). Limited to product_name + sku dimensions only to avoid cardinality explosion. For category/channel/geography analysis, use transaction_lines cube instead.
+    description: Product-level sales metrics (PRD-001, PRD-002). Supports product-level ranking plus product + context breakdowns (country/location/channel) via dedicated pre-aggregations.
+
+    joins:
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
 
     dimensions:
       - name: id
@@ -26,16 +31,35 @@ cubes:
         type: time
         description: "Transaction date"
 
-      # Minimal context dimensions (low cardinality)
+      - name: location
+        sql: location
+        type: number
+        description: "Location internal id"
+
+      - name: location_name
+        sql: location_name
+        type: string
+        description: "Location name for product x location breakdowns"
+
+      - name: channel_type
+        sql: "{locations.channel_type}"
+        type: string
+        description: "Channel type from locations cube (D2C/RETAIL/B2B/PARTNER/EVENTS/OTHER)"
+
+      - name: billing_country
+        sql: billing_country
+        type: string
+        description: "Billing country for product x geography breakdowns"
+
       - name: category
         sql: category
         type: string
-        description: "Product category (for filtering only, not for grouping with product_name)"
+        description: "Product category"
 
       - name: section
         sql: section
         type: string
-        description: "Product section (for filtering only, not for grouping with product_name)"
+        description: "Product section"
 
     measures:
       - name: total_revenue
@@ -79,6 +103,34 @@ cubes:
           - transaction_date
         time_dimension: transaction_date
         granularity: day
+        partition_granularity: month
+        type: rollup
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+
+      # Product + context rollup for PRD-001/PRD-002 with channel/country/location asks.
+      # Month granularity keeps cardinality manageable while still supporting period trends.
+      - name: product_context_monthly
+        measures:
+          - total_revenue
+          - units_sold
+          - units_returned
+          - line_count
+        dimensions:
+          - product_name
+          - sku
+          - category
+          - section
+          - billing_country
+          - location_name
+          - channel_type
+          - transaction_date
+        time_dimension: transaction_date
+        granularity: month
         partition_granularity: month
         type: rollup
         build_range_start:
