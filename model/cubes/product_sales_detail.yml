@@ -31,9 +31,18 @@ cubes:
         description: "Product SKU code (3,000+ unique SKUs)"
 
       - name: transaction_date
-        sql: "CAST(transaction_date AS TIMESTAMP)"
+        sql: >
+          CAST(
+            COALESCE(
+              SAFE_CAST(CAST(transaction_date AS STRING) AS DATE),
+              CAST(SAFE_CAST(CAST(transaction_date AS STRING) AS TIMESTAMP) AS DATE),
+              SAFE.PARSE_DATE('%Y-%m-%d', CAST(transaction_date AS STRING)),
+              SAFE.PARSE_DATE('%d/%m/%Y', CAST(transaction_date AS STRING)),
+              SAFE.PARSE_DATE('%m/%d/%Y', CAST(transaction_date AS STRING))
+            ) AS TIMESTAMP
+          )
         type: time
-        description: "Transaction date"
+        description: "Parsed transaction date with mixed-format tolerance"
 
       - name: location
         sql: location

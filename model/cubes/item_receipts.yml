@@ -37,10 +37,19 @@ cubes:
         description: Item receipt transaction number
 
       - name: trandate
-        sql: trandate
+        sql: >
+          CAST(
+            COALESCE(
+              SAFE_CAST(CAST({CUBE}.trandate AS STRING) AS DATE),
+              CAST(SAFE_CAST(CAST({CUBE}.trandate AS STRING) AS TIMESTAMP) AS DATE),
+              SAFE.PARSE_DATE('%Y-%m-%d', CAST({CUBE}.trandate AS STRING)),
+              SAFE.PARSE_DATE('%d/%m/%Y', CAST({CUBE}.trandate AS STRING)),
+              SAFE.PARSE_DATE('%m/%d/%Y', CAST({CUBE}.trandate AS STRING))
+            ) AS TIMESTAMP
+          )
         type: time
         title: Receipt Date
-        description: Date of receipt
+        description: Parsed receipt date with mixed-format tolerance
 
       - name: receipt_date
         sql: >
@@ -97,7 +106,7 @@ cubes:
         dimensions:
           - supplier
           - currency
-        time_dimension: receipt_date
+        time_dimension: trandate
         granularity: day
         partition_granularity: month
         build_range_start:
