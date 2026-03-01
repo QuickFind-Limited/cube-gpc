@@ -45,6 +45,33 @@ cubes:
         WHERE itemship.trandate IS NOT NULL
           AND t.createddate IS NOT NULL
         GROUP BY tl.transaction
+      ),
+      tl_base AS (
+        SELECT
+          tl.*,
+          COALESCE(
+            SAFE_CAST(CAST(tl.transaction_date AS STRING) AS DATE),
+            CAST(SAFE_CAST(CAST(tl.transaction_date AS STRING) AS TIMESTAMP) AS DATE),
+            SAFE.PARSE_DATE('%Y-%m-%d', CAST(tl.transaction_date AS STRING)),
+            SAFE.PARSE_DATE('%d/%m/%Y', CAST(tl.transaction_date AS STRING)),
+            SAFE.PARSE_DATE('%m/%d/%Y', CAST(tl.transaction_date AS STRING))
+          ) AS transaction_date_parsed,
+          CASE
+            WHEN tl.product_range IS NULL OR TRIM(CAST(tl.product_range AS STRING)) = '' THEN 'UNASSIGNED'
+            ELSE TRIM(CAST(tl.product_range AS STRING))
+          END AS product_range_canonical,
+          COALESCE(
+            NULLIF(TRIM(CAST(tl.product_name AS STRING)), ''),
+            NULLIF(TRIM(CAST(tl.sku AS STRING)), ''),
+            CONCAT('ITEM-', CAST(tl.item AS STRING))
+          ) AS lifecycle_key
+        FROM gpc_prod_native_v1.transaction_lines_denormalized_mv tl
+      ),
+      tl_with_lifecycle AS (
+        SELECT
+          tlb.*,
+          MIN(tlb.transaction_date_parsed) OVER (PARTITION BY tlb.lifecycle_key) AS product_first_sale_date
+        FROM tl_base tlb
       )
       SELECT
         tl.*,
@@ -58,8 +85,14 @@ cubes:
         ) as transaction_createddate,
         ship_days.days_to_ship,
         COALESCE(cogs.gl_cogs_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_gl_cogs_allocated,
-        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated
-      FROM gpc_prod_native_v1.transaction_lines_denormalized_mv tl
+        COALESCE(opex.opex_total, 0) / COUNT(*) OVER (PARTITION BY tl.transaction) as line_opex_allocated,
+        CASE
+          WHEN tl.transaction_type NOT IN ('CustInvc', 'CashSale') THEN 'UNKNOWN'
+          WHEN tl.transaction_date_parsed IS NULL OR tl.product_first_sale_date IS NULL THEN 'UNKNOWN'
+          WHEN DATE_DIFF(tl.transaction_date_parsed, tl.product_first_sale_date, DAY) <= 180 THEN 'NEW'
+          ELSE 'CARRYOVER'
+        END AS product_lifecycle_stage
+      FROM tl_with_lifecycle tl
       LEFT JOIN gpc_prod_native_v1.transactions t ON CAST(tl.transaction AS STRING) = t.id
       LEFT JOIN cogs_aggregated cogs ON CAST(tl.transaction AS INT64) = cogs.transaction
       LEFT JOIN opex_aggregated opex ON CAST(tl.transaction AS INT64) = opex.transaction
@@ -413,6 +446,12 @@ cubes:
         type: sum
         format: currency
         description: "✅ DENORMALIZED & ALLOCATED: Operating expenses from GL accounting lines (expense account type). Transaction-level OpEx is allocated across all lines in that transaction, so SUM gives correct total. Used for FIN-002 (EBIT) calculation. Note: Corporate-level only (31% location coding in source data)."
+
+      - name: operating_expenses_revenue_allocated
+        sql: "{CUBE}.line_opex_allocated"
+        type: sum
+        format: currency
+        description: "RET-004 canonical OpEx component. Revenue-share allocated operating expenses at line grain (same source as operating_expenses), exposed under explicit RET-004-compatible measure naming."
 
       # EBIT (Operating Income) Measure - Added 2026-02-02 for FIN-002
       # Formula: Revenue - COGS - OpEx
@@ -791,6 +830,11 @@ cubes:
         type: string
         description: Product range
 
+      - name: product_range_canonical
+        sql: "{CUBE}.product_range_canonical"
+        type: string
+        description: Canonical product range (normalized, with blank/NULL mapped to UNASSIGNED)
+
       - name: collection
         sql: "{CUBE}.collection"
         type: string
@@ -800,6 +844,11 @@ cubes:
         sql: "{CUBE}.color"
         type: string
         description: Product color
+
+      - name: product_lifecycle_stage
+        sql: "{CUBE}.product_lifecycle_stage"
+        type: string
+        description: Product lifecycle stage proxy at line grain (NEW/CARRYOVER/UNKNOWN) based on days since first observed sale for the lifecycle key.
 
       # Denormalized dimensions from departments/classifications
       - name: department_name
@@ -905,6 +954,7 @@ cubes:
           - total_revenue_aligned      # RET005: Total revenue denominator (Feb 2025+)
           - gl_based_cogs       # INV-001: DENORMALIZED GL-based COGS for GMROI calculation
           - operating_expenses  # FIN-002: Operating expenses for EBIT calculation (v68.11)
+          - operating_expenses_revenue_allocated  # RET-004: Canonical allocated OpEx component
           # NOTE: ebit measure is calculated client-side from: total_revenue - gl_based_cogs - operating_expenses
           # Calculated measures (type: number) cannot be pre-aggregated - use component measures instead
           - total_customers     # CUS-004: Component for churn rate calculation
@@ -1088,6 +1138,33 @@ cubes:
           every: 365 days
           incremental: true
           update_window: 28 day
+      # RET-004 support: store/channel revenue+COGS+allocated-OpEx at month grain
+      - name: store_operating_margin_partial
+        measures:
+          - total_revenue
+          - gl_based_cogs
+          - operating_expenses_revenue_allocated
+          - transaction_count
+        dimensions:
+          - location_name
+          - channel_type
+          - billing_country
+          - category
+          - section
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        indexes:
+          - name: store_margin_loc_idx
+            columns:
+              - location_name
+              - channel_type
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
       # Catch-all pre-agg for single-dimension queries (v68.3)
       # Enables querying channel_type, location_name, or section alone
       # Cube supports subset matching: queries with 1 dimension can match this 3-dimension pre-agg
@@ -1172,12 +1249,16 @@ cubes:
         measures:
           - total_revenue
           - units_sold
+          - sku_count
+          - gl_based_cogs
           - gross_margin           # DEPRECATED - kept for backward compatibility
           - min_transaction_date
           - max_transaction_date
           - total_discount
         dimensions:
           - product_range
+          - product_range_canonical
+          - product_lifecycle_stage
           - collection
           - category
           - section
