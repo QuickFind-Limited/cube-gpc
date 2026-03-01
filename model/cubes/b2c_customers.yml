@@ -240,3 +240,47 @@ cubes:
         granularity: day
         refresh_key:
           every: 365 days
+
+      # Customer trend support (monthly by first-order date)
+      - name: customer_acquisition_monthly
+        measures:
+          - customer_count
+          - total_lifetime_value
+          - total_orders
+          - repeat_customers
+        dimensions:
+          - billing_country
+          - customer_tier
+          - purchase_frequency_bucket
+          - recency_bucket
+        time_dimension: first_order_date
+        granularity: month
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+
+      # Customer trend support (monthly by last-order/activity date)
+      - name: customer_activity_monthly
+        measures:
+          - customer_count
+          - total_lifetime_value
+          - total_orders
+          - repeat_customers
+        dimensions:
+          - billing_country
+          - customer_tier
+          - purchase_frequency_bucket
+          - recency_bucket
+        time_dimension: last_order_date
+        granularity: month
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
