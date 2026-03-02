@@ -57,8 +57,8 @@ cubes:
       - name: cancelled_orders
         type: count
         filters:
-          - sql: "{CUBE}.status = 'C'"
-        description: Number of cancelled orders (NOTE - primarily Shopify placeholders pre-March 2025, see documentation)
+          - sql: "{CUBE}.type = 'SalesOrd' AND LOWER(COALESCE({CUBE}.status, '')) LIKE '%cancel%'"
+        description: "DEPRECATED metric path. Counts SalesOrd records with cancellation-like status text only; typically zero in current source data. Do not use for primary cancellation reporting."
 
       - name: customer_credits
         type: count

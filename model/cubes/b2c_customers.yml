@@ -37,7 +37,7 @@ cubes:
         AND TRIM(t.custbody_customer_email) != ''
       GROUP BY LOWER(TRIM(t.custbody_customer_email))
     title: B2C Customers
-    description: Virtual cube for B2C customer metrics aggregated from SalesOrd
+    description: Virtual cube for B2C customer metrics keyed by normalized customer email and based on fulfilled revenue activity (CustInvc + CashSale), with optional SalesOrd breakout measures.
 
     measures:
       - name: customer_count
