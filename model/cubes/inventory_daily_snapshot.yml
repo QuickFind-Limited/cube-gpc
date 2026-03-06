@@ -1,0 +1,184 @@
+cubes:
+  - name: inventory_daily_snapshot
+    sql: SELECT * FROM gpc_prod_native_v1.inventory_current_daily_snapshot
+    title: Inventory Daily Snapshot
+    description: >
+      Daily inventory snapshot fact table populated by nightly sync.
+      Supports historical point-in-time inventory analysis and period-over-period comparisons.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items.id}"
+
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations.id}"
+
+    measures:
+      - name: position_count
+        type: count
+        description: Number of inventory positions in snapshot rows
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        description: Number of unique SKUs in snapshot (approximate with HyperLogLog)
+
+      - name: total_stock
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
+        type: sum
+        description: Total stock including negative values
+
+      - name: available_stock
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.calculated_quantity_available > 0"
+        description: Positive available stock only
+
+      - name: total_quantity_on_hand
+        sql: "CAST({CUBE}.quantity_on_hand AS FLOAT64)"
+        type: sum
+        description: Total quantity on hand from snapshot
+
+      - name: average_stock_per_position
+        sql: "{total_stock} / NULLIF({position_count}, 0)"
+        type: number
+        description: Average stock per inventory position
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.snapshot_date AS STRING), '-',
+            CAST({CUBE}.item AS STRING), '-',
+            CAST({CUBE}.location AS STRING)
+          )
+        type: string
+        primary_key: true
+
+      - name: snapshot_date
+        sql: "CAST({CUBE}.snapshot_date AS TIMESTAMP)"
+        type: time
+        description: Snapshot business date
+
+      - name: snapshot_ts
+        sql: "CAST({CUBE}.snapshot_ts AS TIMESTAMP)"
+        type: time
+        description: Snapshot load timestamp
+
+      - name: stock_asof_date
+        sql: "CAST({CUBE}.stock_asof_date AS TIMESTAMP)"
+        type: time
+        description: Source stock-as-of date
+
+      - name: source_max_last_transaction_date
+        sql: "CAST({CUBE}.source_max_last_transaction_date AS TIMESTAMP)"
+        type: time
+        description: Max source transaction date represented in snapshot
+
+      - name: run_id
+        sql: "{CUBE}.run_id"
+        type: string
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: itemid
+        sql: "{CUBE}.itemid"
+        type: string
+        title: SKU
+
+      - name: displayname
+        sql: "{CUBE}.displayname"
+        type: string
+        title: Product Name
+
+      - name: itemtype
+        sql: "{CUBE}.itemtype"
+        type: string
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: quantity
+        sql: "{CUBE}.calculated_quantity_available"
+        type: number
+
+      - name: stock_status
+        sql: >
+          CASE
+            WHEN {CUBE}.calculated_quantity_available > 0 THEN 'In Stock'
+            WHEN {CUBE}.calculated_quantity_available = 0 THEN 'Zero Stock'
+            ELSE 'Backorder'
+          END
+        type: string
+
+    segments:
+      - name: positive_stock
+        sql: "{CUBE}.calculated_quantity_available > 0"
+
+      - name: zero_stock
+        sql: "{CUBE}.calculated_quantity_available = 0"
+
+      - name: backorder
+        sql: "{CUBE}.calculated_quantity_available < 0"
+
+    pre_aggregations:
+      - name: snapshot_daily_analysis
+        measures:
+          - total_stock
+          - available_stock
+          - total_quantity_on_hand
+          - position_count
+          - sku_count
+        dimensions:
+          - location
+          - stock_status
+          - items.category
+          - items.section
+          - items.season
+          - items.size
+          - items.range
+          - items.markdown
+          - locations.name
+          - locations.region
+          - locations.channel_type
+        time_dimension: snapshot_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+
+      - name: snapshot_item_daily
+        measures:
+          - total_stock
+          - available_stock
+          - total_quantity_on_hand
+          - position_count
+        dimensions:
+          - item
+          - itemid
+          - displayname
+          - location
+          - stock_status
+        time_dimension: snapshot_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
