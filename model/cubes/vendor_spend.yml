@@ -140,3 +140,22 @@ cubes:
           every: 365 days
           incremental: true
           update_window: 28 day
+
+      # Monthly rollup for trending
+      - name: vendor_spend_monthly
+        measures:
+          - total_spend
+          - bill_count
+          - vendor_count
+        dimensions:
+          - currency_name
+          - subsidiary
+        time_dimension: bill_date
+        granularity: month
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
