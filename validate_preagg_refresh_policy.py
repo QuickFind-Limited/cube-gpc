@@ -6,7 +6,7 @@ Policy enforced:
 - Every pre-aggregation must define refresh_key.every = 365 day(s).
 - Every partitioned pre-aggregation must define:
   - build_range_start as an object (not scalar),
-  - no build_range_end,
+  - no build_range_end, except explicit dynamic source-max exceptions,
   - refresh_key.incremental = true,
   - refresh_key.update_window = 28 day(s).
 """
@@ -24,6 +24,11 @@ from typing import Dict, List, Optional, Tuple
 PRE_START_RE = re.compile(r"^(\s*)pre_aggregations:\s*$")
 ITEM_RE = re.compile(r"^(\s*)-\s+name:\s*([A-Za-z0-9_]+)\s*$")
 KEY_RE = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$")
+ALLOWED_DYNAMIC_BUILD_RANGE_END_PREAGGS = {
+    # item_receipts.trandate is mixed-format source data. This dynamic MAX(...) end
+    # prevents Cube from truncating the newest partition while still avoiding a fixed cap.
+    "item_receipts.receipt_analysis",
+}
 
 
 @dataclass
@@ -197,7 +202,7 @@ def main() -> int:
                 f"found scalar {pa.attrs.get('build_range_start')!r}"
             )
 
-        if "build_range_end" in pa.attrs:
+        if "build_range_end" in pa.attrs and pa.full_name not in ALLOWED_DYNAMIC_BUILD_RANGE_END_PREAGGS:
             line = pa.attr_lines.get("build_range_end", pa.line)
             violations.append(
                 f"{pa.file_path}:{line} {pa.full_name}: build_range_end must not be set"
