@@ -1,0 +1,104 @@
+cubes:
+  - name: item_receipts_operational
+    sql_table: gpc_prod_native_v1.item_receipts_operational
+
+    title: Item Receipts Operational
+    description: >
+      Operational item receipt fact at line grain using header created
+      timestamps and a 05:00 GMT business-day boundary. Supports units received
+      by region, location, and receipt day without proxying to purchase-order
+      backlog.
+
+    measures:
+      - name: receipt_line_count
+        type: count
+
+      - name: receipt_count
+        sql: "{CUBE}.receipt_id"
+        type: count_distinct_approx
+
+      - name: units_received
+        sql: "CAST({CUBE}.units_received AS FLOAT64)"
+        type: sum
+
+      - name: receipt_value_at_cost
+        sql: "CAST({CUBE}.receipt_line_value AS FLOAT64)"
+        type: sum
+        format: currency
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.receipt_id AS STRING), '-',
+            COALESCE(CAST({CUBE}.item AS STRING), 'na'), '-',
+            COALESCE(CAST({CUBE}.location AS STRING), 'na')
+          )
+        type: string
+        primary_key: true
+
+      - name: receipt_id
+        sql: "{CUBE}.receipt_id"
+        type: number
+
+      - name: receipt_number
+        sql: "{CUBE}.receipt_number"
+        type: string
+
+      - name: created_at
+        sql: "CAST({CUBE}.created_at AS TIMESTAMP)"
+        type: time
+
+      - name: operational_day_5am_gmt
+        sql: "CAST({CUBE}.operational_day_5am_gmt AS TIMESTAMP)"
+        type: time
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+
+      - name: location_region
+        sql: "{CUBE}.location_region"
+        type: string
+
+      - name: location_type
+        sql: "{CUBE}.location_type"
+        type: string
+
+      - name: channel_type
+        sql: "{CUBE}.channel_type"
+        type: string
+
+    pre_aggregations:
+      - name: receipt_daily_by_location
+        measures:
+          - receipt_count
+          - receipt_line_count
+          - units_received
+          - receipt_value_at_cost
+        dimensions:
+          - location_name
+          - location_region
+          - location_type
+          - channel_type
+        time_dimension: operational_day_5am_gmt
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day

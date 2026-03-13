@@ -42,6 +42,52 @@ cubes:
         type: sum
         description: Total quantity on hand from snapshot
 
+      - name: on_hand_units
+        sql: "CAST({CUBE}.quantity_on_hand AS FLOAT64)"
+        type: sum
+        description: On-hand units from the daily snapshot
+
+      - name: inventory_value_at_cost
+        sql: >
+          CAST({CUBE}.quantity_on_hand *
+          COALESCE((SELECT MAX(rate) FROM gpc_prod_native_v1.item_receipt_lines irl
+                    WHERE irl.item = {CUBE}.item), 0) AS FLOAT64)
+        type: sum
+        format: currency
+        description: Inventory value at latest known receipt cost for the snapshot date
+
+      - name: stocked_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.quantity_on_hand > 0"
+        description: Distinct SKUs with on-hand stock greater than zero
+
+      - name: low_stock_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.quantity_on_hand > 0 AND {CUBE}.calculated_quantity_available < 5"
+        description: Distinct stocked SKUs with fewer than 5 units of free stock
+
+      - name: low_stock_units
+        sql: "CAST({CUBE}.calculated_quantity_available AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.quantity_on_hand > 0 AND {CUBE}.calculated_quantity_available < 5"
+        description: Total free-stock units across stocked SKUs with fewer than 5 units
+
+      - name: average_units_per_sku
+        sql: "{on_hand_units} / NULLIF({stocked_sku_count}, 0)"
+        type: number
+        description: Average on-hand units per stocked SKU
+
+      - name: pct_low_stock_skus
+        sql: "{low_stock_sku_count} / NULLIF({stocked_sku_count}, 0)"
+        type: number
+        format: percent
+        description: Percentage of stocked SKUs with fewer than 5 free-stock units
+
       - name: average_stock_per_position
         sql: "{total_stock} / NULLIF({position_count}, 0)"
         type: number
@@ -137,8 +183,13 @@ cubes:
           - total_stock
           - available_stock
           - total_quantity_on_hand
+          - on_hand_units
           - position_count
           - sku_count
+          - stocked_sku_count
+          - low_stock_sku_count
+          - low_stock_units
+          - inventory_value_at_cost
         dimensions:
           - location
           - stock_status
@@ -166,7 +217,9 @@ cubes:
           - total_stock
           - available_stock
           - total_quantity_on_hand
+          - on_hand_units
           - position_count
+          - inventory_value_at_cost
         dimensions:
           - item
           - itemid

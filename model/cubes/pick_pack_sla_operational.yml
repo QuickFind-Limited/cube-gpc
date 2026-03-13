@@ -1,0 +1,122 @@
+cubes:
+  - name: pick_pack_sla_operational
+    sql_table: gpc_prod_native_v1.pick_pack_sla_operational
+
+    title: Pick Pack SLA Operational
+    description: >
+      One row per Sales Order with the first observed ItemShip timestamp.
+      Supports +24hr not-picked-and-packed and within-SLA metrics on the same
+      05:00 GMT business-day boundary used by the ops dashboard.
+
+    measures:
+      - name: order_count
+        type: count
+
+      - name: picked_packed_order_count
+        type: count
+        filters:
+          - sql: "{CUBE}.was_picked_packed"
+
+      - name: over_sla_order_count
+        type: count
+        filters:
+          - sql: "{CUBE}.over_sla_24h"
+
+      - name: within_sla_order_count
+        type: count
+        filters:
+          - sql: "{CUBE}.within_sla_24h"
+
+      - name: within_sla_pct
+        sql: "{within_sla_order_count} / NULLIF({order_count}, 0)"
+        type: number
+        format: percent
+
+      - name: units_ordered
+        sql: "CAST({CUBE}.sellable_units_ordered AS FLOAT64)"
+        type: sum
+
+    dimensions:
+      - name: order_id
+        sql: "{CUBE}.order_id"
+        type: number
+        primary_key: true
+
+      - name: order_number
+        sql: "{CUBE}.order_number"
+        type: string
+
+      - name: order_created_at
+        sql: "CAST({CUBE}.order_created_at AS TIMESTAMP)"
+        type: time
+
+      - name: operational_day_5am_gmt
+        sql: "CAST({CUBE}.operational_day_5am_gmt AS TIMESTAMP)"
+        type: time
+
+      - name: market
+        sql: "{CUBE}.market"
+        type: string
+
+      - name: billing_country
+        sql: "{CUBE}.billing_country"
+        type: string
+
+      - name: shipping_country
+        sql: "{CUBE}.shipping_country"
+        type: string
+
+      - name: remote_order_source
+        sql: "{CUBE}.remote_order_source"
+        type: string
+
+      - name: is_split_order
+        sql: "CASE WHEN {CUBE}.is_split_order THEN 'true' ELSE 'false' END"
+        type: string
+
+      - name: first_ship_at
+        sql: "CAST({CUBE}.first_ship_at AS TIMESTAMP)"
+        type: time
+
+      - name: hours_to_first_pick_pack
+        sql: "{CUBE}.hours_to_first_pick_pack"
+        type: number
+
+      - name: was_picked_packed
+        sql: "CASE WHEN {CUBE}.was_picked_packed THEN 'true' ELSE 'false' END"
+        type: string
+
+      - name: within_sla_24h
+        sql: "CASE WHEN {CUBE}.within_sla_24h THEN 'true' ELSE 'false' END"
+        type: string
+
+      - name: over_sla_24h
+        sql: "CASE WHEN {CUBE}.over_sla_24h THEN 'true' ELSE 'false' END"
+        type: string
+
+    pre_aggregations:
+      - name: pick_pack_sla_daily
+        measures:
+          - order_count
+          - picked_packed_order_count
+          - over_sla_order_count
+          - within_sla_order_count
+          - units_ordered
+        dimensions:
+          - market
+          - billing_country
+          - shipping_country
+          - remote_order_source
+          - is_split_order
+          - was_picked_packed
+          - within_sla_24h
+          - over_sla_24h
+        time_dimension: operational_day_5am_gmt
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day

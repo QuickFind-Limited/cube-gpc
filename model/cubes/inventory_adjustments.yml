@@ -1,4 +1,3 @@
-# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: inventory_adjustments
     sql: >
@@ -89,6 +88,29 @@ cubes:
         type: sum
         description: "Units added through positive adjustments."
 
+      - name: net_adjustment_units
+        sql: "CAST({CUBE}.quantity AS FLOAT64)"
+        type: sum
+        description: Net stock adjustment units (positive additions minus negative write-downs)
+
+      - name: net_adjustment_value
+        sql: "CAST({CUBE}.amount AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Net stock adjustment value (positive additions minus negative write-downs)
+
+      - name: stock_written_off_value
+        sql: "CAST(CASE WHEN {CUBE}.quantity < 0 THEN ABS({CUBE}.amount) ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Alias for shrinkage/write-off value
+
+      - name: stock_written_on_value
+        sql: "CAST(CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.amount ELSE 0 END AS FLOAT64)"
+        type: sum
+        format: currency
+        description: Alias for positive stock write-on value
+
       - name: item_count
         sql: "{CUBE}.item"
         type: count_distinct_approx
@@ -172,6 +194,10 @@ cubes:
           - shrinkage_line_count
           - positive_adjustment_value
           - positive_adjustment_units
+          - net_adjustment_units
+          - net_adjustment_value
+          - stock_written_off_value
+          - stock_written_on_value
           - item_count
           - adjustment_transaction_count
         dimensions:
@@ -188,6 +214,7 @@ cubes:
           every: 365 days
           incremental: true
           update_window: 28 day
+
       # Monthly rollup for high-level trending
       - name: adjustment_monthly
         measures:
@@ -197,6 +224,10 @@ cubes:
           - shrinkage_units
           - positive_adjustment_value
           - positive_adjustment_units
+          - net_adjustment_units
+          - net_adjustment_value
+          - stock_written_off_value
+          - stock_written_on_value
         dimensions:
           - adjustment_type
           - subsidiary

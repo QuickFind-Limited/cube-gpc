@@ -1,4 +1,3 @@
-# redeploy_stamp: 2026-02-23T041500Z
 cubes:
   - name: item_receipt_lines
     sql: >
@@ -23,10 +22,21 @@ cubes:
         type: count
         description: Number of receipt line items
 
+      - name: positive_receipt_line_count
+        type: count
+        filters:
+          - sql: "{CUBE}.quantity > 0"
+        description: Number of positive-quantity receipt lines
+
       - name: total_received_qty
         sql: quantity
         type: sum
         description: Total quantity received
+
+      - name: positive_received_qty
+        sql: "CASE WHEN {CUBE}.quantity > 0 THEN {CUBE}.quantity ELSE 0 END"
+        type: sum
+        description: Positive receipt quantities only; excludes correction/reversal lines
 
       - name: total_receipt_line_value
         sql: amount
@@ -120,6 +130,18 @@ cubes:
         title: Quantity Received
         description: Quantity received on this line
 
+      - name: location
+        sql: location
+        type: number
+        title: Location ID
+        description: NetSuite location on the receipt line
+
+      - name: location_name
+        sql: "{locations.name}"
+        type: string
+        title: Location Name
+        description: Location name from locations join
+
       - name: unit_cost
         sql: rate
         type: number
@@ -148,6 +170,10 @@ cubes:
         relationship: many_to_one
         sql: "{CUBE}.item = {items}.id"
 
+      - name: locations
+        relationship: many_to_one
+        sql: "{CUBE}.location = {locations}.id"
+
       - name: purchase_order_lines
         relationship: many_to_one
         sql: "{CUBE}.createdfrom = {purchase_order_lines}.id"
@@ -159,17 +185,19 @@ cubes:
       - name: dc_intake_analysis
         measures:
           - total_received_qty
+          - positive_received_qty
           - dc_intake_units
           - total_receipt_line_value
           - dc_intake_value_at_cost
           - dc_intake_value_at_retail  # INTAKE002 - retail value
           - receipt_line_count
+          - positive_receipt_line_count
         time_dimension: receipt_date
         granularity: day
-        build_range_start:
-          sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day
 
       # Item-level receiving analysis for "most common items received" queries
       # Uses denormalized item names for product-level receiving reports
@@ -178,16 +206,41 @@ cubes:
       - name: item_receiving_analysis
         measures:
           - total_received_qty
+          - positive_received_qty
           - total_receipt_line_value
           - dc_intake_value_at_retail  # INTAKE002 - retail value
           - receipt_line_count
+          - positive_receipt_line_count
         dimensions:
           - item
           - item_displayname
           - item_sku
         time_dimension: receipt_date
         granularity: day
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+
+      - name: receipt_location_daily
+        measures:
+          - total_received_qty
+          - positive_received_qty
+          - total_receipt_line_value
+          - receipt_line_count
+          - positive_receipt_line_count
+        dimensions:
+          - location
+          - location_name
+          - locations.region
+          - locations.channel_type
+          - locations.location_type
+        time_dimension: receipt_date
+        granularity: day
+        partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
           every: 365 days
+          incremental: true
+          update_window: 28 day

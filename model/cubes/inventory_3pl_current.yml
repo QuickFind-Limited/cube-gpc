@@ -1,0 +1,105 @@
+cubes:
+  - name: inventory_3pl_current
+    sql_table: gpc_prod_native_v1.inventory_3pl_current
+
+    title: Inventory 3PL Current
+    description: >
+      Current-state 3PL inventory fact unpivoted from the inbound 3PL CSV
+      snapshot. This is the correct source for 3PL on-hand and free-stock
+      metrics; it is not a proxy over NetSuite inventory_current.
+
+    measures:
+      - name: position_count
+        type: count
+
+      - name: on_hand_units
+        sql: "CAST({CUBE}.on_hand_units AS FLOAT64)"
+        type: sum
+
+      - name: available_units
+        sql: "CAST({CUBE}.available_units AS FLOAT64)"
+        type: sum
+
+      - name: stock_value_at_cost
+        sql: "CAST({CUBE}.on_hand_units * COALESCE({CUBE}.item_cost, 0) AS FLOAT64)"
+        type: sum
+        format: currency
+
+      - name: stocked_sku_count
+        sql: "{CUBE}.sku"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.on_hand_units > 0"
+
+      - name: low_stock_sku_count
+        sql: "{CUBE}.sku"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.available_units > 0 AND {CUBE}.available_units < 5"
+
+      - name: low_stock_units
+        sql: "CAST({CUBE}.available_units AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.available_units > 0 AND {CUBE}.available_units < 5"
+
+      - name: average_units_per_sku
+        sql: "{on_hand_units} / NULLIF({stocked_sku_count}, 0)"
+        type: number
+
+      - name: pct_low_stock_skus
+        sql: "{low_stock_sku_count} / NULLIF({stocked_sku_count}, 0)"
+        type: number
+        format: percent
+
+      - name: pct_low_stock_units
+        sql: "{low_stock_units} / NULLIF({on_hand_units}, 0)"
+        type: number
+        format: percent
+
+    dimensions:
+      - name: id
+        sql: "CONCAT({CUBE}.region, '-', {CUBE}.location_name, '-', {CUBE}.sku)"
+        type: string
+        primary_key: true
+
+      - name: region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+
+      - name: sku
+        sql: "{CUBE}.sku"
+        type: string
+
+      - name: description
+        sql: "{CUBE}.description"
+        type: string
+
+      - name: item_type
+        sql: "{CUBE}.item_type"
+        type: string
+
+      - name: item_cost
+        sql: "{CUBE}.item_cost"
+        type: number
+
+    pre_aggregations:
+      - name: inventory_3pl_summary
+        measures:
+          - position_count
+          - on_hand_units
+          - available_units
+          - stock_value_at_cost
+          - stocked_sku_count
+          - low_stock_sku_count
+          - low_stock_units
+        dimensions:
+          - region
+          - location_name
+          - item_type
+        refresh_key:
+          every: 365 days

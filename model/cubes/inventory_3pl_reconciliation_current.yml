@@ -1,0 +1,95 @@
+cubes:
+  - name: inventory_3pl_reconciliation_current
+    sql_table: gpc_prod_native_v1.inventory_3pl_reconciliation_current
+
+    title: Inventory 3PL Reconciliation Current
+    description: >
+      Current comparison between 3PL stock and NetSuite inventory_current at
+      SKU-location grain. Supports accuracy and shortage metrics, but only for
+      the current snapshot because the 3PL feed is not yet historized.
+
+    measures:
+      - name: sku_count
+        sql: "{CUBE}.sku"
+        type: count_distinct_approx
+
+      - name: exact_match_sku_count
+        sql: "{CUBE}.sku"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.is_exact_match"
+
+      - name: shortage_sku_count
+        sql: "{CUBE}.sku"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.is_shortage"
+
+      - name: netsuite_available_units
+        sql: "CAST({CUBE}.netsuite_available_units AS FLOAT64)"
+        type: sum
+
+      - name: threepl_available_units
+        sql: "CAST({CUBE}.threepl_available_units AS FLOAT64)"
+        type: sum
+
+      - name: available_delta_units
+        sql: "CAST({CUBE}.available_delta_units AS FLOAT64)"
+        type: sum
+
+      - name: accuracy_ratio
+        sql: "{exact_match_sku_count} / NULLIF({sku_count}, 0)"
+        type: number
+        format: percent
+
+    dimensions:
+      - name: id
+        sql: "CONCAT({CUBE}.region, '-', {CUBE}.location_name, '-', {CUBE}.sku)"
+        type: string
+        primary_key: true
+
+      - name: region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+
+      - name: sku
+        sql: "{CUBE}.sku"
+        type: string
+
+      - name: description
+        sql: "{CUBE}.description"
+        type: string
+
+      - name: item_type
+        sql: "{CUBE}.item_type"
+        type: string
+
+      - name: is_exact_match
+        sql: "CASE WHEN {CUBE}.is_exact_match THEN 'true' ELSE 'false' END"
+        type: string
+
+      - name: is_shortage
+        sql: "CASE WHEN {CUBE}.is_shortage THEN 'true' ELSE 'false' END"
+        type: string
+
+    pre_aggregations:
+      - name: reconciliation_summary
+        measures:
+          - sku_count
+          - exact_match_sku_count
+          - shortage_sku_count
+          - netsuite_available_units
+          - threepl_available_units
+          - available_delta_units
+        dimensions:
+          - region
+          - location_name
+          - item_type
+          - is_exact_match
+          - is_shortage
+        refresh_key:
+          every: 365 days

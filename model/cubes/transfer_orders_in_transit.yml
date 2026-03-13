@@ -1,0 +1,169 @@
+cubes:
+  - name: transfer_orders_in_transit
+    sql_table: gpc_prod_native_v1.transfer_orders_in_transit_daily_snapshot
+
+    title: Transfer Orders In Transit
+    description: >
+      Daily snapshot of open NetSuite transfer-order lines (TrnfrOrd) with
+      destination/source location enrichment. This is the canonical no-proxy
+      source for units currently in transit between internal locations.
+
+    joins:
+      - name: items
+        relationship: many_to_one
+        sql: "{CUBE}.item = {items}.id"
+
+    measures:
+      - name: in_transit_units
+        sql: "CAST({CUBE}.open_in_transit_units AS FLOAT64)"
+        type: sum
+        description: Open units still in transit on the snapshot date
+
+      - name: ordered_units
+        sql: "CAST({CUBE}.ordered_units AS FLOAT64)"
+        type: sum
+        description: Original ordered units on the transfer-order line
+
+      - name: received_units
+        sql: "CAST({CUBE}.received_units AS FLOAT64)"
+        type: sum
+        description: Units already received against the transfer-order line
+
+      - name: transfer_order_count
+        sql: "{CUBE}.transfer_order_id"
+        type: count_distinct_approx
+        description: Distinct transfer orders with open in-transit units
+
+      - name: sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        description: Distinct SKUs with open in-transit units
+
+      - name: line_count
+        type: count
+        description: Snapshot line count for open transfer-order items
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.snapshot_date AS STRING), '-',
+            CAST({CUBE}.transfer_order_id AS STRING), '-',
+            CAST({CUBE}.item AS STRING), '-',
+            COALESCE(CAST({CUBE}.destination_location AS STRING), 'na')
+          )
+        type: string
+        primary_key: true
+
+      - name: snapshot_date
+        sql: "CAST({CUBE}.snapshot_date AS TIMESTAMP)"
+        type: time
+        description: Snapshot business date
+
+      - name: snapshot_ts
+        sql: "CAST({CUBE}.snapshot_ts AS TIMESTAMP)"
+        type: time
+        description: Snapshot load timestamp
+
+      - name: transfer_order_date
+        sql: "CAST({CUBE}.transfer_order_date AS TIMESTAMP)"
+        type: time
+        description: Original transfer-order transaction date
+
+      - name: created_ts
+        sql: "CAST({CUBE}.created_ts AS TIMESTAMP)"
+        type: time
+        description: NetSuite created timestamp for the transfer order
+
+      - name: lastmodified_ts
+        sql: "CAST({CUBE}.lastmodified_ts AS TIMESTAMP)"
+        type: time
+        description: NetSuite last-modified timestamp for the transfer order
+
+      - name: transfer_order_id
+        sql: "{CUBE}.transfer_order_id"
+        type: number
+
+      - name: transfer_order_number
+        sql: "{CUBE}.transfer_order_number"
+        type: string
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+
+      - name: source_location
+        sql: "{CUBE}.source_location"
+        type: number
+
+      - name: source_location_name
+        sql: "{CUBE}.source_location_name"
+        type: string
+
+      - name: source_region
+        sql: "{CUBE}.source_region"
+        type: string
+
+      - name: source_location_type
+        sql: "{CUBE}.source_location_type"
+        type: string
+
+      - name: source_channel_type
+        sql: "{CUBE}.source_channel_type"
+        type: string
+
+      - name: destination_location
+        sql: "{CUBE}.destination_location"
+        type: number
+
+      - name: destination_location_name
+        sql: "{CUBE}.destination_location_name"
+        type: string
+
+      - name: destination_region
+        sql: "{CUBE}.destination_region"
+        type: string
+
+      - name: destination_location_type
+        sql: "{CUBE}.destination_location_type"
+        type: string
+
+      - name: destination_channel_type
+        sql: "{CUBE}.destination_channel_type"
+        type: string
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+
+    pre_aggregations:
+      - name: transfer_daily_by_destination
+        measures:
+          - in_transit_units
+          - ordered_units
+          - received_units
+          - transfer_order_count
+          - sku_count
+          - line_count
+        dimensions:
+          - status
+          - source_region
+          - source_location_name
+          - source_location_type
+          - destination_region
+          - destination_location_name
+          - destination_location_type
+          - destination_channel_type
+        time_dimension: snapshot_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day

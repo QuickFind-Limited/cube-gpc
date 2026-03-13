@@ -1,0 +1,145 @@
+cubes:
+  - name: item_shipments_operational
+    sql_table: gpc_prod_native_v1.item_shipments_operational
+
+    title: Item Shipments Operational
+    description: >
+      Operational fulfillment fact at line grain using header created timestamps
+      and a 05:00 GMT business-day boundary. Supports picked-and-packed units,
+      order counts, and downstream SLA analysis.
+
+    measures:
+      - name: shipment_line_count
+        type: count
+
+      - name: fulfillment_count
+        sql: "{CUBE}.fulfillment_id"
+        type: count_distinct_approx
+
+      - name: orders_picked_packed
+        sql: "{CUBE}.sales_order_id"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.sales_order_id IS NOT NULL"
+
+      - name: units_picked_packed
+        sql: "CAST({CUBE}.units_shipped AS FLOAT64)"
+        type: sum
+
+      - name: over_sla_order_count
+        sql: "{CUBE}.sales_order_id"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.hours_from_order_to_pick_pack > 24"
+
+      - name: within_sla_order_count
+        sql: "{CUBE}.sales_order_id"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.hours_from_order_to_pick_pack <= 24"
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.fulfillment_id AS STRING), '-',
+            COALESCE(CAST({CUBE}.item AS STRING), 'na'), '-',
+            COALESCE(CAST({CUBE}.location AS STRING), 'na'), '-',
+            COALESCE(CAST({CUBE}.sales_order_id AS STRING), 'na')
+          )
+        type: string
+        primary_key: true
+
+      - name: fulfillment_id
+        sql: "{CUBE}.fulfillment_id"
+        type: number
+
+      - name: fulfillment_number
+        sql: "{CUBE}.fulfillment_number"
+        type: string
+
+      - name: created_at
+        sql: "CAST({CUBE}.created_at AS TIMESTAMP)"
+        type: time
+
+      - name: operational_day_5am_gmt
+        sql: "CAST({CUBE}.operational_day_5am_gmt AS TIMESTAMP)"
+        type: time
+
+      - name: status
+        sql: "{CUBE}.status"
+        type: string
+
+      - name: item
+        sql: "{CUBE}.item"
+        type: number
+
+      - name: location
+        sql: "{CUBE}.location"
+        type: number
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+
+      - name: location_region
+        sql: "{CUBE}.location_region"
+        type: string
+
+      - name: location_type
+        sql: "{CUBE}.location_type"
+        type: string
+
+      - name: channel_type
+        sql: "{CUBE}.channel_type"
+        type: string
+
+      - name: sales_order_id
+        sql: "{CUBE}.sales_order_id"
+        type: number
+
+      - name: order_created_at
+        sql: "CAST({CUBE}.order_created_at AS TIMESTAMP)"
+        type: time
+
+      - name: billing_country
+        sql: "{CUBE}.billing_country"
+        type: string
+
+      - name: shipping_country
+        sql: "{CUBE}.shipping_country"
+        type: string
+
+      - name: remote_order_source
+        sql: "{CUBE}.remote_order_source"
+        type: string
+
+      - name: hours_from_order_to_pick_pack
+        sql: "{CUBE}.hours_from_order_to_pick_pack"
+        type: number
+
+    pre_aggregations:
+      - name: picked_packed_daily
+        measures:
+          - fulfillment_count
+          - orders_picked_packed
+          - units_picked_packed
+          - over_sla_order_count
+          - within_sla_order_count
+        dimensions:
+          - location_name
+          - location_region
+          - location_type
+          - channel_type
+          - billing_country
+          - shipping_country
+          - remote_order_source
+        time_dimension: operational_day_5am_gmt
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day

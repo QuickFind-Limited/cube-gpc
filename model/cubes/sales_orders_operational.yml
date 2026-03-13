@@ -1,0 +1,91 @@
+cubes:
+  - name: sales_orders_operational
+    sql_table: gpc_prod_native_v1.sales_orders_operational
+
+    title: Sales Orders Operational
+    description: >
+      Operational Sales Order fact at one row per order using a 05:00 GMT
+      business-day boundary. Supports orders received, units ordered, and split
+      order metrics without proxying to invoice or fulfillment facts.
+
+    measures:
+      - name: order_count
+        type: count
+
+      - name: sellable_units_ordered
+        sql: "CAST({CUBE}.sellable_units_ordered AS FLOAT64)"
+        type: sum
+
+      - name: split_order_count
+        type: count
+        filters:
+          - sql: "{CUBE}.is_split_order"
+
+      - name: split_order_pct
+        sql: "{split_order_count} / NULLIF({order_count}, 0)"
+        type: number
+        format: percent
+
+    dimensions:
+      - name: order_id
+        sql: "{CUBE}.order_id"
+        type: number
+        primary_key: true
+
+      - name: order_number
+        sql: "{CUBE}.order_number"
+        type: string
+
+      - name: created_at
+        sql: "CAST({CUBE}.created_at AS TIMESTAMP)"
+        type: time
+
+      - name: operational_day_5am_gmt
+        sql: "CAST({CUBE}.operational_day_5am_gmt AS TIMESTAMP)"
+        type: time
+
+      - name: billing_country
+        sql: "{CUBE}.billing_country"
+        type: string
+
+      - name: shipping_country
+        sql: "{CUBE}.shipping_country"
+        type: string
+
+      - name: remote_order_source
+        sql: "{CUBE}.remote_order_source"
+        type: string
+
+      - name: market
+        sql: "{CUBE}.market"
+        type: string
+
+      - name: fulfillment_location_count
+        sql: "{CUBE}.fulfillment_location_count"
+        type: number
+
+      - name: is_split_order
+        sql: "CASE WHEN {CUBE}.is_split_order THEN 'true' ELSE 'false' END"
+        type: string
+
+    pre_aggregations:
+      - name: orders_received_daily
+        measures:
+          - order_count
+          - sellable_units_ordered
+          - split_order_count
+        dimensions:
+          - market
+          - billing_country
+          - shipping_country
+          - remote_order_source
+          - is_split_order
+        time_dimension: operational_day_5am_gmt
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
