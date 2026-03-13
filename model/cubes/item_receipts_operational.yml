@@ -21,6 +21,24 @@ cubes:
         sql: "CAST({CUBE}.units_received AS FLOAT64)"
         type: sum
 
+      - name: inbound_receipt_count
+        sql: "{CUBE}.receipt_id"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
+
+      - name: inbound_units_received
+        sql: "CAST({CUBE}.units_received AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
+
+      - name: return_units_received
+        sql: "CAST({CUBE}.units_received AS FLOAT64)"
+        type: sum
+        filters:
+          - sql: "{CUBE}.source_type = 'RtnAuth'"
+
       - name: receipt_value_at_cost
         sql: "CAST({CUBE}.receipt_line_value AS FLOAT64)"
         type: sum
@@ -57,6 +75,14 @@ cubes:
         sql: "{CUBE}.status"
         type: string
 
+      - name: source_transaction_id
+        sql: "{CUBE}.source_transaction_id"
+        type: number
+
+      - name: source_type
+        sql: "{CUBE}.source_type"
+        type: string
+
       - name: item
         sql: "{CUBE}.item"
         type: number
@@ -87,12 +113,16 @@ cubes:
           - receipt_count
           - receipt_line_count
           - units_received
+          - inbound_receipt_count
+          - inbound_units_received
+          - return_units_received
           - receipt_value_at_cost
         dimensions:
           - location_name
           - location_region
           - location_type
           - channel_type
+          - source_type
         time_dimension: operational_day_5am_gmt
         granularity: day
         partition_granularity: month
