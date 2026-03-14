@@ -4,6 +4,9 @@ Validate Cube pre-aggregation refresh policy.
 
 Policy enforced:
 - Every pre-aggregation must define refresh_key.every = 365 day(s).
+- Non-partitioned pre-aggregations must not define:
+  - refresh_key.incremental
+  - refresh_key.update_window
 - Every partitioned pre-aggregation must define:
   - build_range_start as an object (not scalar),
   - no build_range_end, except explicit dynamic source-max exceptions,
@@ -189,6 +192,18 @@ def main() -> int:
             )
 
         if not pa.partitioned:
+            if "incremental" in pa.refresh:
+                line = pa.refresh_lines.get("incremental", pa.line)
+                violations.append(
+                    f"{pa.file_path}:{line} {pa.full_name}: non-partitioned pre-aggregations must not set "
+                    "refresh_key.incremental"
+                )
+            if "update_window" in pa.refresh:
+                line = pa.refresh_lines.get("update_window", pa.line)
+                violations.append(
+                    f"{pa.file_path}:{line} {pa.full_name}: non-partitioned pre-aggregations must not set "
+                    "refresh_key.update_window"
+                )
             continue
 
         if "build_range_start" not in pa.attrs:

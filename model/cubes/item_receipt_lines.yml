@@ -196,8 +196,6 @@ cubes:
         granularity: day
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       # Item-level receiving analysis for "most common items received" queries
       # Uses denormalized item names for product-level receiving reports
@@ -219,8 +217,6 @@ cubes:
         granularity: day
         refresh_key:
           every: 365 days
-          incremental: true
-          update_window: 28 day
 
       - name: receipt_location_daily
         measures:
