@@ -136,6 +136,24 @@ cubes:
         partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
+        build_range_end:
+          sql: >
+            SELECT CAST(
+              MAX(
+                CAST(
+                  COALESCE(
+                    SAFE_CAST(CAST(trandate AS STRING) AS DATE),
+                    CAST(SAFE_CAST(CAST(trandate AS STRING) AS TIMESTAMP) AS DATE),
+                    SAFE.PARSE_DATE('%Y-%m-%d', CAST(trandate AS STRING)),
+                    SAFE.PARSE_DATE('%d/%m/%Y', CAST(trandate AS STRING)),
+                    SAFE.PARSE_DATE('%m/%d/%Y', CAST(trandate AS STRING))
+                  ) AS TIMESTAMP
+                )
+              ) AS STRING
+            )
+            FROM gpc_prod_native_v1.vendor_bills
+            WHERE COALESCE(voided, 'F') = 'F'
+              AND COALESCE(posting, 'T') = 'T'
         refresh_key:
           every: 365 days
           incremental: true
@@ -155,6 +173,24 @@ cubes:
         partition_granularity: month
         build_range_start:
           sql: SELECT '2022-01-01'
+        build_range_end:
+          sql: >
+            SELECT CAST(
+              MAX(
+                CAST(
+                  COALESCE(
+                    SAFE_CAST(CAST(trandate AS STRING) AS DATE),
+                    CAST(SAFE_CAST(CAST(trandate AS STRING) AS TIMESTAMP) AS DATE),
+                    SAFE.PARSE_DATE('%Y-%m-%d', CAST(trandate AS STRING)),
+                    SAFE.PARSE_DATE('%d/%m/%Y', CAST(trandate AS STRING)),
+                    SAFE.PARSE_DATE('%m/%d/%Y', CAST(trandate AS STRING))
+                  ) AS TIMESTAMP
+                )
+              ) AS STRING
+            )
+            FROM gpc_prod_native_v1.vendor_bills
+            WHERE COALESCE(voided, 'F') = 'F'
+              AND COALESCE(posting, 'T') = 'T'
         refresh_key:
           every: 365 days
           incremental: true

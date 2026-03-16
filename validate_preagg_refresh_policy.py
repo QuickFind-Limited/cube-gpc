@@ -31,6 +31,13 @@ ALLOWED_DYNAMIC_BUILD_RANGE_END_PREAGGS = {
     # item_receipts.trandate is mixed-format source data. This dynamic MAX(...) end
     # prevents Cube from truncating the newest partition while still avoiding a fixed cap.
     "item_receipts.receipt_analysis",
+    # purchase_orders and vendor_spend showed the same truncation pattern in production:
+    # source rows were present in March 2026 while Cube materialization stopped in older
+    # month partitions. These dynamic source-max ends keep partition coverage aligned.
+    "purchase_orders.po_totals",
+    "purchase_orders.po_summary",
+    "vendor_spend.vendor_spend_summary",
+    "vendor_spend.vendor_spend_monthly",
 }
 
 
