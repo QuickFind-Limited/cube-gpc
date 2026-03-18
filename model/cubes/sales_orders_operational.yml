@@ -12,9 +12,53 @@ cubes:
       - name: order_count
         type: count
 
+      - name: orders_received_all_markets_business
+        type: count
+        description: >
+          Business all-markets order count that excludes the known AUS-billed,
+          GB-shipping Shopify UK Live edge case (`SO604539` in the March 7
+          audit). This keeps the market-level raw metric intact while exposing
+          the business-facing all-markets rule explicitly.
+        filters:
+          - sql: >
+              NOT (
+                {CUBE}.billing_country = 'AU'
+                AND {CUBE}.shipping_country = 'GB'
+                AND {CUBE}.remote_order_source = 'Shopify UK Live'
+              )
+
       - name: sellable_units_ordered
         sql: "CAST({CUBE}.sellable_units_ordered AS FLOAT64)"
         type: sum
+
+      - name: units_ordered_all_markets_business
+        sql: "CAST({CUBE}.sellable_units_ordered AS FLOAT64)"
+        type: sum
+        description: >
+          Business all-markets unit total. This intentionally uses a narrower
+          inclusion rule than order counts by excluding the March 7 edge-case
+          buckets confirmed in the audit: the AUS-billed GB-shipping Shopify UK
+          Live order, John Lewis marketplace orders, null-source GB-billing
+          IE-shipping orders, and Shopify UK Live orders billed to IM/JE.
+        filters:
+          - sql: >
+              NOT (
+                {CUBE}.billing_country = 'AU'
+                AND {CUBE}.shipping_country = 'GB'
+                AND {CUBE}.remote_order_source = 'Shopify UK Live'
+              )
+          - sql: "{CUBE}.remote_order_source != 'John Lewis' OR {CUBE}.remote_order_source IS NULL"
+          - sql: >
+              NOT (
+                {CUBE}.remote_order_source IS NULL
+                AND {CUBE}.billing_country = 'GB'
+                AND {CUBE}.shipping_country = 'IE'
+              )
+          - sql: >
+              NOT (
+                {CUBE}.remote_order_source = 'Shopify UK Live'
+                AND {CUBE}.billing_country IN ('IM', 'JE')
+              )
 
       - name: split_order_count
         type: count
@@ -60,6 +104,37 @@ cubes:
         sql: "{CUBE}.market"
         type: string
 
+      - name: excluded_from_all_markets_orders_business
+        sql: >
+          CASE
+            WHEN {CUBE}.billing_country = 'AU'
+              AND {CUBE}.shipping_country = 'GB'
+              AND {CUBE}.remote_order_source = 'Shopify UK Live'
+            THEN 'true'
+            ELSE 'false'
+          END
+        type: string
+
+      - name: excluded_from_all_markets_units_business
+        sql: >
+          CASE
+            WHEN {CUBE}.billing_country = 'AU'
+              AND {CUBE}.shipping_country = 'GB'
+              AND {CUBE}.remote_order_source = 'Shopify UK Live'
+            THEN 'true'
+            WHEN {CUBE}.remote_order_source = 'John Lewis'
+            THEN 'true'
+            WHEN {CUBE}.remote_order_source IS NULL
+              AND {CUBE}.billing_country = 'GB'
+              AND {CUBE}.shipping_country = 'IE'
+            THEN 'true'
+            WHEN {CUBE}.remote_order_source = 'Shopify UK Live'
+              AND {CUBE}.billing_country IN ('IM', 'JE')
+            THEN 'true'
+            ELSE 'false'
+          END
+        type: string
+
       - name: fulfillment_location_count
         sql: "{CUBE}.fulfillment_location_count"
         type: number
@@ -72,13 +147,17 @@ cubes:
       - name: orders_received_daily
         measures:
           - order_count
+          - orders_received_all_markets_business
           - sellable_units_ordered
+          - units_ordered_all_markets_business
           - split_order_count
         dimensions:
           - market
           - billing_country
           - shipping_country
           - remote_order_source
+          - excluded_from_all_markets_orders_business
+          - excluded_from_all_markets_units_business
           - is_split_order
         time_dimension: operational_day_5am_gmt
         granularity: day

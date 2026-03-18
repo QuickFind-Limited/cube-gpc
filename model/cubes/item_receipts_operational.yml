@@ -27,9 +27,27 @@ cubes:
         filters:
           - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
 
+      - name: inbound_receipt_count_snapshot
+        sql: "{CUBE}.receipt_id"
+        type: count_distinct
+        description: >
+          Inbound receipt count intended for the snapshot-style morning KPI.
+          Query this on `posted_day_gmt`, not `operational_day_5am_gmt`.
+        filters:
+          - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
+
       - name: inbound_units_received
         sql: "CAST({CUBE}.units_received AS FLOAT64)"
         type: sum
+        filters:
+          - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
+
+      - name: inbound_units_received_snapshot
+        sql: "CAST({CUBE}.units_received AS FLOAT64)"
+        type: sum
+        description: >
+          Inbound units received intended for the snapshot-style morning KPI.
+          Query this on `posted_day_gmt`, not `operational_day_5am_gmt`.
         filters:
           - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
 
@@ -64,6 +82,10 @@ cubes:
         type: string
 
       - name: created_at
+        sql: "CAST({CUBE}.created_at AS TIMESTAMP)"
+        type: time
+
+      - name: posted_day_gmt
         sql: "CAST({CUBE}.created_at AS TIMESTAMP)"
         type: time
 
@@ -124,6 +146,26 @@ cubes:
           - channel_type
           - source_type
         time_dimension: operational_day_5am_gmt
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+
+      - name: receipt_snapshot_daily_by_location
+        measures:
+          - inbound_receipt_count_snapshot
+          - inbound_units_received_snapshot
+        dimensions:
+          - location_name
+          - location_region
+          - location_type
+          - channel_type
+          - source_type
+        time_dimension: posted_day_gmt
         granularity: day
         partition_granularity: month
         build_range_start:

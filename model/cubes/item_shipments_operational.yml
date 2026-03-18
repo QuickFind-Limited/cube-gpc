@@ -22,9 +22,25 @@ cubes:
         filters:
           - sql: "{CUBE}.sales_order_id IS NOT NULL"
 
+      - name: orders_picked_packed_business
+        sql: "{CUBE}.sales_order_id"
+        type: count_distinct
+        description: >
+          Exact shipment-day picked-and-packed order count. Use this for the
+          business-facing picked/packed KPI instead of the SLA cube.
+        filters:
+          - sql: "{CUBE}.sales_order_id IS NOT NULL"
+
       - name: units_picked_packed
         sql: "CAST({CUBE}.units_shipped AS FLOAT64)"
         type: sum
+
+      - name: units_picked_packed_business
+        sql: "CAST({CUBE}.units_shipped AS FLOAT64)"
+        type: sum
+        description: >
+          Shipment-day picked-and-packed units. This remains separate from
+          order-cohort SLA measures in `pick_pack_sla_operational`.
 
       - name: over_sla_order_count
         sql: "{CUBE}.sales_order_id"
@@ -123,7 +139,9 @@ cubes:
         measures:
           - fulfillment_count
           - orders_picked_packed
+          - orders_picked_packed_business
           - units_picked_packed
+          - units_picked_packed_business
           - over_sla_order_count
           - within_sla_order_count
         dimensions:
