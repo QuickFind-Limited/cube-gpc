@@ -24,10 +24,11 @@ cubes:
 
       - name: orders_picked_packed_business
         sql: "{CUBE}.sales_order_id"
-        type: count_distinct
+        type: count_distinct_approx
         description: >
-          Exact shipment-day picked-and-packed order count. Use this for the
-          business-facing picked/packed KPI instead of the SLA cube.
+          Shipment-day picked-and-packed order count for the business-facing KPI.
+          Uses approximate distinct counting so it remains compatible with
+          rollup-only serving in production Cube.
         filters:
           - sql: "{CUBE}.sales_order_id IS NOT NULL"
 

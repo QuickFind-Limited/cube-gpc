@@ -29,10 +29,12 @@ cubes:
 
       - name: inbound_receipt_count_snapshot
         sql: "{CUBE}.receipt_id"
-        type: count_distinct
+        type: count_distinct_approx
         description: >
           Inbound receipt count intended for the snapshot-style morning KPI.
-          Query this on `posted_day_gmt`, not `operational_day_5am_gmt`.
+          Query this on `posted_day_gmt`, not `operational_day_5am_gmt`. Uses
+          approximate distinct counting so the measure remains pre-aggregation
+          compatible in rollup-only production Cube.
         filters:
           - sql: "{CUBE}.source_type IN ('PurchOrd', 'TrnfrOrd')"
 
