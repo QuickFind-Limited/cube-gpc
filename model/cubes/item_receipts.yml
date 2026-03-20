@@ -128,6 +128,6 @@ cubes:
             )
             FROM gpc_prod_native_v1.item_receipts
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day

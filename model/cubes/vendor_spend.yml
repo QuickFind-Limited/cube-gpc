@@ -155,7 +155,7 @@ cubes:
             WHERE COALESCE(voided, 'F') = 'F'
               AND COALESCE(posting, 'T') = 'T'
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
 

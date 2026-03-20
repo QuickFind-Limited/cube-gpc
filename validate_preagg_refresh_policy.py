@@ -3,7 +3,8 @@
 Validate Cube pre-aggregation refresh policy.
 
 Policy enforced:
-- Every pre-aggregation must define refresh_key.every = 365 day(s).
+- Every pre-aggregation must define refresh_key.every = the configured default,
+  except for explicitly allowed freshness-critical overrides.
 - Non-partitioned pre-aggregations must not define:
   - refresh_key.incremental
   - refresh_key.update_window
@@ -39,6 +40,22 @@ ALLOWED_DYNAMIC_BUILD_RANGE_END_PREAGGS = {
     "vendor_spend.vendor_spend_summary",
     "vendor_spend.vendor_spend_monthly",
 }
+REFRESH_EVERY_OVERRIDES = {
+    # These pre-aggregations back the nightly freshness validator and must
+    # invalidate frequently enough to reflect the latest warehouse sync.
+    "transaction_lines.sales_summary_fast": "1 hour",
+    "transaction_lines.sales_product_detail": "1 hour",
+    "transaction_lines.product_category_analysis": "1 hour",
+    "transaction_lines.customer_geography": "1 hour",
+    "transaction_lines.size_geography": "1 hour",
+    "transaction_lines.discount_analysis": "1 hour",
+    "purchase_orders.po_totals": "1 hour",
+    "purchase_orders.po_summary": "1 hour",
+    "item_receipts.receipt_analysis": "1 hour",
+    "vendor_spend.vendor_spend_summary": "1 hour",
+    "product_sales_detail.product_daily_sales": "1 hour",
+    "product_sales_detail.product_context_monthly": "1 hour",
+}
 
 
 @dataclass
@@ -67,6 +84,18 @@ def parse_interval_days(raw: str) -> Optional[int]:
     if not m:
         return None
     return int(m.group(1))
+
+
+def parse_interval_minutes(raw: str) -> Optional[int]:
+    value = raw.strip().lower()
+    m = re.match(r"^(\d+)\s*(hour|hours|day|days)$", value)
+    if not m:
+        return None
+    quantity = int(m.group(1))
+    unit = m.group(2)
+    if unit.startswith("hour"):
+        return quantity * 60
+    return quantity * 24 * 60
 
 
 def discover_preaggs(model_dir: Path) -> List[PreAggConfig]:
@@ -178,11 +207,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    required_every_days = parse_interval_days(str(args.required_refresh_every))
-    if required_every_days is None:
+    required_every_minutes = parse_interval_minutes(str(args.required_refresh_every))
+    if required_every_minutes is None:
         raise SystemExit(
             f"Invalid --required-refresh-every: {args.required_refresh_every!r}. "
-            "Use format like '365 day' or '365 days'."
+            "Use format like '1 hour', '1 hours', '365 day' or '365 days'."
         )
 
     preaggs = discover_preaggs(Path(args.model_dir).resolve())
@@ -190,12 +219,19 @@ def main() -> int:
 
     for pa in preaggs:
         every_raw = pa.refresh.get("every", "")
-        every_days = parse_interval_days(every_raw)
-        if every_days != required_every_days:
+        every_minutes = parse_interval_minutes(every_raw)
+        expected_every_raw = REFRESH_EVERY_OVERRIDES.get(pa.full_name, str(args.required_refresh_every))
+        expected_every_minutes = parse_interval_minutes(expected_every_raw)
+        if expected_every_minutes is None:
+            raise SystemExit(
+                f"Internal policy error: invalid expected refresh interval {expected_every_raw!r} "
+                f"for {pa.full_name}"
+            )
+        if every_minutes != expected_every_minutes:
             line = pa.refresh_lines.get("every", pa.line)
             violations.append(
                 f"{pa.file_path}:{line} {pa.full_name}: refresh_key.every={every_raw!r} "
-                f"(expected {required_every_days} day(s))"
+                f"(expected {expected_every_raw!r})"
             )
 
         if not pa.partitioned:

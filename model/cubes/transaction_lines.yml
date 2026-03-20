@@ -983,7 +983,7 @@ cubes:
               - channel_type
               - category
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Geography-focused sales analysis (6 dimensions)
@@ -1045,7 +1045,7 @@ cubes:
               - category
               - season
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # REMOVED: product_analysis (8 dimensions with SKU+product_name - ultra-high cardinality)
@@ -1078,7 +1078,7 @@ cubes:
               - category
               - season
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Top products detail (4 dimensions - FILTERED to top 200 SKUs only)
@@ -1214,7 +1214,7 @@ cubes:
               - channel_type
               - category
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Customer geography analysis
@@ -1241,7 +1241,7 @@ cubes:
             columns:
               - customer_email
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Product range/collection analysis for LIFE004 and other product metrics
@@ -1294,7 +1294,7 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Transaction type breakdown

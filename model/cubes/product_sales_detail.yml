@@ -121,7 +121,7 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
 
@@ -149,7 +149,7 @@ cubes:
         build_range_start:
           sql: SELECT '2022-01-01'
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
     segments:

@@ -164,7 +164,7 @@ cubes:
             )
             FROM gpc_prod_native_v1.purchase_orders
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
       # Breakdown rollup for supplier/location analysis (PO001/PO002/OOI* use cases)
@@ -206,6 +206,6 @@ cubes:
             )
             FROM gpc_prod_native_v1.purchase_orders
         refresh_key:
-          every: 365 days
+          every: 1 hour
           incremental: true
           update_window: 28 day
