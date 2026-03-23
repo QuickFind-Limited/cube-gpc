@@ -55,6 +55,8 @@ REFRESH_EVERY_OVERRIDES = {
     "vendor_spend.vendor_spend_summary": "1 hour",
     "product_sales_detail.product_daily_sales": "1 hour",
     "product_sales_detail.product_context_monthly": "1 hour",
+    "product_sales_detail.product_daily_sales_sales_only": "1 hour",
+    "product_sales_detail.product_context_monthly_sales_only": "1 hour",
 }
 
 

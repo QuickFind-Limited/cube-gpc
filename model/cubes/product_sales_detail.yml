@@ -125,6 +125,31 @@ cubes:
           incremental: true
           update_window: 28 day
 
+      # Sales-only rollup for PRD-001/PRD-002 ranking queries under rollup_only=true.
+      # This avoids aggregate-measure HAVING filters (for example total_revenue > 0),
+      # which self-hosted Cube rejects on the additive rollup path.
+      - name: product_daily_sales_sales_only
+        measures:
+          - total_revenue
+          - units_sold
+          - line_count
+        dimensions:
+          - product_name
+          - sku
+          - transaction_date
+        segments:
+          - sales_lines
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        type: rollup
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 1 hour
+          incremental: true
+          update_window: 28 day
+
       # Product + context rollup for PRD-001/PRD-002 with channel/country/location asks.
       # Month granularity keeps cardinality manageable while still supporting period trends.
       - name: product_context_monthly
@@ -142,6 +167,35 @@ cubes:
           - location_name
           - channel_type
           - transaction_date
+        time_dimension: transaction_date
+        granularity: month
+        partition_granularity: month
+        type: rollup
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 1 hour
+          incremental: true
+          update_window: 28 day
+
+      # Sales-only context rollup for PRD-001/PRD-002 product x location/country/channel
+      # breakdowns. This supports safe product-ranking follow-up queries under rollup_only=true.
+      - name: product_context_monthly_sales_only
+        measures:
+          - total_revenue
+          - units_sold
+          - line_count
+        dimensions:
+          - product_name
+          - sku
+          - category
+          - section
+          - billing_country
+          - location_name
+          - channel_type
+          - transaction_date
+        segments:
+          - sales_lines
         time_dimension: transaction_date
         granularity: month
         partition_granularity: month
