@@ -1017,6 +1017,25 @@ cubes:
           every: 365 days
           incremental: true
           update_window: 28 day
+      # Classification line analysis for DEPT002
+      - name: classification_line_analysis
+        measures:
+          - line_count
+        dimensions:
+          - classification_name
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        indexes:
+          - name: classification_name_idx
+            columns:
+              - classification_name
+        refresh_key:
+          every: 1 hour
+          incremental: true
+          update_window: 28 day
       # Product-focused sales analysis (8 dimensions)
       - name: sales_product_detail
         measures:
