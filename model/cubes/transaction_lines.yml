@@ -1033,7 +1033,7 @@ cubes:
             columns:
               - classification_name
         refresh_key:
-          every: 1 hour
+          every: 365 days
           incremental: true
           update_window: 28 day
       # Product-focused sales analysis (8 dimensions)
