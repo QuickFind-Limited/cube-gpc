@@ -49,7 +49,7 @@ cubes:
 
       # CALCULATED MEASURES (computed from pre-aggregation components)
       - name: avg_lead_time_days
-        sql: "CASE WHEN {receipt_count} > 0 THEN CAST({sum_lead_time_days} AS FLOAT64) / {receipt_count} ELSE 0 END"
+        sql: "{sum_lead_time_days} / NULLIF({receipt_count}, 0)"
         type: number
         description: Average lead time in days (SLT001 - calculated from sum/count)
 
