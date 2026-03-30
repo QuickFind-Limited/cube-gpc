@@ -203,6 +203,8 @@ cubes:
       # Users can calculate avg at query time: total_receipt_line_value / total_received_qty
       - name: item_receiving_analysis
         measures:
+          - dc_intake_units
+          - dc_intake_value_at_cost
           - total_received_qty
           - positive_received_qty
           - total_receipt_line_value
