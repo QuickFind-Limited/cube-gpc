@@ -268,6 +268,24 @@ cubes:
         type: count_distinct_approx
         description: Number of unique SKUs
 
+      - name: sales_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale') AND {CUBE}.quantity < 0"
+        description: Approximate count of unique SKUs sold on sales lines only
+
+      - name: return_units_created
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type IN ('RtnAuth', 'CustCred')
+             AND {CUBE}.quantity > 0
+            THEN {CUBE}.quantity
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        description: Units on return lines created in NetSuite (RtnAuth and CustCred only)
+
       # Calculated Measures
       # RM002 FIX: Changed to use revenue_transaction_count instead of transaction_count
       # OLD: Used transaction_count which included ALL transaction types (deposits, payments, etc.)
@@ -1134,6 +1152,31 @@ cubes:
               - billing_country
               - location_name
               - channel_type
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+      # Dev March 13 ops reconciliation support
+      # Minimal geography rollup for sold SKU and return-created queries under rollup_only mode.
+      - name: geography_ops_daily
+        measures:
+          - sales_sku_count
+          - return_units_created
+        dimensions:
+          - billing_country
+          - shipping_country
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        indexes:
+          - name: shipping_country_idx
+            columns:
+              - shipping_country
+          - name: billing_country_idx
+            columns:
+              - billing_country
         refresh_key:
           every: 365 days
           incremental: true
