@@ -46,14 +46,21 @@ cubes:
       - name: over_sla_order_count
         sql: "{CUBE}.sales_order_id"
         type: count_distinct_approx
+        description: >
+          Business-facing SLA breach count using ship date versus order date,
+          with a two-day allowance. This intentionally differs from the legacy
+          24-hour warehouse timing field because the ops sheet is day-based.
         filters:
-          - sql: "{CUBE}.hours_from_order_to_pick_pack > 24"
+          - sql: "DATE(CAST({CUBE}.created_at AS TIMESTAMP)) > DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2"
 
       - name: within_sla_order_count
         sql: "{CUBE}.sales_order_id"
         type: count_distinct_approx
+        description: >
+          Business-facing within-SLA count using ship date versus order date,
+          with a two-day allowance.
         filters:
-          - sql: "{CUBE}.hours_from_order_to_pick_pack <= 24"
+          - sql: "DATE(CAST({CUBE}.created_at AS TIMESTAMP)) <= DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2"
 
     dimensions:
       - name: id

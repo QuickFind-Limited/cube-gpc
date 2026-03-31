@@ -5,7 +5,7 @@ cubes:
     title: Pick Pack SLA Operational
     description: >
       One row per Sales Order with the first observed ItemShip timestamp.
-      Supports +24hr not-picked-and-packed and within-SLA metrics on the same
+      Supports business-facing picked/packed SLA metrics on the same
       05:00 GMT business-day boundary used by the ops dashboard. This cube is
       for SLA lag metrics only. Use
       `item_shipments_operational.orders_picked_packed_business` and
@@ -24,12 +24,12 @@ cubes:
       - name: over_sla_order_count
         type: count
         filters:
-          - sql: "{CUBE}.over_sla_24h"
+          - sql: "DATE(CAST({CUBE}.first_ship_at AS TIMESTAMP)) > DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2"
 
       - name: within_sla_order_count
         type: count
         filters:
-          - sql: "{CUBE}.within_sla_24h"
+          - sql: "DATE(CAST({CUBE}.first_ship_at AS TIMESTAMP)) <= DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2"
 
       - name: within_sla_pct
         sql: "{within_sla_order_count} / NULLIF({order_count}, 0)"
@@ -91,11 +91,19 @@ cubes:
         type: string
 
       - name: within_sla_24h
-        sql: "CASE WHEN {CUBE}.within_sla_24h THEN 'true' ELSE 'false' END"
+        sql: >
+          CASE
+            WHEN DATE(CAST({CUBE}.first_ship_at AS TIMESTAMP)) <= DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2
+            THEN 'true' ELSE 'false'
+          END
         type: string
 
       - name: over_sla_24h
-        sql: "CASE WHEN {CUBE}.over_sla_24h THEN 'true' ELSE 'false' END"
+        sql: >
+          CASE
+            WHEN DATE(CAST({CUBE}.first_ship_at AS TIMESTAMP)) > DATE(CAST({CUBE}.order_created_at AS TIMESTAMP)) + 2
+            THEN 'true' ELSE 'false'
+          END
         type: string
 
     pre_aggregations:
