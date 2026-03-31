@@ -268,6 +268,24 @@ cubes:
         type: count_distinct_approx
         description: Number of unique SKUs
 
+      - name: sales_sku_count
+        sql: "{CUBE}.item"
+        type: count_distinct_approx
+        filters:
+          - sql: "{CUBE}.transaction_type IN ('CustInvc', 'CashSale')"
+        description: Number of unique sold SKUs only (CustInvc + CashSale)
+
+      - name: return_units_created
+        sql: >
+          CAST(CASE
+            WHEN {CUBE}.transaction_type IN ('RtnAuth', 'CustCred', 'CashRfnd')
+            AND {CUBE}.quantity > 0
+            THEN {CUBE}.quantity
+            ELSE 0
+          END AS FLOAT64)
+        type: sum
+        description: Return units created from return-creation transaction types only (RtnAuth, CustCred, CashRfnd)
+
       # Calculated Measures
       # RM002 FIX: Changed to use revenue_transaction_count instead of transaction_count
       # OLD: Used transaction_count which included ALL transaction types (deposits, payments, etc.)
@@ -998,6 +1016,26 @@ cubes:
           - channel_type
           - category
           - department_name
+        time_dimension: transaction_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
+      # Country/day support for March 13 operational coverage.
+      # Keeps rollup-only compatibility for:
+      # - unique sold SKUs by country/day
+      # - return units created by country/day
+      - name: geography_ops_daily
+        measures:
+          - sales_sku_count
+          - return_units_created
+        dimensions:
+          - billing_country
+          - shipping_country
         time_dimension: transaction_date
         granularity: day
         partition_granularity: month
