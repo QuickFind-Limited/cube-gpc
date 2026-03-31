@@ -196,10 +196,6 @@ cubes:
         granularity: day
         build_range_start:
           sql: SELECT '2022-01-01'
-        indexes:
-          - name: location_idx
-            columns:
-              - location
         refresh_key:
           every: 365 days
 
@@ -215,10 +211,6 @@ cubes:
         granularity: day
         build_range_start:
           sql: SELECT '2022-01-01'
-        indexes:
-          - name: item_idx
-            columns:
-              - item
         refresh_key:
           every: 365 days
 
