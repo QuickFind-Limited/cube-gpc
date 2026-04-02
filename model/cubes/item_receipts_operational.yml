@@ -157,7 +157,7 @@ cubes:
           incremental: true
           update_window: 28 day
 
-      - name: receipt_snapshot_daily_by_location
+      - name: receipt_snapshot_daily_by_location_v2
         measures:
           - inbound_receipt_count_snapshot
           - inbound_units_received_snapshot
