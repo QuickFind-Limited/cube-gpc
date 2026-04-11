@@ -1,0 +1,162 @@
+cubes:
+  - name: supplier_inbound_transit
+    sql_table: gpc_prod_native_v1.supplier_inbound_transit_daily_snapshot
+
+    title: Supplier Inbound Transit
+    description: >
+      Daily snapshot of supplier inbound shipments derived from NetSuite
+      inboundshipment and inboundshipmentitem. Canonicalized by business key
+      and location, then expanded to daily snapshot rows using the March-sheet
+      month-scope transit rule.
+
+    measures:
+      - name: in_transit_units
+        sql: "CAST({CUBE}.open_in_transit_units AS FLOAT64)"
+        type: sum
+        description: Supplier inbound units counted in transit on the snapshot date
+
+      - name: expected_units
+        sql: "CAST({CUBE}.quantity_expected AS FLOAT64)"
+        type: sum
+        description: Expected units represented by qualifying inbound shipments
+
+      - name: received_units
+        sql: "CAST({CUBE}.quantity_received AS FLOAT64)"
+        type: sum
+        description: Received units reported on the canonical inbound shipment row
+
+      - name: remaining_units
+        sql: "CAST({CUBE}.quantity_remaining AS FLOAT64)"
+        type: sum
+        description: Remaining units reported on the canonical inbound shipment row
+
+      - name: shipment_count
+        sql: "{CUBE}.canonical_business_key"
+        type: count_distinct_approx
+        description: Distinct canonical inbound shipments in the snapshot
+
+      - name: line_count
+        type: count
+        description: Snapshot row count after canonicalization
+
+    dimensions:
+      - name: id
+        sql: >
+          CONCAT(
+            CAST({CUBE}.snapshot_date AS STRING), '-',
+            COALESCE({CUBE}.canonical_business_key, 'na'), '-',
+            COALESCE(CAST({CUBE}.canonical_location_id AS STRING), 'na')
+          )
+        type: string
+        primary_key: true
+
+      - name: snapshot_date
+        sql: "CAST({CUBE}.snapshot_date AS TIMESTAMP)"
+        type: time
+        description: Business snapshot date
+
+      - name: snapshot_ts
+        sql: "CAST({CUBE}.snapshot_ts AS TIMESTAMP)"
+        type: time
+        description: Snapshot load timestamp
+
+      - name: shipment_created_date
+        sql: "CAST({CUBE}.shipment_created_date AS TIMESTAMP)"
+        type: time
+
+      - name: expected_shipping_date
+        sql: "CAST({CUBE}.expected_shipping_date AS TIMESTAMP)"
+        type: time
+
+      - name: expected_delivery_date
+        sql: "CAST({CUBE}.expected_delivery_date AS TIMESTAMP)"
+        type: time
+
+      - name: actual_shipping_date
+        sql: "CAST({CUBE}.actual_shipping_date AS TIMESTAMP)"
+        type: time
+
+      - name: actual_delivery_date
+        sql: "CAST({CUBE}.actual_delivery_date AS TIMESTAMP)"
+        type: time
+
+      - name: last_modified_ts
+        sql: "CAST({CUBE}.last_modified_ts AS TIMESTAMP)"
+        type: time
+
+      - name: inbound_shipment_id
+        sql: "{CUBE}.inbound_shipment_id"
+        type: number
+
+      - name: shipment_number
+        sql: "{CUBE}.shipment_number"
+        type: string
+
+      - name: invoice_ref
+        sql: "{CUBE}.invoice_ref"
+        type: string
+
+      - name: canonical_business_key
+        sql: "{CUBE}.canonical_business_key"
+        type: string
+
+      - name: canonical_location_id
+        sql: "{CUBE}.canonical_location_id"
+        type: number
+
+      - name: header_location_id
+        sql: "{CUBE}.header_location_id"
+        type: number
+
+      - name: receiving_location_id
+        sql: "{CUBE}.receiving_location_id"
+        type: number
+
+      - name: location_name
+        sql: "{CUBE}.location_name"
+        type: string
+
+      - name: region_bucket
+        sql: "{CUBE}.region_bucket"
+        type: string
+
+      - name: shipment_status
+        sql: "{CUBE}.shipment_status"
+        type: string
+
+      - name: has_duplicate_headers
+        sql: "{CUBE}.has_duplicate_headers"
+        type: boolean
+
+      - name: missing_line_payload
+        sql: "{CUBE}.missing_line_payload"
+        type: boolean
+
+      - name: source_table
+        sql: "{CUBE}.source_table"
+        type: string
+
+    pre_aggregations:
+      - name: supplier_transit_daily_by_region
+        measures:
+          - in_transit_units
+          - expected_units
+          - received_units
+          - remaining_units
+          - shipment_count
+          - line_count
+        dimensions:
+          - region_bucket
+          - location_name
+          - shipment_status
+          - has_duplicate_headers
+          - missing_line_payload
+        time_dimension: snapshot_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2026-03-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
