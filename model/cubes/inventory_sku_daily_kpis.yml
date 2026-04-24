@@ -1,0 +1,123 @@
+cubes:
+  - name: inventory_sku_daily_kpis
+    sql: >
+      WITH sold_sku_daily AS (
+        SELECT
+          DATE(so.operational_day_5am_gmt) AS snapshot_date,
+          CASE
+            WHEN so.market = 'IE' THEN 'IE'
+            WHEN so.market = 'UK_MP' THEN 'UK'
+            ELSE NULL
+          END AS region_bucket,
+          COUNT(DISTINCT SAFE_CAST(tl.item AS INT64)) AS sold_sku_count
+        FROM gpc_prod_native_v1.sales_orders_operational so
+        JOIN gpc_prod_native_v1.transaction_lines_denormalized_mv tl
+          ON CAST(tl.transaction AS INT64) = so.order_id
+        WHERE so.market IN ('IE', 'UK_MP')
+          AND tl.transaction_type = 'SalesOrd'
+          AND SAFE_CAST(tl.quantity AS FLOAT64) < 0
+          AND SAFE_CAST(tl.item AS INT64) IS NOT NULL
+          AND SAFE_CAST(tl.item AS INT64) > 0
+          AND tl.product_name IS NOT NULL
+          AND TRIM(CAST(tl.product_name AS STRING)) != ''
+          AND tl.sku IS NOT NULL
+          AND TRIM(CAST(tl.sku AS STRING)) != ''
+        GROUP BY 1, 2
+      ),
+      stocked_sku_daily AS (
+        SELECT
+          snapshot_date,
+          CASE
+            WHEN location IN (219, 244) THEN 'IE'
+            WHEN location IN (103, 232) THEN 'UK'
+            ELSE NULL
+          END AS region_bucket,
+          APPROX_COUNT_DISTINCT(
+            CASE
+              WHEN quantity_on_hand > 0 THEN SAFE_CAST(item AS INT64)
+              ELSE NULL
+            END
+          ) AS stocked_sku_count
+        FROM gpc_prod_native_v1.inventory_current_daily_snapshot
+        WHERE location IN (103, 219, 232, 244)
+        GROUP BY 1, 2
+      )
+      SELECT
+        CONCAT(
+          CAST(COALESCE(s.snapshot_date, st.snapshot_date) AS STRING),
+          '-',
+          COALESCE(s.region_bucket, st.region_bucket)
+        ) AS id,
+        CAST(COALESCE(s.snapshot_date, st.snapshot_date) AS TIMESTAMP) AS snapshot_date,
+        COALESCE(s.region_bucket, st.region_bucket) AS region_bucket,
+        CAST(COALESCE(s.sold_sku_count, 0) AS INT64) AS sold_sku_count,
+        CAST(COALESCE(st.stocked_sku_count, 0) AS INT64) AS stocked_sku_count
+      FROM sold_sku_daily s
+      FULL OUTER JOIN stocked_sku_daily st
+        ON s.snapshot_date = st.snapshot_date
+       AND s.region_bucket = st.region_bucket
+      WHERE COALESCE(s.region_bucket, st.region_bucket) IS NOT NULL
+    title: Inventory SKU Daily KPIs
+    description: >
+      Daily IE/UK inventory SKU KPI surface. Sold SKU count is built from
+      sellable SalesOrd line items joined to sales_orders_operational by order
+      id and market. Stocked SKU count reuses the inventory snapshot location
+      buckets with APPROX_COUNT_DISTINCT so the denominator aligns with the
+      current inventory_daily_snapshot KPI surface.
+
+    measures:
+      - name: sold_sku_count
+        sql: "CAST({CUBE}.sold_sku_count AS FLOAT64)"
+        type: sum
+        description: >
+          Daily count of unique sellable SKUs sold for the selected IE or UK
+          market bucket.
+
+      - name: stocked_sku_count
+        sql: "CAST({CUBE}.stocked_sku_count AS FLOAT64)"
+        type: sum
+        description: >
+          Daily count of stocked SKUs for the IE or UK inventory-location
+          bucket using the same approximate distinct method as the stock-side
+          inventory snapshot KPI surface.
+
+      - name: pct_sold_skus
+        sql: "{sold_sku_count} / NULLIF({stocked_sku_count}, 0)"
+        type: number
+        format: percent
+        description: >
+          Daily sold-SKU count divided by the matching stocked-SKU denominator
+          for the selected IE or UK inventory bucket.
+
+    dimensions:
+      - name: id
+        sql: "{CUBE}.id"
+        type: string
+        primary_key: true
+
+      - name: snapshot_date
+        sql: "{CUBE}.snapshot_date"
+        type: time
+        description: Daily KPI business date
+
+      - name: region_bucket
+        sql: "{CUBE}.region_bucket"
+        type: string
+        description: IE or UK inventory bucket
+
+    pre_aggregations:
+      - name: sku_kpi_daily
+        measures:
+          - sold_sku_count
+          - stocked_sku_count
+        dimensions:
+          - region_bucket
+        time_dimension: snapshot_date
+        granularity: day
+        partition_granularity: month
+        build_range_start:
+          sql: SELECT '2022-01-01'
+        refresh_key:
+          every: 365 days
+          incremental: true
+          update_window: 28 day
